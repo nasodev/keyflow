@@ -1,0 +1,21 @@
+# Normalize line endings for text
+* text=auto eol=lf
+
+# Unity text serialized assets (keep as text for diffing)
+*.unity   text merge=unityyamlmerge eol=lf
+*.asset   text merge=unityyamlmerge eol=lf
+*.prefab  text merge=unityyamlmerge eol=lf
+*.meta    text eol=lf
+*.mat     text eol=lf
+*.anim    text eol=lf
+*.controller text eol=lf
+
+# Binaries - no merge attempts
+*.png   binary
+*.jpg   binary
+*.wav   binary
+*.ogg   binary
+*.mp3   binary
+*.fbx   binary
+*.dll   binary
+*.keystore binary
