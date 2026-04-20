@@ -9,6 +9,7 @@ namespace KeyFlow.UI
         [SerializeField] private AudioSyncManager audioSync;
         [SerializeField] private TapInputHandler tapInput;
         [SerializeField] private AudioSamplePool samplePool;
+        [SerializeField] private JudgmentSystem judgmentSystem;
 
         private float fpsAccum;
         private int fpsFrames;
@@ -62,11 +63,24 @@ namespace KeyFlow.UI
             double frameElapsed = Time.time - timeAtStart;
             double driftMs = (dspElapsed - frameElapsed) * 1000.0;
 
+            string scoreLine = "Score: —";
+            string comboLine = "Combo: 0";
+            string judgLine  = "Last: —";
+            if (judgmentSystem != null && judgmentSystem.Score != null)
+            {
+                var s = judgmentSystem.Score;
+                scoreLine = $"Score: {s.Score:N0}  Stars: {s.Stars}";
+                comboLine = $"Combo: {s.Combo}  Max: {s.MaxCombo}";
+                judgLine  = $"Last: {judgmentSystem.LastJudgment}  (Δ {judgmentSystem.LastDeltaMs} ms)";
+            }
+
             if (hudText != null)
             {
                 hudText.text =
                     $"FPS: {fpsDisplay:F1}\n" +
-                    $"Frame latency: {(lastFrameLatencyMs < 0 ? "--" : lastFrameLatencyMs.ToString("F1"))} ms (not tap→audio)\n" +
+                    $"{scoreLine}\n" +
+                    $"{comboLine}\n" +
+                    $"{judgLine}\n" +
                     $"dspTime drift: {driftMs:F1} ms\n" +
                     $"Song time: {(audioSync != null ? audioSync.SongTimeMs : 0)} ms\n" +
                     $"Buffer: {AudioSettings.GetConfiguration().dspBufferSize} samples";
