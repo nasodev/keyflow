@@ -127,22 +127,22 @@ totalScore = Σ judgmentScore + Σ comboBonus
 1성 500,000 / 2성 750,000 / 3성 900,000.
 
 ### 5.4 노트 스크롤 공식 (dspTime 기반)
+
+W1 PoC에서 이미 만든 `AudioSyncManager.SongTimeMs` 와 `GameTime.GetNoteProgress` 를 그대로 재사용. v2에서 바뀌는 건 x 좌표 계산뿐.
+
 ```csharp
-double songStartDspTime;
-void StartSong() {
-    songStartDspTime = AudioSettings.dspTime + 0.5;
-    // v2: BGM 없음. PlayScheduled 호출 안 함. 단순 dspTime 앵커만.
-}
 void Update() {
-    double songTime = AudioSettings.dspTime - songStartDspTime - userCalibOffset;
-    float previewTime = 2.5f / userNoteSpeed;
+    int songTimeMs = audioSync.SongTimeMs;   // AudioSyncManager가 dspTime + 캘리브 오프셋 이미 처리
+    int previewMs  = (int)(2500 / userNoteSpeed);
     foreach (var note in activeNotes) {
-        float progress = 1f - (float)((note.hitTime - songTime) / previewTime);
-        float laneX = LaneLayout.LaneToX(note.lane);  // v2 신규
+        float progress = GameTime.GetNoteProgress(songTimeMs, note.hitTimeMs, previewMs);
+        float laneX = LaneLayout.LaneToX(note.lane, laneAreaWidth);   // v2 신규
         note.transform.position = new Vector3(laneX, Mathf.Lerp(spawnY, judgmentY, progress), 0);
     }
 }
 ```
+
+`AudioSyncManager` 자체는 W1 그대로. `StartSilentSong()` (BGM 없는 dspTime 앵커) 호출만 하면 됨. `CalibrationOffsetSec` 프로퍼티에 캘리브레이션 값 세팅하면 `SongTimeMs` 가 자동 보정.
 
 ### 5.5 레인 → x 좌표 변환 (v2 신규)
 
@@ -159,7 +159,8 @@ public static class LaneLayout {
     public static int XToLane(float x, float screenWorldWidth) {
         float laneWidth = screenWorldWidth / LaneCount;
         float leftEdge = -screenWorldWidth / 2f;
-        return Mathf.Clamp((int)((x - leftEdge) / laneWidth), 0, LaneCount - 1);
+        int raw = Mathf.FloorToInt((x - leftEdge) / laneWidth);
+        return Mathf.Clamp(raw, 0, LaneCount - 1);
     }
 }
 ```
@@ -229,6 +230,8 @@ public static class LaneLayout {
 - `type`: `TAP` | `HOLD`
 - `dur`: Hold 지속 ms (Tap은 0)
 - `audioFile`: **v1에서 제거** (BGM 없음)
+
+**피치 범위 규약**: `pitch` 는 MIDI 36~83(48건반 번들 범위). 차트 변환기가 이 범위를 보장하며, 범위 밖의 원본 MIDI 노트는 **가장 가까운 옥타브로 이동(transpose)** 후 배정한다. 런타임에서는 범위 외 피치가 들어와도 `Mathf.Clamp(pitch, 36, 83)` 으로 방어.
 
 ---
 
@@ -301,24 +304,28 @@ import mido, json
 
 def midi_to_chart(midi_path, difficulty):
     mid = mido.MidiFile(midi_path)
-    notes = []
+    raw_notes = []
     abs_time = 0
-    pitches_seen = []
 
-    # 1st pass: 노트 수집 + 피치 범위 구하기
+    # 1st pass: 전체 note_on 수집
     for msg in mid:
         abs_time += msg.time
         if msg.type == 'note_on' and msg.velocity > 0:
-            if difficulty == 'EASY' and len(notes) % 2 == 1:
-                continue
-            notes.append({
+            raw_notes.append({
                 't': int(abs_time * 1000),
-                'pitch': msg.note,
+                'pitch': _clamp_to_sample_range(msg.note),  # MIDI 36~83
                 'type': 'TAP',
                 'dur': 0,
                 'lane': 0  # placeholder
             })
-            pitches_seen.append(msg.note)
+
+    # EASY 난이도: 멜로디 밀도 낮추기 위해 짝수 인덱스만 유지
+    if difficulty == 'EASY':
+        notes = raw_notes[::2]
+    else:
+        notes = raw_notes
+
+    pitches_seen = [n['pitch'] for n in notes]
 
     if not pitches_seen:
         return []
@@ -383,9 +390,9 @@ Internal Testing 또는 APK 직접 배포. 공개 배포는 v1.0부터.
 
 v1 → v2 피벗 후 W1 PoC 코드의 활용도:
 
-- **생존 (수정 없음)**: AudioSyncManager, AudioSamplePool, TapInputHandler(일부), LatencyMeter, GameTime의 SongTime/NoteProgress, EditMode 테스트 대부분, Assets/Audio/piano_c4.wav, 모든 ProjectSettings (Orientation만 변경)
-- **수정**: NoteController(레인 기반), NoteSpawner(차트 로드), TapInputHandler(x→레인), SceneBuilder(세로 레이아웃)
-- **폐기**: GameTime.PitchToX, 관련 테스트 3개, 기존 GameplayScene, Note 프리팹
+- **생존 (수정 없음)**: `AudioSyncManager`, `AudioSamplePool`, `LatencyMeter`, `GameTime.GetSongTimeMs/GetNoteProgress/MinPitch/MaxPitch`, EditMode 테스트 중 PitchToX 제외 전부, Assets/Audio/piano_c4.wav, ProjectSettings (Orientation만 변경)
+- **수정**: `NoteController`(레인 기반 x 주입), `NoteSpawner`(차트 로드 + `laneXPositions[4]`), `TapInputHandler`(터치 x → 레인 인덱스 추가), `SceneBuilder`(세로 레이아웃 재작성)
+- **폐기**: `GameTime.PitchToX` 함수 + 관련 테스트 3개, 기존 `GameplayScene.unity`, 기존 `Note.prefab`
 - **Orientation 설정**: Player Settings Portrait으로 변경 필요
 
 W2 작업 착수 시 위 목록 기준으로 재사용 최대화.
