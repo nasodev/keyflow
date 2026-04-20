@@ -66,21 +66,26 @@ namespace KeyFlow.Editor
                 camera, pianoClip, notePrefab, gameplayRoot.transform,
                 out var audioSync, out var samplePool, out var tapInput,
                 out var judgmentSystem, out var spawner, out var holdTracker);
-            BuildHUD(audioSync, tapInput, samplePool, judgmentSystem, gameplayRoot.transform);
+            var hudPauseButton = BuildHUD(audioSync, tapInput, samplePool, judgmentSystem, whiteSprite, gameplayRoot.transform);
 
             var calibration = BuildCalibrationOverlay(whiteSprite, pianoClip, audioSync);
             var completionPanel = BuildCompletionPanel(whiteSprite);
             BuildGameplayController(calibration, audioSync, spawner, judgmentSystem, completionPanel, gameplayRoot.transform);
 
             var mainCanvas = BuildMainCanvas(whiteSprite);
+            var pauseScreen = BuildPauseCanvas(whiteSprite, audioSync);
 
-            // ScreenManager. resultsCanvas/pauseOverlay/settingsOverlay wire in
-            // later tasks; Replace() and HideAllOverlays() null-guard those fields.
+            // Wire HUD pause button -> PauseScreen
+            SetField(hudPauseButton, "pauseOverlay", pauseScreen);
+
+            // ScreenManager. resultsCanvas/settingsOverlay wire in later tasks;
+            // Replace() and HideAllOverlays() null-guard those fields.
             var screenManagerGO = new GameObject("ScreenManager");
             var screenMgr = screenManagerGO.AddComponent<ScreenManager>();
             SetField(screenMgr, "mainRoot", mainCanvas);
             SetField(screenMgr, "gameplayRoot", gameplayRoot);
             SetField(screenMgr, "calibrationOverlay", calibration);
+            SetField(screenMgr, "pauseOverlay", pauseScreen);
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene, ScenePath);
@@ -202,11 +207,12 @@ namespace KeyFlow.Editor
             SetField(spawner, "judgmentY", JudgmentY);
         }
 
-        private static void BuildHUD(
+        private static HUDPauseButton BuildHUD(
             AudioSyncManager audioSync,
             TapInputHandler tapInput,
             AudioSamplePool samplePool,
             JudgmentSystem judgmentSystem,
+            Sprite whiteSprite,
             Transform parent)
         {
             var canvasGO = new GameObject("HUDCanvas");
@@ -243,6 +249,36 @@ namespace KeyFlow.Editor
             SetField(meter, "tapInput", tapInput);
             SetField(meter, "samplePool", samplePool);
             SetField(meter, "judgmentSystem", judgmentSystem);
+
+            // Pause button (top-right)
+            var pauseBtnGO = new GameObject("PauseButton");
+            pauseBtnGO.transform.SetParent(canvasGO.transform, false);
+            var pauseBtnRT = pauseBtnGO.AddComponent<RectTransform>();
+            pauseBtnRT.anchorMin = new Vector2(1, 1);
+            pauseBtnRT.anchorMax = new Vector2(1, 1);
+            pauseBtnRT.pivot = new Vector2(1, 1);
+            pauseBtnRT.anchoredPosition = new Vector2(-20, -20);
+            pauseBtnRT.sizeDelta = new Vector2(80, 80);
+            var pauseBtnImg = pauseBtnGO.AddComponent<Image>();
+            pauseBtnImg.sprite = whiteSprite;
+            pauseBtnImg.color = new Color(0.15f, 0.15f, 0.2f, 0.75f);
+            pauseBtnGO.AddComponent<Button>();
+
+            var pauseLabelGO = new GameObject("Label");
+            pauseLabelGO.transform.SetParent(pauseBtnGO.transform, false);
+            var pauseLabelRT = pauseLabelGO.AddComponent<RectTransform>();
+            pauseLabelRT.anchorMin = Vector2.zero;
+            pauseLabelRT.anchorMax = Vector2.one;
+            pauseLabelRT.offsetMin = Vector2.zero;
+            pauseLabelRT.offsetMax = Vector2.zero;
+            var pauseLabel = pauseLabelGO.AddComponent<Text>();
+            pauseLabel.text = "II";
+            pauseLabel.fontSize = 36;
+            pauseLabel.color = Color.white;
+            pauseLabel.alignment = TextAnchor.MiddleCenter;
+            pauseLabel.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+
+            return pauseBtnGO.AddComponent<HUDPauseButton>();
         }
 
         private static CalibrationController BuildCalibrationOverlay(
@@ -649,6 +685,73 @@ namespace KeyFlow.Editor
             txt.color = Color.white;
             txt.alignment = TextAnchor.MiddleCenter;
             txt.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            return btn;
+        }
+
+        private static PauseScreen BuildPauseCanvas(Sprite whiteSprite, AudioSyncManager audioSync)
+        {
+            var canvasGO = new GameObject("PauseCanvas");
+            var canvas = canvasGO.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.sortingOrder = 15;
+            var scaler = canvasGO.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(720, 1280);
+            scaler.matchWidthOrHeight = 0.5f;
+            canvasGO.AddComponent<GraphicRaycaster>();
+
+            var bgGO = new GameObject("Background");
+            bgGO.transform.SetParent(canvasGO.transform, false);
+            var bgRT = bgGO.AddComponent<RectTransform>();
+            bgRT.anchorMin = Vector2.zero;
+            bgRT.anchorMax = Vector2.one;
+            bgRT.offsetMin = Vector2.zero;
+            bgRT.offsetMax = Vector2.zero;
+            var bgImg = bgGO.AddComponent<Image>();
+            bgImg.color = new Color(0, 0, 0, 0.8f);
+
+            CreateCenteredText(canvasGO.transform, "TitleText", UIStrings.Paused, 56, new Vector2(0.5f, 0.75f), new Vector2(680, 90));
+
+            var resumeButton = BuildPrimaryButton(canvasGO.transform, whiteSprite,
+                UIStrings.Resume, new Vector2(0.5f, 0.5f), new Color(0.2f, 0.6f, 0.9f, 1f));
+            var quitButton = BuildPrimaryButton(canvasGO.transform, whiteSprite,
+                UIStrings.QuitToMain, new Vector2(0.5f, 0.35f), new Color(0.6f, 0.3f, 0.3f, 1f));
+
+            var pauseScreen = canvasGO.AddComponent<PauseScreen>();
+            SetField(pauseScreen, "resumeButton", resumeButton);
+            SetField(pauseScreen, "quitButton", quitButton);
+            SetField(pauseScreen, "audioSync", audioSync);
+            return pauseScreen;
+        }
+
+        private static Button BuildPrimaryButton(
+            Transform parent, Sprite whiteSprite, string label, Vector2 anchor, Color color)
+        {
+            var btnGO = new GameObject(label + "Button");
+            btnGO.transform.SetParent(parent, false);
+            var btnRT = btnGO.AddComponent<RectTransform>();
+            btnRT.anchorMin = anchor;
+            btnRT.anchorMax = anchor;
+            btnRT.pivot = new Vector2(0.5f, 0.5f);
+            btnRT.sizeDelta = new Vector2(440, 100);
+            var btnImg = btnGO.AddComponent<Image>();
+            btnImg.sprite = whiteSprite;
+            btnImg.color = color;
+            var btn = btnGO.AddComponent<Button>();
+
+            var labelGO = new GameObject("Label");
+            labelGO.transform.SetParent(btnGO.transform, false);
+            var labelRT = labelGO.AddComponent<RectTransform>();
+            labelRT.anchorMin = Vector2.zero;
+            labelRT.anchorMax = Vector2.one;
+            labelRT.offsetMin = Vector2.zero;
+            labelRT.offsetMax = Vector2.zero;
+            var labelText = labelGO.AddComponent<Text>();
+            labelText.text = label;
+            labelText.fontSize = 32;
+            labelText.color = Color.white;
+            labelText.alignment = TextAnchor.MiddleCenter;
+            labelText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             return btn;
         }
 
