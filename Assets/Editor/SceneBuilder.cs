@@ -23,7 +23,7 @@ namespace KeyFlow.Editor
         private const float SpawnY = 6.5f;
         private const float JudgmentY = -5f;           // ~81% down the viewport (spec §4.3 target: 80%)
 
-        [MenuItem("KeyFlow/Build W3 Gameplay Scene")]
+        [MenuItem("KeyFlow/Build W4 Scene")]
         public static void Build()
         {
             EnsureFolder("Assets/Scenes");
@@ -45,17 +45,29 @@ namespace KeyFlow.Editor
 
             var camera = BuildMainCamera();
             CreateEventSystem();
-            BuildLaneDividers(whiteSprite);
-            BuildJudgmentLine(whiteSprite);
+
+            // GameplayRoot groups all gameplay-only objects so ScreenManager
+            // can toggle them wholesale.
+            var gameplayRoot = new GameObject("GameplayRoot");
+
+            BuildLaneDividers(whiteSprite, gameplayRoot.transform);
+            BuildJudgmentLine(whiteSprite, gameplayRoot.transform);
             BuildManagers(
-                camera, pianoClip, notePrefab,
+                camera, pianoClip, notePrefab, gameplayRoot.transform,
                 out var audioSync, out var samplePool, out var tapInput,
                 out var judgmentSystem, out var spawner, out var holdTracker);
-            BuildHUD(audioSync, tapInput, samplePool, judgmentSystem);
+            BuildHUD(audioSync, tapInput, samplePool, judgmentSystem, gameplayRoot.transform);
 
             var calibration = BuildCalibrationOverlay(whiteSprite, pianoClip, audioSync);
             var completionPanel = BuildCompletionPanel(whiteSprite);
-            BuildGameplayController(calibration, audioSync, spawner, judgmentSystem, completionPanel);
+            BuildGameplayController(calibration, audioSync, spawner, judgmentSystem, completionPanel, gameplayRoot.transform);
+
+            // ScreenManager. mainRoot/resultsCanvas wire in later tasks; gameplay
+            // + calibration refs can be filled now.
+            var screenManagerGO = new GameObject("ScreenManager");
+            var screenMgr = screenManagerGO.AddComponent<ScreenManager>();
+            SetField(screenMgr, "gameplayRoot", gameplayRoot);
+            SetField(screenMgr, "calibrationOverlay", calibration);
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene, ScenePath);
@@ -63,7 +75,7 @@ namespace KeyFlow.Editor
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
             EditorSceneManager.OpenScene(ScenePath);
 
-            Debug.Log($"[KeyFlow] W3 scene built: {ScenePath}");
+            Debug.Log($"[KeyFlow] W4 scene built: {ScenePath}");
         }
 
         private static GameObject CreateEventSystem()
@@ -88,13 +100,14 @@ namespace KeyFlow.Editor
             return camera;
         }
 
-        private static void BuildLaneDividers(Sprite sprite)
+        private static void BuildLaneDividers(Sprite sprite, Transform parent)
         {
             float leftEdge = -LaneAreaWidth / 2f;
             for (int i = 0; i <= LaneLayout.LaneCount; i++)
             {
                 float x = leftEdge + i * (LaneAreaWidth / LaneLayout.LaneCount);
                 var go = new GameObject($"LaneDivider_{i}");
+                go.transform.SetParent(parent, worldPositionStays: false);
                 go.transform.position = new Vector3(x, 0, 0);
                 go.transform.localScale = new Vector3(0.02f, 20f, 1);
                 var sr = go.AddComponent<SpriteRenderer>();
@@ -104,9 +117,10 @@ namespace KeyFlow.Editor
             }
         }
 
-        private static GameObject BuildJudgmentLine(Sprite sprite)
+        private static GameObject BuildJudgmentLine(Sprite sprite, Transform parent)
         {
             var go = new GameObject("JudgmentLine");
+            go.transform.SetParent(parent, worldPositionStays: false);
             go.transform.position = new Vector3(0, JudgmentY, 0);
             go.transform.localScale = new Vector3(LaneAreaWidth, 0.12f, 1);
             var sr = go.AddComponent<SpriteRenderer>();
@@ -120,6 +134,7 @@ namespace KeyFlow.Editor
             Camera camera,
             AudioClip pianoClip,
             GameObject notePrefab,
+            Transform parent,
             out AudioSyncManager audioSync,
             out AudioSamplePool samplePool,
             out TapInputHandler tapInput,
@@ -128,6 +143,7 @@ namespace KeyFlow.Editor
             out HoldTracker holdTracker)
         {
             var managers = new GameObject("Managers");
+            managers.transform.SetParent(parent, worldPositionStays: false);
 
             var audioSyncGO = new GameObject("AudioSync");
             audioSyncGO.transform.SetParent(managers.transform);
@@ -177,9 +193,11 @@ namespace KeyFlow.Editor
             AudioSyncManager audioSync,
             TapInputHandler tapInput,
             AudioSamplePool samplePool,
-            JudgmentSystem judgmentSystem)
+            JudgmentSystem judgmentSystem,
+            Transform parent)
         {
             var canvasGO = new GameObject("HUDCanvas");
+            canvasGO.transform.SetParent(parent, worldPositionStays: false);
             var canvas = canvasGO.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             var scaler = canvasGO.AddComponent<CanvasScaler>();
@@ -419,9 +437,11 @@ namespace KeyFlow.Editor
             AudioSyncManager audioSync,
             NoteSpawner spawner,
             JudgmentSystem judgmentSystem,
-            CompletionPanel completionPanel)
+            CompletionPanel completionPanel,
+            Transform parent)
         {
             var go = new GameObject("GameplayController");
+            go.transform.SetParent(parent, worldPositionStays: false);
             var ctrl = go.AddComponent<GameplayController>();
             SetField(ctrl, "calibration", calibration);
             SetField(ctrl, "audioSync", audioSync);
