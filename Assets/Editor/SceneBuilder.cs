@@ -17,6 +17,11 @@ namespace KeyFlow.Editor
         private const string ScenePath = "Assets/Scenes/GameplayScene.unity";
         private const string NotePrefabPath = "Assets/Prefabs/Note.prefab";
         private const string WhiteSpritePath = "Assets/Sprites/white.png";
+        private const string StarFilledPath = "Assets/Sprites/star_filled.png";
+        private const string StarEmptyPath = "Assets/Sprites/star_empty.png";
+        private const string ThumbsDir = "Assets/StreamingAssets/thumbs";
+        private const string LockedThumbPath = "Assets/StreamingAssets/thumbs/locked.png";
+        private const string FurEliseThumbPath = "Assets/StreamingAssets/thumbs/fur_elise.png";
 
         // Portrait layout (camera orthographic size 8 → 9 world-unit-wide viewport at 9:16 aspect)
         private const float LaneAreaWidth = 4f;       // world units
@@ -29,8 +34,13 @@ namespace KeyFlow.Editor
             EnsureFolder("Assets/Scenes");
             EnsureFolder("Assets/Prefabs");
             EnsureFolder("Assets/Sprites");
+            EnsureFolder("Assets/StreamingAssets");
+            EnsureFolder(ThumbsDir);
 
             var whiteSprite = EnsureWhiteSprite();
+            EnsureStarSprite(true);
+            EnsureStarSprite(false);
+            EnsureThumbnailAssets();
             var pianoClip = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/piano_c4.wav");
             if (pianoClip == null)
             {
@@ -492,6 +502,103 @@ namespace KeyFlow.Editor
             }
 
             return AssetDatabase.LoadAssetAtPath<Sprite>(WhiteSpritePath);
+        }
+
+        private static Sprite EnsureStarSprite(bool filled)
+        {
+            string path = filled ? StarFilledPath : StarEmptyPath;
+            var existing = AssetDatabase.LoadAssetAtPath<Sprite>(path);
+            if (existing != null) return existing;
+
+            const int size = 64;
+            var tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            Color clear = new Color(0, 0, 0, 0);
+            Color fill = filled ? new Color(1f, 0.85f, 0.2f, 1f) : new Color(0.4f, 0.4f, 0.4f, 0.6f);
+            var pixels = new Color[size * size];
+            for (int i = 0; i < pixels.Length; i++) pixels[i] = clear;
+
+            Vector2 center = new Vector2(size / 2f, size / 2f);
+            float outer = 28f, inner = 12f;
+            Vector2[] verts = new Vector2[10];
+            for (int i = 0; i < 10; i++)
+            {
+                float r = (i % 2 == 0) ? outer : inner;
+                float a = Mathf.PI / 2f - i * Mathf.PI / 5f;
+                verts[i] = center + new Vector2(Mathf.Cos(a) * r, Mathf.Sin(a) * r);
+            }
+
+            for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+            {
+                if (PointInPolygon(new Vector2(x + 0.5f, y + 0.5f), verts))
+                    pixels[y * size + x] = fill;
+            }
+
+            tex.SetPixels(pixels);
+            tex.Apply();
+            File.WriteAllBytes(path, tex.EncodeToPNG());
+            Object.DestroyImmediate(tex);
+
+            AssetDatabase.ImportAsset(path);
+            var importer = AssetImporter.GetAtPath(path) as TextureImporter;
+            if (importer != null)
+            {
+                importer.textureType = TextureImporterType.Sprite;
+                importer.spriteImportMode = SpriteImportMode.Single;
+                importer.alphaIsTransparency = true;
+                importer.filterMode = FilterMode.Bilinear;
+                importer.SaveAndReimport();
+            }
+            return AssetDatabase.LoadAssetAtPath<Sprite>(path);
+        }
+
+        private static bool PointInPolygon(Vector2 p, Vector2[] poly)
+        {
+            bool inside = false;
+            int j = poly.Length - 1;
+            for (int i = 0; i < poly.Length; i++)
+            {
+                if ((poly[i].y > p.y) != (poly[j].y > p.y) &&
+                    p.x < (poly[j].x - poly[i].x) * (p.y - poly[i].y) / (poly[j].y - poly[i].y) + poly[i].x)
+                    inside = !inside;
+                j = i;
+            }
+            return inside;
+        }
+
+        private static void EnsureThumbnailAssets()
+        {
+            if (!File.Exists(LockedThumbPath))
+            {
+                const int size = 128;
+                var tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
+                var p = new Color[size * size];
+                Color bg = new Color(0.2f, 0.2f, 0.22f, 1f);
+                Color stripe = new Color(0.3f, 0.3f, 0.32f, 1f);
+                for (int y = 0; y < size; y++)
+                for (int x = 0; x < size; x++)
+                    p[y * size + x] = (((x + y) / 8) % 2 == 0) ? bg : stripe;
+                tex.SetPixels(p); tex.Apply();
+                File.WriteAllBytes(LockedThumbPath, tex.EncodeToPNG());
+                Object.DestroyImmediate(tex);
+                AssetDatabase.ImportAsset(LockedThumbPath);
+            }
+            if (!File.Exists(FurEliseThumbPath))
+            {
+                const int size = 128;
+                var tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
+                var p = new Color[size * size];
+                Color bg = new Color(0.15f, 0.2f, 0.4f, 1f);
+                Color fg = new Color(0.95f, 0.9f, 0.7f, 1f);
+                for (int i = 0; i < p.Length; i++) p[i] = bg;
+                for (int y = 32; y < 96; y++) for (int x = 48; x < 56; x++) p[y * size + x] = fg;
+                for (int y = 88; y < 96; y++) for (int x = 48; x < 80; x++) p[y * size + x] = fg;
+                for (int y = 60; y < 68; y++) for (int x = 48; x < 72; x++) p[y * size + x] = fg;
+                tex.SetPixels(p); tex.Apply();
+                File.WriteAllBytes(FurEliseThumbPath, tex.EncodeToPNG());
+                Object.DestroyImmediate(tex);
+                AssetDatabase.ImportAsset(FurEliseThumbPath);
+            }
         }
 
         private static void EnsureFolder(string path)
