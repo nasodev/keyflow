@@ -2,6 +2,8 @@ using System.IO;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.InputSystem.UI;
 using UnityEngine.UI;
 using KeyFlow.UI;
 
@@ -39,6 +41,7 @@ namespace KeyFlow.Editor
             scene.name = "GameplayScene";
 
             var camera = BuildMainCamera();
+            CreateEventSystem();
             BuildLaneDividers(whiteSprite);
             BuildJudgmentLine(whiteSprite);
             BuildManagers(
@@ -58,6 +61,14 @@ namespace KeyFlow.Editor
             EditorSceneManager.OpenScene(ScenePath);
 
             Debug.Log($"[KeyFlow] W3 scene built: {ScenePath}");
+        }
+
+        private static GameObject CreateEventSystem()
+        {
+            var go = new GameObject("EventSystem");
+            go.AddComponent<EventSystem>();
+            go.AddComponent<InputSystemUIInputModule>();
+            return go;
         }
 
         private static Camera BuildMainCamera()
