@@ -131,7 +131,7 @@ Legend: `C` = create, `M` = modify, unchanged = left alone.
 | Task | Theme | Tests delta | Commit type |
 |---|---|---|---|
 | 1 | Namespace refactor | 0 | chore(ns) |
-| 2 | UserPrefs + tests + migration | +6 | feat(prefs) |
+| 2 | UserPrefs + tests + migration + HasCalibration | +7 | feat(prefs) |
 | 3 | UIStrings | 0 | feat(ui) |
 | 4 | OverlayBase + tests | +2 | feat(ui) |
 | 5 | SongSession static | 0 | feat(session) |
@@ -143,7 +143,7 @@ Legend: `C` = create, `M` = modify, unchanged = left alone.
 | 11 | SongCardView + MainScreen | 0 | feat(ui) |
 | 12 | SceneBuilder MainCanvas + SongSession wiring in GameplayController | 0 | feat(scene) |
 | 13 | AudioSyncManager Pause/Resume + tests | +3 | feat(audio) |
-| 14 | Pause guards across spawner/note/tap/hold/judgment | 0 | feat(pause) |
+| 14 | Pause guards across spawner/note/tap/hold | 0 | feat(pause) |
 | 15 | PauseScreen + HUD ⏸ button + SceneBuilder | 0 | feat(ui) |
 | 16 | SettingsScreen + SceneBuilder + calib re-run | 0 | feat(ui) |
 | 17 | ResultsScreen + SceneBuilder (delete CompletionPanel) | 0 | feat(ui) |
@@ -151,7 +151,7 @@ Legend: `C` = create, `M` = modify, unchanged = left alone.
 | 19 | Back button mapping + Main double-back-to-quit | 0 | feat(input) |
 | 20 | Device validation + completion report | 0 | docs(w4) |
 
-**Total 20 tasks, +19 tests, W3's 68 → 87 at end.**
+**Total 20 tasks, +20 tests, W3's 68 → 88 at end.**
 
 ---
 
@@ -336,6 +336,13 @@ namespace KeyFlow.Tests.EditMode
 
             Assert.AreEqual(50, UserPrefs.CalibrationOffsetMs);
         }
+
+        [Test] public void HasCalibration_TracksKeyPresence()
+        {
+            Assert.IsFalse(UserPrefs.HasCalibration);
+            UserPrefs.CalibrationOffsetMs = 0;  // explicit set of zero
+            Assert.IsTrue(UserPrefs.HasCalibration);
+        }
     }
 }
 ```
@@ -412,11 +419,14 @@ namespace KeyFlow
             $"KeyFlow.Record.{id}.{d}.Stars";
         private static string RecordScoreKey(string id, Difficulty d) =>
             $"KeyFlow.Record.{id}.{d}.Score";
+
+        public static bool HasCalibration =>
+            PlayerPrefs.HasKey(K_CalibOffset);
     }
 }
 ```
 
-- [ ] **Step 4: Run tests, expect 6/6 PASS** (74/74 total).
+- [ ] **Step 4: Run tests, expect 7/7 PASS** (75/75 total).
 
 - [ ] **Step 5: Commit**:
 ```bash
@@ -426,7 +436,8 @@ git commit -m "feat(prefs): UserPrefs facade + legacy CalibOffsetMs migration
 Single choke-point for PlayerPrefs with KeyFlow.* key prefix.
 1-shot idempotent migration copies CalibOffsetMs → prefixed key.
 Per-song best stars+score with TrySetBest (updates only if higher).
-+6 EditMode tests (74 total)."
+HasCalibration distinguishes 'never calibrated' from 'calibrated to 0ms'.
++7 EditMode tests (75 total)."
 ```
 
 Note: `CalibrationController` itself still uses `"CalibOffsetMs"` directly. That replacement is deferred to Task 6 where we also give it `OverlayBase` inheritance.
@@ -520,7 +531,7 @@ namespace KeyFlow.Tests.EditMode
 
 - [ ] **Step 3: Implement OverlayBase** — exactly as specified in spec §3.1.
 
-- [ ] **Step 4:** Run tests, expect 2/2 pass (76 total).
+- [ ] **Step 4:** Run tests, expect 2/2 pass (77 total).
 
 - [ ] **Step 5: Commit**:
 ```bash
@@ -529,7 +540,7 @@ git commit -m "feat(ui): OverlayBase abstract with Show/Finish hooks
 
 Carry-over #7. Settings/Pause/Results will inherit. CalibrationController
 migration follows in Task 6, CompletionPanel replaced in Task 17.
-+2 EditMode tests (76 total)."
++2 EditMode tests (77 total)."
 ```
 
 ---
@@ -560,7 +571,7 @@ namespace KeyFlow
 No tests — pure state holder. The `Reset` method exists so EditMode tests that need a clean slate can call it.
 
 - [ ] **Step 1:** Create file.
-- [ ] **Step 2:** Build verification: run `SceneBuilder.Build` + tests. 76/76.
+- [ ] **Step 2:** Build verification: run `SceneBuilder.Build` + tests. 77/77.
 - [ ] **Step 3: Commit:**
 ```bash
 git add Assets/Scripts/Common/SongSession.cs
@@ -583,25 +594,12 @@ need. Reset() for test isolation."
 3. Route persistence through `UserPrefs.CalibrationOffsetMs` — delete local `PrefsKey` const and `HasSavedOffset` / `LoadSavedOffsetMs` statics (migrated callers below).
 
 Migrating callers:
-- `GameplayController.Start` currently reads `CalibrationController.HasSavedOffset()` and `LoadSavedOffsetMs()`. Replace with `UserPrefs.CalibrationOffsetMs != 0` (treating 0 as "never set" — acceptable because CalibrationCalculator returns ~100ms; literal 0 only happens after 3 retries fail and we save 0, which is fine — user still gets zero-offset gameplay). Actually: `0` is ambiguous. **Use `PlayerPrefs.HasKey("KeyFlow.Settings.CalibrationOffsetMs")` via a new `UserPrefs.HasCalibration` helper.**
+- `GameplayController.Start` currently reads `CalibrationController.HasSavedOffset()` and `LoadSavedOffsetMs()`. Replace with `UserPrefs.HasCalibration` (distinguishes "never set" from "set to 0ms" — literal 0 only happens after 3 retries fail; Save(0) still marks the key present, so `HasCalibration` returns true and next boot skips calibration — intended MVP behavior).
 
-Add to `UserPrefs`:
-```csharp
-public static bool HasCalibration =>
-    PlayerPrefs.HasKey("KeyFlow.Settings.CalibrationOffsetMs");
-```
+`UserPrefs.HasCalibration` was already added in Task 2.
 
-- [ ] **Step 1:** Extend `UserPrefs` with `HasCalibration` property + add a test:
-```csharp
-[Test] public void HasCalibration_TracksKeyPresence()
-{
-    Assert.IsFalse(UserPrefs.HasCalibration);
-    UserPrefs.CalibrationOffsetMs = 0;  // explicit set even if zero
-    Assert.IsTrue(UserPrefs.HasCalibration);
-}
-```
-
-- [ ] **Step 2:** Refactor `CalibrationController`:
+- [ ] **Step 1:** Refactor `CalibrationController`:
+  - Add `using KeyFlow; using KeyFlow.UI;` at the top.
   - Change inheritance: `public class CalibrationController : OverlayBase`
   - Remove manual `Awake` (base handles it); override `OnShown` if needed (nothing needed — Begin does the work).
   - `Begin(Action onDone)`:
@@ -629,7 +627,7 @@ public static bool HasCalibration =>
   - Delete `PrefsKey` const, `HasSavedOffset()`, `LoadSavedOffsetMs()`.
   - `Save(int offsetMs)`: `UserPrefs.CalibrationOffsetMs = offsetMs;` + keep `audioSync.CalibrationOffsetSec = offsetMs / 1000.0;`.
 
-- [ ] **Step 3:** Update `GameplayController.Start`:
+- [ ] **Step 2:** Update `GameplayController.Start`:
 ```csharp
 private void Start()
 {
@@ -651,21 +649,19 @@ Note: `SongSession.CurrentSongId ?? "beethoven_fur_elise"` default is defensive 
 
 Also remove `calibration.OnCalibrationDone = null;` and `calibration.OnCalibrationDone = BeginGameplay;` lines.
 
-- [ ] **Step 4:** Build scene + run tests. Expected: 77/77 pass. Open scene in Editor; verify calibration overlay still hides on start and shows on first run.
+- [ ] **Step 3:** Build scene + run tests. Expected: 77/77 pass. Open scene in Editor; verify calibration overlay still hides on start and shows on first run.
 
-- [ ] **Step 5: Commit**:
+- [ ] **Step 4: Commit**:
 ```bash
 git add Assets/Scripts/Calibration/CalibrationController.cs \
-        Assets/Scripts/Gameplay/GameplayController.cs \
-        Assets/Scripts/Common/UserPrefs.cs \
-        Assets/Tests/EditMode/UserPrefsTests.cs
+        Assets/Scripts/Gameplay/GameplayController.cs
 git commit -m "refactor(calib): CalibrationController inherits OverlayBase + Begin(Action)
 
 Eliminates duplicate Awake-disable/Finish pattern. Begin takes an
 onDone callback directly so Settings re-run can re-enter without
 sharing state with Gameplay's initial calibration. Persistence moved
-to UserPrefs.CalibrationOffsetMs; local PrefsKey/HasSavedOffset/
-LoadSavedOffsetMs deleted. +1 UserPrefs test (77 total)."
+to UserPrefs.CalibrationOffsetMs via HasCalibration/get/set; local
+PrefsKey/HasSavedOffset/LoadSavedOffsetMs deleted. No test delta."
 ```
 
 ---
@@ -760,6 +756,13 @@ namespace KeyFlow.UI
         }
 
         private void Awake() { Instance = this; }
+
+        // Start runs after all SerializeField refs are wired — safe to flip
+        // mainRoot/gameplayRoot/resultsCanvas via Replace. Not in Awake
+        // because SceneBuilder's inline wiring, and EditMode tests that
+        // use AddComponent + reflection to inject roots, both set fields
+        // after Awake.
+        private void Start() { Replace(Screen.Main); }
 
         private void Update()
         {
@@ -1500,18 +1503,7 @@ Coding notes:
 
 Also on `Build()`:
 - After all canvases built, set `screenMgr.mainRoot = mainCanvasGO`.
-- Set `screenMgr` initial state: not strictly needed since `ScreenManager.Awake → Instance=this` and we need app to start on Main. Add: `screenMgr.Replace(Screen.Main)` called from a separate bootstrap MonoBehaviour or trigger manually. **Simplest:** `ScreenManager.Awake` calls `Replace(Screen.Main)` itself (see Task 7 code — remove that line there and move to Task 12 once we know all roots are wired). OR: leave it in Awake; on scene load, `mainRoot` is already wired via SerializeField so `SetActive(true)` works on the right GO. **Go with keeping `Replace(Screen.Main)` in `Awake`.** Adjust Task 7's implementation post-hoc.
-
-Actually — Task 7 already did `Awake() { Instance = this; Replace(Screen.Main); }`. But tests set private fields via reflection AFTER Awake runs (Awake fires on `AddComponent`). So the test `Replace(Screen.Main)` call won't find wired roots. **Fix in Task 7's code: move `Replace(Screen.Main)` out of Awake, into a `Start()` method.** Correct the Task 7 implementation:
-
-```csharp
-private void Awake() { Instance = this; }
-private void Start() { Replace(Screen.Main); }
-```
-
-OR better: tests already call `Replace` explicitly. Just remove the Awake-side `Replace`. `ScreenManager.Start` kicks the initial screen.
-
-**If Task 7 was written as shown above (Replace in Awake), this task amends it.**
+- `ScreenManager.Start()` (already defined in Task 7) calls `Replace(Screen.Main)` on the first frame after all `[SerializeField]` refs are wired — no additional call from SceneBuilder needed.
 
 GameplayController adjustment:
 ```csharp
@@ -1529,12 +1521,23 @@ private void Start()
 }
 ```
 
-- [ ] **Step 1:** Amend `ScreenManager` — move `Replace(Screen.Main)` to `Start()`.
-- [ ] **Step 2:** Implement `BuildMainCanvas` in SceneBuilder. Add call in `Build()` before `ScreenManager` wiring. Wire `screenMgr.mainRoot`, `screenMgr.settingsOverlay = null` (filled Task 16), etc.
-- [ ] **Step 3:** Amend `GameplayController.Start`.
-- [ ] **Step 4:** Run `SceneBuilder.Build`. Open scene. In Editor play mode: Main appears, Für Elise card shown, Easy button tappable, placeholder cards at 50% alpha. Tap Easy → Gameplay begins (calibration flow if needed).
-- [ ] **Step 5:** Tests: 85/85.
-- [ ] **Step 6: Commit:**
+- [ ] **Step 1:** Implement `BuildMainCanvas` in SceneBuilder. Add call in `Build()` before `ScreenManager` wiring. Wire `screenMgr.mainRoot`. Other overlay refs (`settingsOverlay`/`resultsCanvas`) stay null until their respective tasks fill them — `ScreenManager.HideAllOverlays` tolerates null overlays by guarding with `IsVisible`, but `Replace` directly calls `.SetActive` on roots. **Workaround:** create a 1-frame empty `settingsOverlay`/`resultsCanvas` placeholder GO in SceneBuilder now (with `OverlayBase`/Canvas that Tasks 16/17 will enrich), OR add null-guards in `ScreenManager.Replace`. **Go with null-guards** — simpler. Amend `ScreenManager.Replace`:
+```csharp
+public void Replace(Screen target)
+{
+    HideAllOverlays();
+    if (mainRoot) mainRoot.SetActive(target == Screen.Main);
+    if (gameplayRoot) gameplayRoot.SetActive(target == Screen.Gameplay);
+    if (resultsCanvas) resultsCanvas.SetActive(target == Screen.Results);
+    Current = target;
+    OnReplaced?.Invoke(target);
+}
+// Also: HideAllOverlays must null-check each overlay reference.
+```
+- [ ] **Step 2:** Amend `GameplayController.Start`.
+- [ ] **Step 3:** Run `SceneBuilder.Build`. Open scene. In Editor play mode: Main appears, Für Elise card shown, Easy button tappable, placeholder cards at 50% alpha. Tap Easy → Gameplay begins (calibration flow if needed). Results overlay won't exist yet — game will complete (using deleted CompletionPanel is NOT yet deleted in this task ordering — check: CompletionPanel deletion is Task 17). For Task 12's smoke test, let `GameplayController` still call `completionPanel.Show` (current W3 behavior). After Task 17 it switches to ResultsScreen.
+- [ ] **Step 4:** Tests: 85/85.
+- [ ] **Step 5: Commit:**
 ```bash
 git add Assets/Editor/SceneBuilder.cs \
         Assets/Scripts/UI/ScreenManager.cs \
@@ -1544,8 +1547,7 @@ git commit -m "feat(scene): MainCanvas + SongSession-driven gameplay bootstrap
 5 song cards rendering with procedural card template. Tap flows
 SongSession → ScreenManager.Replace(Gameplay). GameplayController
 trusts SongSession.CurrentSongId (no hardcoded fallback). ScreenManager
-initial Replace moved from Awake→Start to play nice with Serialize
-wiring order."
+tolerates null overlay/result refs (Tasks 16/17 fill them)."
 ```
 
 ---
@@ -1739,33 +1741,29 @@ a ManualClock without AudioSettings. +3 tests (88 total)."
 - `Assets/Scripts/Gameplay/HoldTracker.cs`
 - `Assets/Scripts/Gameplay/JudgmentSystem.cs`
 
-Add `if (audioSync.IsPaused) return;` at the top of each `Update` (or before the main logic) in each file. `NoteController` doesn't have an `audioSync` reference — it has a progress source via `NoteSpawner`; add a `[SerializeField] AudioSyncManager audioSync` or pass IsPaused in via NoteSpawner iteration. **Simpler path:** `NoteSpawner.Update` is what iterates + positions notes. Guard only the spawner's Update, and NoteController's own Update (if any) just does render animation. Verify NoteController has its own Update.
+Add `if (audioSync.IsPaused) return;` at the top of each `Update` that drives time-dependent behavior. Pre-declared facts (verified against current code):
 
-Check:
-- `NoteController` has a `Update` that reads `spawner.audioSync.SongTimeMs` through an accessor OR it's passive (position driven externally). Read the file.
+- **`TapInputHandler.Update`** — needs guard. Reads touch/mouse input and emits `OnLaneTap`/`OnLaneRelease`. When Pause is active we must not emit taps.
+- **`NoteSpawner.Update`** — needs guard. Iterates chart notes by `audioSync.SongTimeMs` and Instantiates. Guard prevents new spawns; existing notes' positions already freeze because `SongTimeMs` itself is frozen.
+- **`NoteController.Update`** — needs guard. Computes its own y-position from `audioSync.SongTimeMs`; although `SongTimeMs` is frozen, adding an explicit `IsPaused` guard avoids per-frame math for no-op and aligns semantics.
+- **`HoldTracker.Update`** — needs guard. Ticks hold-release judgment over time; must pause cleanly.
+- **`JudgmentSystem`** — **has no `Update` method** (verified: `JudgmentSystem` is purely event-driven via `HandleTap`/`HandleAutoMiss`/`HandleHoldBreak` callbacks). Because upstream emitters (`TapInputHandler`, `NoteController`, `HoldTracker`) all gain pause guards, no events flow during pause. **No change needed in JudgmentSystem.**
 
-Looking at W3: `NoteController` reads position via a reference to something that provides time. Let me re-check.
+For `NoteController`: it doesn't currently hold an `AudioSyncManager` reference directly — it reads progress via `NoteSpawner`'s loop that sets its position each frame. Check whether `NoteController.Update` does its own `SongTimeMs` read. If yes, serialize an `audioSync` field and wire in `NoteSpawner.Spawn` when instantiating. If no (position is set externally by spawner's loop), guard only `NoteSpawner.Update`.
 
-**Ground-truthed during implementation:** inspect each file; add guard only where `Update` does time-dependent work.
-
-- `TapInputHandler.Update` — needs guard: if paused, don't emit `OnLaneTap` / `OnLaneRelease`.
-- `JudgmentSystem.Update` — needs guard (if it has one; might be event-driven only).
-- `HoldTracker.Update` — needs guard.
-- `NoteSpawner.Update` — needs guard (prevents spawning new notes + advancing positions).
-
-For each: capture before/after behavior in the device test (Task 20).
-
-- [ ] **Step 1:** Inspect each file, identify `Update` methods.
-- [ ] **Step 2:** Add `if (audioSync != null && audioSync.IsPaused) return;` at top of each relevant `Update`. For `TapInputHandler` whose `audioSync` might not be serialized, add or re-use the existing `AudioSyncManager` field reference.
+- [ ] **Step 1:** Inspect each of the 4 files (NoteSpawner, NoteController, TapInputHandler, HoldTracker) to confirm `Update` structure and which hold an `audioSync` reference.
+- [ ] **Step 2:** Add `if (audioSync != null && audioSync.IsPaused) return;` at top of each relevant `Update`. Add `[SerializeField] private AudioSyncManager audioSync;` where missing, and wire it in `SceneBuilder`/`NoteSpawner.Spawn` accordingly.
 - [ ] **Step 3:** Build scene. Run a play test in Editor: Start game → play a few seconds → call `audioSync.Pause()` via a test button (temporary Debug key `P` bound in LatencyMeter or similar) OR postpone to Task 15 where PauseScreen wires it. **Postpone playtest to Task 15.**
 - [ ] **Step 4:** EditMode tests: 88/88. No new tests — behavior is integration-tested on device.
 - [ ] **Step 5: Commit:**
 ```bash
 git add Assets/Scripts/Gameplay/
-git commit -m "feat(pause): add IsPaused guards to spawner/note/tap/hold/judgment
+git commit -m "feat(pause): add IsPaused guards to spawner/note/tap/hold
 
-Each Update returns early when audioSync.IsPaused. Integration-verified
-on device in Task 20."
+Each Update returns early when audioSync.IsPaused. JudgmentSystem
+is purely event-driven and needs no guard — upstream emitters
+naturally stop firing when paused. Integration-verified on device
+in Task 20."
 ```
 
 ---
@@ -2219,32 +2217,40 @@ private void OnEnable()
 }
 ```
 
-NoteSpawner additions:
+**NoteSpawner.ResetForRetry()** — *requires adding a live-notes tracking list first*. W3's `NoteSpawner` instantiates notes but doesn't keep references to destroy later (because the W3 Restart went through full scene reload). For in-scene Retry, add:
+
 ```csharp
+// New field in NoteSpawner
+private readonly List<NoteController> liveNotes = new();
+
+// In Spawn(...), after Instantiate:
+var noteCtrl = note.GetComponent<NoteController>();
+liveNotes.Add(noteCtrl);
+
+// New method:
 public void ResetForRetry()
 {
-    foreach (var live in liveNotes)  // assumes a list; may need to inspect current impl
-        if (live != null) Destroy(live.gameObject);
+    foreach (var n in liveNotes)
+        if (n != null) Destroy(n.gameObject);
     liveNotes.Clear();
-    nextNoteIndex = 0;
-    AllSpawned = false;
-    LastSpawnedHitMs = 0;
-    LastSpawnedDurMs = 0;
+
+    // Reset progress counters — EXACT FIELD NAMES depend on current W3 impl.
+    // Current code uses `spawnedCount` (int) and `AllSpawned` as a computed getter
+    // `initialized && spawnedCount >= chart.notes.Count`. Zeroing spawnedCount is
+    // enough; AllSpawned will re-compute to false once chart is re-loaded.
+    spawnedCount = 0;
+    // Also re-zero whatever LastSpawnedHitMs/LastSpawnedDurMs backing fields exist
+    // (used by GameplayController's completion detection).
 }
 ```
 
-`HoldTracker.ResetForRetry()`: clear any active holds dictionary/list.
+Also in `NoteSpawner`, tighten the `liveNotes` list on Miss/Hit destruction: if notes currently self-destroy via their own lifecycle, add a `liveNotes.Remove(this)` in the destruction path (or accept a null-check pass in the Retry cleanup — the current snippet already guards `if (n != null)`).
 
-`JudgmentSystem.ResetForRetry()`:
-```csharp
-public void ResetForRetry()
-{
-    Score = new ScoreManager(...);  // re-instantiate
-    // etc.
-}
-```
+**HoldTracker.ResetForRetry()**: clear internal hold-state map + reset `HoldStateMachine` if any per-hold state is cached.
 
-Inspect current impls during implementation — exact zero-reset steps depend on what state each class holds.
+**JudgmentSystem.ResetForRetry()**: re-instantiate `ScoreManager` (field `Score`) using the same construction the Start path uses (inspect W3 to match args — typically `new ScoreManager(totalNotes, difficulty)` or similar).
+
+**Ground truth during implementation**: exact field names (`spawnedCount`, list names, `Score` construction signature) must be read from the current W3 files, not assumed from this plan.
 
 - [ ] **Step 1:** Implement `ResetForRetry` in NoteSpawner, HoldTracker, JudgmentSystem. May require inspecting W3 code.
 - [ ] **Step 2:** Refactor `GameplayController` to OnEnable/OnDisable pattern + `ResetAndStart`.
@@ -2356,8 +2362,8 @@ adb shell am start -n com.funqdev.keyflow/com.unity3d.player.UnityPlayerActivity
 - UserPrefs migration from CalibOffsetMs
 
 ## Test counts
-- EditMode: 87 (was 68 at W3 end)
-  - +6 UserPrefs, +2 OverlayBase, +4 ScreenManager, +4 SongCatalog, +3 AudioSyncPause
+- EditMode: 88 (was 68 at W3 end)
+  - +7 UserPrefs (incl. HasCalibration), +2 OverlayBase, +4 ScreenManager, +4 SongCatalog, +3 AudioSyncPause
 
 ## Device validation (Galaxy S22, Android 16)
 - [ ] Checklist item 1 ... [ ] 8
