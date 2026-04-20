@@ -11,7 +11,7 @@ namespace KeyFlow
         [SerializeField] private AudioSyncManager audioSync;
         [SerializeField] private NoteSpawner spawner;
         [SerializeField] private JudgmentSystem judgmentSystem;
-        [SerializeField] private CompletionPanel completionPanel;
+        [SerializeField] private ResultsScreen resultsScreen;
 
         private ChartData chart;
         private bool playing;
@@ -63,7 +63,13 @@ namespace KeyFlow
             if (judgmentSystem.Score != null && judgmentSystem.Score.JudgedCount < judgedExpected) return;
 
             completed = true;
-            completionPanel.Show(judgmentSystem.Score);
+            var score = judgmentSystem.Score;
+            bool newRecord = UserPrefs.TrySetBest(
+                SongSession.CurrentSongId, SongSession.CurrentDifficulty,
+                score.Stars, score.Score);
+            SongSession.LastScore = score;
+            ScreenManager.Instance.Replace(AppScreen.Results);
+            resultsScreen.Display(score, newRecord);
         }
     }
 }

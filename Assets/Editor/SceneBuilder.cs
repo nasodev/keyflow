@@ -69,8 +69,8 @@ namespace KeyFlow.Editor
             var hudPauseButton = BuildHUD(audioSync, tapInput, samplePool, judgmentSystem, whiteSprite, gameplayRoot.transform);
 
             var calibration = BuildCalibrationOverlay(whiteSprite, pianoClip, audioSync);
-            var completionPanel = BuildCompletionPanel(whiteSprite);
-            BuildGameplayController(calibration, audioSync, spawner, judgmentSystem, completionPanel, gameplayRoot.transform);
+            var resultsScreen = BuildResultsCanvas(whiteSprite);
+            BuildGameplayController(calibration, audioSync, spawner, judgmentSystem, resultsScreen, gameplayRoot.transform);
 
             var mainCanvas = BuildMainCanvas(whiteSprite);
             var mainScreen = mainCanvas.GetComponent<MainScreen>();
@@ -81,12 +81,11 @@ namespace KeyFlow.Editor
             SetField(hudPauseButton, "pauseOverlay", pauseScreen);
             SetField(mainScreen, "settingsOverlay", settingsScreen);
 
-            // ScreenManager. resultsCanvas wires in Task 17; Replace()/HideAllOverlays
-            // null-guard that field.
             var screenManagerGO = new GameObject("ScreenManager");
             var screenMgr = screenManagerGO.AddComponent<ScreenManager>();
             SetField(screenMgr, "mainRoot", mainCanvas);
             SetField(screenMgr, "gameplayRoot", gameplayRoot);
+            SetField(screenMgr, "resultsCanvas", resultsScreen.gameObject);
             SetField(screenMgr, "calibrationOverlay", calibration);
             SetField(screenMgr, "pauseOverlay", pauseScreen);
             SetField(screenMgr, "settingsOverlay", settingsScreen);
@@ -926,19 +925,21 @@ namespace KeyFlow.Editor
             return btn;
         }
 
-        private static CompletionPanel BuildCompletionPanel(Sprite whiteSprite)
+        private static ResultsScreen BuildResultsCanvas(Sprite whiteSprite)
         {
-            var canvasGO = new GameObject("CompletionCanvas");
+            var starFilled = AssetDatabase.LoadAssetAtPath<Sprite>(StarFilledPath);
+            var starEmpty = AssetDatabase.LoadAssetAtPath<Sprite>(StarEmptyPath);
+
+            var canvasGO = new GameObject("ResultsCanvas");
             var canvas = canvasGO.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            canvas.sortingOrder = 20;
+            canvas.sortingOrder = 8;
             var scaler = canvasGO.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(720, 1280);
             scaler.matchWidthOrHeight = 0.5f;
             canvasGO.AddComponent<GraphicRaycaster>();
 
-            // Background
             var bgGO = new GameObject("Background");
             bgGO.transform.SetParent(canvasGO.transform, false);
             var bgRT = bgGO.AddComponent<RectTransform>();
@@ -947,50 +948,62 @@ namespace KeyFlow.Editor
             bgRT.offsetMin = Vector2.zero;
             bgRT.offsetMax = Vector2.zero;
             var bgImg = bgGO.AddComponent<Image>();
-            bgImg.color = new Color(0, 0, 0, 0.85f);
+            bgImg.color = new Color(0.05f, 0.05f, 0.1f, 1f);
 
-            var title = CreateCenteredText(canvasGO.transform, "TitleText", "SONG COMPLETE", 48, new Vector2(0.5f, 0.85f), new Vector2(680, 80));
-            var score = CreateCenteredText(canvasGO.transform, "ScoreText", "Score: 0", 40, new Vector2(0.5f, 0.7f), new Vector2(680, 80));
-            var combo = CreateCenteredText(canvasGO.transform, "ComboText", "Max Combo: 0", 32, new Vector2(0.5f, 0.6f), new Vector2(680, 60));
-            var breakdown = CreateCenteredText(canvasGO.transform, "BreakdownText", "P:0 G:0 G:0 M:0", 26, new Vector2(0.5f, 0.5f), new Vector2(680, 60));
-            var stars = CreateCenteredText(canvasGO.transform, "StarsText", "---", 48, new Vector2(0.5f, 0.4f), new Vector2(680, 80));
+            var title = CreateCenteredText(canvasGO.transform, "TitleText", UIStrings.SongComplete, 52,
+                new Vector2(0.5f, 0.88f), new Vector2(680, 80));
 
-            // Restart button
-            var btnGO = new GameObject("RestartButton");
-            btnGO.transform.SetParent(canvasGO.transform, false);
-            var btnRT = btnGO.AddComponent<RectTransform>();
-            btnRT.anchorMin = new Vector2(0.5f, 0.2f);
-            btnRT.anchorMax = new Vector2(0.5f, 0.2f);
-            btnRT.pivot = new Vector2(0.5f, 0.5f);
-            btnRT.sizeDelta = new Vector2(300, 100);
-            var btnImg = btnGO.AddComponent<Image>();
-            btnImg.sprite = whiteSprite;
-            btnImg.color = new Color(0.2f, 0.6f, 0.9f, 1f);
-            var restartButton = btnGO.AddComponent<Button>();
+            // 3 star images centered around y=0.72
+            var starImages = new Image[3];
+            float centerY = 0.72f;
+            for (int i = 0; i < 3; i++)
+            {
+                var starGO = new GameObject($"Star{i}");
+                starGO.transform.SetParent(canvasGO.transform, false);
+                var starRT = starGO.AddComponent<RectTransform>();
+                starRT.anchorMin = new Vector2(0.5f, centerY);
+                starRT.anchorMax = new Vector2(0.5f, centerY);
+                starRT.pivot = new Vector2(0.5f, 0.5f);
+                starRT.sizeDelta = new Vector2(96, 96);
+                starRT.anchoredPosition = new Vector2((i - 1) * 120f, 0);
+                var img = starGO.AddComponent<Image>();
+                img.sprite = starEmpty;
+                img.preserveAspect = true;
+                starImages[i] = img;
+            }
 
-            var btnTextGO = new GameObject("RestartText");
-            btnTextGO.transform.SetParent(btnGO.transform, false);
-            var btnTextRT = btnTextGO.AddComponent<RectTransform>();
-            btnTextRT.anchorMin = Vector2.zero;
-            btnTextRT.anchorMax = Vector2.one;
-            btnTextRT.offsetMin = Vector2.zero;
-            btnTextRT.offsetMax = Vector2.zero;
-            var btnText = btnTextGO.AddComponent<Text>();
-            btnText.text = "Restart";
-            btnText.fontSize = 36;
-            btnText.color = Color.white;
-            btnText.alignment = TextAnchor.MiddleCenter;
-            btnText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            var scoreText = CreateCenteredText(canvasGO.transform, "ScoreText",
+                string.Format(UIStrings.ScoreFmt, 0), 44,
+                new Vector2(0.5f, 0.56f), new Vector2(680, 70));
+            var maxCombo = CreateCenteredText(canvasGO.transform, "MaxComboText",
+                string.Format(UIStrings.MaxComboFmt, 0), 32,
+                new Vector2(0.5f, 0.48f), new Vector2(680, 60));
+            var breakdown = CreateCenteredText(canvasGO.transform, "BreakdownText",
+                string.Format(UIStrings.BreakdownFmt, 0, 0, 0, 0), 26,
+                new Vector2(0.5f, 0.42f), new Vector2(680, 60));
+            var newRecord = CreateCenteredText(canvasGO.transform, "NewRecordLabel",
+                UIStrings.NewRecord, 34,
+                new Vector2(0.5f, 0.34f), new Vector2(680, 60));
+            newRecord.color = new Color(1f, 0.85f, 0.25f, 1f);
+            newRecord.gameObject.SetActive(false);
 
-            var panel = canvasGO.AddComponent<CompletionPanel>();
-            SetField(panel, "titleText", title);
-            SetField(panel, "scoreText", score);
-            SetField(panel, "comboText", combo);
-            SetField(panel, "breakdownText", breakdown);
-            SetField(panel, "starsText", stars);
-            SetField(panel, "restartButton", restartButton);
+            var retryBtn = BuildPrimaryButton(canvasGO.transform, whiteSprite,
+                UIStrings.Retry, new Vector2(0.32f, 0.18f), new Color(0.2f, 0.6f, 0.9f, 1f));
+            var homeBtn = BuildPrimaryButton(canvasGO.transform, whiteSprite,
+                UIStrings.Home, new Vector2(0.68f, 0.18f), new Color(0.35f, 0.35f, 0.4f, 1f));
 
-            return panel;
+            var screen = canvasGO.AddComponent<ResultsScreen>();
+            SetField(screen, "titleText", title);
+            SetField(screen, "starFilled", starFilled);
+            SetField(screen, "starEmpty", starEmpty);
+            SetField(screen, "scoreText", scoreText);
+            SetField(screen, "maxComboText", maxCombo);
+            SetField(screen, "breakdownText", breakdown);
+            SetField(screen, "newRecordLabel", newRecord);
+            SetField(screen, "retryButton", retryBtn);
+            SetField(screen, "homeButton", homeBtn);
+            SetArrayField(screen, "starImages", starImages);
+            return screen;
         }
 
         private static Text CreateCenteredText(
@@ -1015,12 +1028,12 @@ namespace KeyFlow.Editor
             return text;
         }
 
-        private static void BuildGameplayController(
+        private static GameplayController BuildGameplayController(
             CalibrationController calibration,
             AudioSyncManager audioSync,
             NoteSpawner spawner,
             JudgmentSystem judgmentSystem,
-            CompletionPanel completionPanel,
+            ResultsScreen resultsScreen,
             Transform parent)
         {
             var go = new GameObject("GameplayController");
@@ -1030,7 +1043,8 @@ namespace KeyFlow.Editor
             SetField(ctrl, "audioSync", audioSync);
             SetField(ctrl, "spawner", spawner);
             SetField(ctrl, "judgmentSystem", judgmentSystem);
-            SetField(ctrl, "completionPanel", completionPanel);
+            SetField(ctrl, "resultsScreen", resultsScreen);
+            return ctrl;
         }
 
         private static GameObject BuildNotePrefab(Sprite sprite)
