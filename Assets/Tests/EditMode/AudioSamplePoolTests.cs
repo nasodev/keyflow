@@ -2,7 +2,7 @@ using NUnit.Framework;
 using UnityEngine;
 using KeyFlow;
 
-namespace KeyFlow.Tests
+namespace KeyFlow.Tests.EditMode
 {
     public class AudioSamplePoolTests
     {

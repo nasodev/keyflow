@@ -2,8 +2,9 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using UnityEngine.InputSystem;
+using KeyFlow;
 
-namespace KeyFlow
+namespace KeyFlow.UI
 {
     public class CompletionPanel : MonoBehaviour
     {

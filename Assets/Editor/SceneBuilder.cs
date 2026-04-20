@@ -5,7 +5,10 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem.UI;
 using UnityEngine.UI;
+using KeyFlow;
 using KeyFlow.UI;
+using KeyFlow.Calibration;
+using KeyFlow.Charts;
 
 namespace KeyFlow.Editor
 {

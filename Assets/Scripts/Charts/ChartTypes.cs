@@ -1,7 +1,8 @@
 using System;
 using System.Collections.Generic;
+using KeyFlow;
 
-namespace KeyFlow
+namespace KeyFlow.Charts
 {
     public enum NoteType { TAP, HOLD }
 

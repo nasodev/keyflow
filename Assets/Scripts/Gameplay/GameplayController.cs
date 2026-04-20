@@ -1,4 +1,7 @@
 using UnityEngine;
+using KeyFlow.Charts;
+using KeyFlow.Calibration;
+using KeyFlow.UI;
 
 namespace KeyFlow
 {

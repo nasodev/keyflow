@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.InputSystem;
+using KeyFlow;
 
-namespace KeyFlow
+namespace KeyFlow.Calibration
 {
     public class CalibrationController : MonoBehaviour
     {

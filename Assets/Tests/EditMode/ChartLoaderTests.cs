@@ -1,5 +1,6 @@
 using NUnit.Framework;
 using KeyFlow;
+using KeyFlow.Charts;
 
 namespace KeyFlow.Tests.EditMode
 {
