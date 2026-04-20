@@ -247,7 +247,7 @@ namespace KeyFlow.Editor
             promptRT.pivot = new Vector2(0.5f, 0.5f);
             promptRT.sizeDelta = new Vector2(680, 200);
             var promptText = promptGO.AddComponent<Text>();
-            promptText.text = "화면 아무 곳이나, 클릭 소리에 맞춰 8번 탭하세요.";
+            promptText.text = UIStrings.CalibrationPrompt;
             promptText.fontSize = 32;
             promptText.color = Color.white;
             promptText.alignment = TextAnchor.MiddleCenter;
@@ -296,7 +296,7 @@ namespace KeyFlow.Editor
             btnTextRT.offsetMin = Vector2.zero;
             btnTextRT.offsetMax = Vector2.zero;
             var btnText = btnTextGO.AddComponent<Text>();
-            btnText.text = "Start";
+            btnText.text = UIStrings.CalibrationStart;
             btnText.fontSize = 36;
             btnText.color = Color.white;
             btnText.alignment = TextAnchor.MiddleCenter;

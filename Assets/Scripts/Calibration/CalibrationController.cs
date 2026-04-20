@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.InputSystem;
 using KeyFlow;
+using KeyFlow.UI;
 
 namespace KeyFlow.Calibration
 {
@@ -42,7 +43,7 @@ namespace KeyFlow.Calibration
         {
             gameObject.SetActive(true);
             retryCount = 0;
-            ShowIdle("화면 아무 곳이나, 클릭 소리에 맞춰 8번 탭하세요.");
+            ShowIdle(UIStrings.CalibrationPrompt);
             startButton.onClick.RemoveAllListeners();
             startButton.onClick.AddListener(StartOneRun);
         }
