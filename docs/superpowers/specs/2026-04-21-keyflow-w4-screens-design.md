@@ -106,9 +106,10 @@ public class ScreenManager : MonoBehaviour {
 
     void Awake() { Instance = this; Replace(Screen.Main); }
 
-    // Android Back 처리
+    // Android Back 처리 (Unity에서 Android Back 은 InputSystem Keyboard.escapeKey 로 매핑)
     void Update() {
-        if (!Keyboard.current?.escapeKey.wasPressedThisFrame ?? true) return;
+        var kb = Keyboard.current;
+        if (kb == null || !kb.escapeKey.wasPressedThisFrame) return;
         HandleBack();
     }
 }
@@ -233,7 +234,7 @@ public static class UserPrefs {
     public static bool TrySetBest(string songId, Difficulty d, int stars, int score);  // 갱신 시 true
 
     // 1회 마이그레이션
-    public static void MigrateLegacy();  // "CalibrationOffsetMs" → "KeyFlow.Settings.CalibrationOffsetMs"
+    public static void MigrateLegacy();  // legacy "CalibOffsetMs" → "KeyFlow.Settings.CalibrationOffsetMs"
 }
 ```
 
@@ -245,7 +246,7 @@ public static class UserPrefs {
 - `KeyFlow.Record.{songId}.{difficulty}.Score`
 - `KeyFlow.Migration.V1.Done` (bool, 마이그레이션 완료 플래그)
 
-기존 `CalibrationController` 내 `"CalibrationOffsetMs"` 하드코딩 키 한 곳은 `UserPrefs.CalibrationOffsetMs` 경유로 교체.
+기존 `CalibrationController.cs:11`의 하드코딩 키는 실제로 `"CalibOffsetMs"`(축약형)이다. `UserPrefs.MigrateLegacy`는 이 정확한 키명을 원본으로 읽어서 prefixed 키로 복사한 뒤 레거시 키를 삭제한다. 삭제 후에는 `CalibrationController`도 `UserPrefs.CalibrationOffsetMs` 경유로 read/write 하도록 수정.
 
 ### 3.4 `UIStrings`
 
@@ -491,8 +492,15 @@ HUDCanvas 좌상단에 ⏸ 아이콘 버튼 (`Image` + `Button`). 클릭 시 `Sc
 - "최고 기록!" 라벨: `UserPrefs.TrySetBest`가 true를 리턴하면 표시.
 
 버튼:
-- **재도전**: `ScreenManager.Replace(Screen.Gameplay)` — `SongSession`은 그대로이므로 같은 곡/난이도 재시작.
-- **홈**: `ScreenManager.Replace(Screen.Main)`.
+- **재도전**: `ScreenManager.Replace(Screen.Gameplay)` — `SongSession`은 그대로이므로 같은 곡/난이도 재시작. **주의: W3의 `CompletionPanel.Restart`는 `SceneManager.LoadScene`으로 씬 전체 재로드를 했지만, Single-Scene 전환으로 바뀌면서 씬 재로드는 사라진다.** 대신 `GameplayController`에 `ResetAndStart()` 진입점을 추가해 다음을 수행:
+  1. 스폰된 모든 노트 GameObject 파괴 (`NoteSpawner`의 활성 리스트 순회)
+  2. `NoteSpawner` 내부 상태 초기화 (인덱스, `AllSpawned`, `LastSpawnedHitMs` 등)
+  3. `JudgmentSystem`/`ScoreManager` 점수·콤보 0으로 리셋
+  4. `HoldTracker` 진행 중 홀드 정리
+  5. `ChartLoader` 재로드 (이미 메모리에 있으면 재사용 가능)
+  6. `AudioSyncManager.StartSilentSong()` 재호출 (`songStartDsp` 재세팅)
+  7. `completed = false` / `playing = true` 재설정
+- **홈**: `ScreenManager.Replace(Screen.Main)`. `GameplayRoot`는 비활성화되지만 내부 상태는 정리하지 않음 (다음 진입 시 어차피 `ResetAndStart`가 호출됨).
 
 ### 6.4 별 스프라이트 생성 (carry-over #4)
 
@@ -564,7 +572,7 @@ W3의 68개 테스트를 전부 유지하고, W4에서 **추가**한다:
 | `SongCatalogTests` | 4 | 정상 파싱 / 빈 `songs` / 필수 필드 누락 / `TryGet` 존재·부재 |
 | `UserPrefsTests` | 6 | SFX·NoteSpeed 기본값·round-trip / Stars·Score round-trip / 마이그레이션 (legacy 키 있음 → prefixed + 레거시 제거) / 마이그레이션 멱등성 (이미 완료) |
 | `ScreenManagerTests` | 4 | `Replace` 동작 / 오버레이 Show·Hide 독립성 / 풀스크린 전환 시 오버레이 자동 숨김 / `Current` 게터 |
-| `AudioSyncPauseTests` | 3 | Pause 후 `SongTimeMs` 동결 / Resume 후 연속성 (허용 오차 ±2 dspFrame) / Pause/Resume 반복 멱등 |
+| `AudioSyncPauseTests` | 3 | Pause 후 `SongTimeMs` 동결 / Resume 후 연속성 (허용 오차 ±2 dspFrame) / Pause/Resume 반복 멱등. **EditMode에선 AudioListener/AudioSource가 실제 재생되지 않으므로 `songStartDsp` 산술만 검증**; 테스트는 `AudioSettings.dspTime` 직접 주입 대신 `AudioSyncManager`에 테스트 전용 `TimeSource` 주입 훅을 두거나, `pauseStartDsp`/`songStartDsp` internal setter로 상태를 조립한 뒤 `SongTimeMs` 계산을 검증 |
 | `OverlayBaseTests` | 2 | `Awake` 후 비활성 / `Show` `Finish` 이벤트 훅 호출 순서 |
 
 총 W4 추가 19 테스트. 합계 87 테스트 목표.
