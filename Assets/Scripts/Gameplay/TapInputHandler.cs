@@ -30,6 +30,7 @@ namespace KeyFlow
 
         private void Update()
         {
+            if (audioSync != null && audioSync.IsPaused) return;
             int songTimeMs = audioSync != null ? audioSync.SongTimeMs : 0;
 
             if (Touchscreen.current != null)

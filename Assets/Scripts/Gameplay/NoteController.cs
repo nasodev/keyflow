@@ -91,7 +91,7 @@ namespace KeyFlow
 
         private void Update()
         {
-            if (!initialized || judged || !audioSync.IsPlaying) return;
+            if (!initialized || judged || !audioSync.IsPlaying || audioSync.IsPaused) return;
 
             int songTime = audioSync.SongTimeMs;
             float progress = GameTime.GetNoteProgress(songTime, hitTimeMs, previewTimeMs);

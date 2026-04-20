@@ -22,7 +22,7 @@ namespace KeyFlow
 
         private void Update()
         {
-            if (!audioSync.IsPlaying) return;
+            if (!audioSync.IsPlaying || audioSync.IsPaused) return;
             if (idToNote.Count == 0) return;
 
             var pressed = new HashSet<int>();

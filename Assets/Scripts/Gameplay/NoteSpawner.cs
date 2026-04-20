@@ -36,7 +36,7 @@ namespace KeyFlow
 
         private void Update()
         {
-            if (!initialized || !audioSync.IsPlaying) return;
+            if (!initialized || !audioSync.IsPlaying || audioSync.IsPaused) return;
             if (spawnedCount >= chart.notes.Count) return;
 
             var next = chart.notes[spawnedCount];
