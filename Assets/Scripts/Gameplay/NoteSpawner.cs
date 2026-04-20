@@ -50,6 +50,8 @@ namespace KeyFlow
             ctrl.Initialize(
                 audioSync, lane, laneX,
                 hitTimeMs,
+                NoteType.TAP,
+                0,
                 spawnY, judgmentY,
                 previewMs,
                 missMs,
