@@ -7,9 +7,6 @@ namespace KeyFlow
 {
     public class GameplayController : MonoBehaviour
     {
-        [SerializeField] private string songId = "beethoven_fur_elise";
-        [SerializeField] private Difficulty difficulty = Difficulty.Easy;
-
         [SerializeField] private CalibrationController calibration;
         [SerializeField] private AudioSyncManager audioSync;
         [SerializeField] private NoteSpawner spawner;
@@ -19,26 +16,29 @@ namespace KeyFlow
         private ChartData chart;
         private bool playing;
         private bool completed;
+        private Difficulty difficulty;
 
         private void Start()
         {
+            UserPrefs.MigrateLegacy();
+
+            string songId = SongSession.CurrentSongId ?? "beethoven_fur_elise";
+            difficulty = SongSession.CurrentDifficulty;
             chart = ChartLoader.LoadFromStreamingAssets(songId);
 
-            if (CalibrationController.HasSavedOffset())
+            if (UserPrefs.HasCalibration)
             {
-                audioSync.CalibrationOffsetSec = CalibrationController.LoadSavedOffsetMs() / 1000.0;
+                audioSync.CalibrationOffsetSec = UserPrefs.CalibrationOffsetMs / 1000.0;
                 BeginGameplay();
             }
             else
             {
-                calibration.OnCalibrationDone = BeginGameplay;
-                calibration.Begin();
+                calibration.Begin(BeginGameplay);
             }
         }
 
         private void BeginGameplay()
         {
-            calibration.OnCalibrationDone = null;
             var chartDiff = chart.charts[difficulty];
             spawner.Initialize(chartDiff, difficulty);
             audioSync.StartSilentSong();
