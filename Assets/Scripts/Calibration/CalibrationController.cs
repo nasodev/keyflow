@@ -32,6 +32,11 @@ namespace KeyFlow
 
         public static int LoadSavedOffsetMs() => PlayerPrefs.GetInt(PrefsKey, 0);
 
+        private void Awake()
+        {
+            gameObject.SetActive(false);
+        }
+
         public void Begin()
         {
             gameObject.SetActive(true);
