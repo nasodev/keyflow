@@ -70,7 +70,7 @@ namespace KeyFlow.Editor
 
             var calibration = BuildCalibrationOverlay(whiteSprite, pianoClip, audioSync);
             var resultsScreen = BuildResultsCanvas(whiteSprite);
-            BuildGameplayController(calibration, audioSync, spawner, judgmentSystem, resultsScreen, gameplayRoot.transform);
+            BuildGameplayController(calibration, audioSync, spawner, judgmentSystem, holdTracker, resultsScreen, gameplayRoot.transform);
 
             var mainCanvas = BuildMainCanvas(whiteSprite);
             var mainScreen = mainCanvas.GetComponent<MainScreen>();
@@ -1033,6 +1033,7 @@ namespace KeyFlow.Editor
             AudioSyncManager audioSync,
             NoteSpawner spawner,
             JudgmentSystem judgmentSystem,
+            HoldTracker holdTracker,
             ResultsScreen resultsScreen,
             Transform parent)
         {
@@ -1043,6 +1044,7 @@ namespace KeyFlow.Editor
             SetField(ctrl, "audioSync", audioSync);
             SetField(ctrl, "spawner", spawner);
             SetField(ctrl, "judgmentSystem", judgmentSystem);
+            SetField(ctrl, "holdTracker", holdTracker);
             SetField(ctrl, "resultsScreen", resultsScreen);
             return ctrl;
         }

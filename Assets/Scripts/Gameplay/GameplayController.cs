@@ -13,23 +13,49 @@ namespace KeyFlow
         [SerializeField] private JudgmentSystem judgmentSystem;
         [SerializeField] private ResultsScreen resultsScreen;
 
+        [SerializeField] private HoldTracker holdTracker;
+
         private ChartData chart;
         private bool playing;
         private bool completed;
         private Difficulty difficulty;
+        private bool prefsMigrated;
 
-        private void Start()
+        private void OnEnable()
         {
-            UserPrefs.MigrateLegacy();
+            if (ScreenManager.Instance != null)
+                ScreenManager.Instance.OnReplaced += HandleScreenReplaced;
+        }
+
+        private void OnDisable()
+        {
+            if (ScreenManager.Instance != null)
+                ScreenManager.Instance.OnReplaced -= HandleScreenReplaced;
+        }
+
+        private void HandleScreenReplaced(AppScreen target)
+        {
+            if (target == AppScreen.Gameplay) ResetAndStart();
+        }
+
+        public void ResetAndStart()
+        {
+            if (!prefsMigrated) { UserPrefs.MigrateLegacy(); prefsMigrated = true; }
 
             string songId = SongSession.CurrentSongId;
             if (string.IsNullOrEmpty(songId))
             {
-                Debug.LogError("[KeyFlow] GameplayController.Start with no SongSession.CurrentSongId");
+                Debug.LogError("[KeyFlow] GameplayController.ResetAndStart with no SongSession.CurrentSongId");
                 return;
             }
             difficulty = SongSession.CurrentDifficulty;
             chart = ChartLoader.LoadFromStreamingAssets(songId);
+
+            playing = false;
+            completed = false;
+            spawner.ResetForRetry();
+            holdTracker.ResetForRetry();
+            judgmentSystem.ResetForRetry();
 
             if (UserPrefs.HasCalibration)
             {

@@ -24,6 +24,14 @@ namespace KeyFlow
             LastJudgment = Judgment.Miss;
         }
 
+        public void ResetForRetry()
+        {
+            pending.Clear();
+            score = null;
+            LastJudgment = Judgment.Miss;
+            LastDeltaMs = 0;
+        }
+
         private void OnEnable()
         {
             if (tapInput != null) tapInput.OnLaneTap += HandleTap;

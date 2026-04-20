@@ -38,6 +38,12 @@ namespace KeyFlow
 
         public HoldState GetState(int id) => entries[id].state;
 
+        public void Clear()
+        {
+            entries.Clear();
+            nextId = 1;
+        }
+
         public void OnStartTapAccepted(int id)
         {
             if (entries.TryGetValue(id, out var e) && e.state == HoldState.Spawned)

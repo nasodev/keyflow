@@ -20,9 +20,6 @@ namespace KeyFlow.UI
 
         private const float CountupDuration = 1.5f;
 
-        public System.Action OnRetryPressed;
-        public System.Action OnHomePressed;
-
         private void Awake()
         {
             if (retryButton != null) retryButton.onClick.AddListener(OnRetry);
@@ -96,14 +93,13 @@ namespace KeyFlow.UI
         private void OnRetry()
         {
             Finish();
-            OnRetryPressed?.Invoke();
+            ScreenManager.Instance.Replace(AppScreen.Gameplay);
         }
 
         private void OnHome()
         {
             Finish();
-            if (OnHomePressed != null) OnHomePressed.Invoke();
-            else ScreenManager.Instance.Replace(AppScreen.Main);
+            ScreenManager.Instance.Replace(AppScreen.Main);
         }
     }
 }
