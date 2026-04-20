@@ -199,7 +199,7 @@ SPAWNED ──(start tap in judgment window)──> HOLDING
 **Scoring policy:**
 - Start-tap Miss → Hold overall Miss. Whole note missed.
 - BROKEN → combo resets, Miss count +1 in `JudgmentCounts`. The P/G/G score from the successful start tap is **kept** (no clawback).
-- Successful start-tap + immediate release (press and release within one frame): `IsLanePressed` reads false next frame, so Hold goes BROKEN on the following frame. Acceptable — device playtest will validate feel.
+- Successful start-tap + immediate release (press and release within one frame): `IsLanePressed` reads false next frame, so Hold goes BROKEN on the following frame. Acceptable — device playtest will validate feel. **Tuning knob** if playtest shows this is too punishing: add a grace window (e.g., ignore release events within 100ms of the start tap) before transitioning to BROKEN. Not implemented up-front; revisit after device verification.
 
 **Testable seam:** `HoldTracker` logic is split into a pure `HoldStateMachine` class (manages transitions given `(currentSongTime, noteDataList, pressedLanes)`) that the MonoBehaviour wraps. Tests drive the state machine directly.
 
@@ -239,7 +239,7 @@ public static class CalibrationCalculator {
 **Trigger condition:** every frame, after updating `songTime`:
 
 ```
-if (songTime >= lastNote.t + lastNote.dur + NormalMissWindowMs
+if (songTime >= lastNote.t + lastNote.dur + missWindowMs
     && activeNotes.Count == 0
     && !completionShown) {
     ShowCompletionPanel();
@@ -247,7 +247,7 @@ if (songTime >= lastNote.t + lastNote.dur + NormalMissWindowMs
 }
 ```
 
-`NormalMissWindowMs = 180` (Spec §5.1).
+`missWindowMs` is the Miss window of the currently loaded difficulty — **225ms for Easy, 180ms for Normal** (Spec §5.1). In W3 only Easy ships, so 225ms is used. Sourced from the same threshold table `JudgmentEvaluator` consumes, not duplicated.
 
 **Panel contents:**
 - Centered: "🏁 SONG COMPLETE"
