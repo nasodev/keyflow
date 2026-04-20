@@ -6,6 +6,7 @@ namespace KeyFlow
     public class JudgmentSystem : MonoBehaviour
     {
         [SerializeField] private TapInputHandler tapInput;
+        [SerializeField] private HoldTracker holdTracker;
 
         private readonly List<NoteController> pending = new List<NoteController>();
         private ScoreManager score;
@@ -25,6 +26,8 @@ namespace KeyFlow
         private void OnEnable()
         {
             if (tapInput != null) tapInput.OnLaneTap += HandleTap;
+            if (holdTracker == null)
+                Debug.LogError("JudgmentSystem: holdTracker SerializeField is unassigned. HOLD notes will silently behave as TAPs.");
         }
 
         private void OnDisable()
@@ -41,6 +44,14 @@ namespace KeyFlow
         {
             if (score == null) return;
             pending.Remove(note);
+            score.RegisterJudgment(Judgment.Miss);
+            LastJudgment = Judgment.Miss;
+            LastDeltaMs = 0;
+        }
+
+        public void HandleHoldBreak()
+        {
+            if (score == null) return;
             score.RegisterJudgment(Judgment.Miss);
             LastJudgment = Judgment.Miss;
             LastDeltaMs = 0;
@@ -76,7 +87,16 @@ namespace KeyFlow
             LastJudgment = result.Judgment;
             LastDeltaMs = result.DeltaMs;
             pending.Remove(closest);
-            closest.MarkJudged();
+
+            if (closest.Type == NoteType.HOLD && holdTracker != null)
+            {
+                closest.MarkAcceptedAsHold();
+                holdTracker.OnHoldStartTapAccepted(closest);
+            }
+            else
+            {
+                closest.MarkJudged();
+            }
         }
     }
 }
