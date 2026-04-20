@@ -73,19 +73,23 @@ namespace KeyFlow.Editor
             BuildGameplayController(calibration, audioSync, spawner, judgmentSystem, completionPanel, gameplayRoot.transform);
 
             var mainCanvas = BuildMainCanvas(whiteSprite);
+            var mainScreen = mainCanvas.GetComponent<MainScreen>();
             var pauseScreen = BuildPauseCanvas(whiteSprite, audioSync);
+            var settingsScreen = BuildSettingsCanvas(whiteSprite, calibration);
 
-            // Wire HUD pause button -> PauseScreen
+            // Wire HUD pause button -> PauseScreen, MainScreen -> Settings overlay
             SetField(hudPauseButton, "pauseOverlay", pauseScreen);
+            SetField(mainScreen, "settingsOverlay", settingsScreen);
 
-            // ScreenManager. resultsCanvas/settingsOverlay wire in later tasks;
-            // Replace() and HideAllOverlays() null-guard those fields.
+            // ScreenManager. resultsCanvas wires in Task 17; Replace()/HideAllOverlays
+            // null-guard that field.
             var screenManagerGO = new GameObject("ScreenManager");
             var screenMgr = screenManagerGO.AddComponent<ScreenManager>();
             SetField(screenMgr, "mainRoot", mainCanvas);
             SetField(screenMgr, "gameplayRoot", gameplayRoot);
             SetField(screenMgr, "calibrationOverlay", calibration);
             SetField(screenMgr, "pauseOverlay", pauseScreen);
+            SetField(screenMgr, "settingsOverlay", settingsScreen);
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene, ScenePath);
@@ -686,6 +690,173 @@ namespace KeyFlow.Editor
             txt.alignment = TextAnchor.MiddleCenter;
             txt.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             return btn;
+        }
+
+        private static SettingsScreen BuildSettingsCanvas(
+            Sprite whiteSprite, CalibrationController calibration)
+        {
+            var canvasGO = new GameObject("SettingsCanvas");
+            var canvas = canvasGO.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.sortingOrder = 12;
+            var scaler = canvasGO.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(720, 1280);
+            scaler.matchWidthOrHeight = 0.5f;
+            canvasGO.AddComponent<GraphicRaycaster>();
+
+            var bgGO = new GameObject("Background");
+            bgGO.transform.SetParent(canvasGO.transform, false);
+            var bgRT = bgGO.AddComponent<RectTransform>();
+            bgRT.anchorMin = Vector2.zero;
+            bgRT.anchorMax = Vector2.one;
+            bgRT.offsetMin = Vector2.zero;
+            bgRT.offsetMax = Vector2.zero;
+            var bgImg = bgGO.AddComponent<Image>();
+            bgImg.color = new Color(0, 0, 0, 0.85f);
+
+            CreateCenteredText(canvasGO.transform, "TitleText", UIStrings.SettingsTitle, 48,
+                new Vector2(0.5f, 0.9f), new Vector2(680, 80));
+
+            // Close (X) button top-right
+            var closeBtnGO = new GameObject("CloseButton");
+            closeBtnGO.transform.SetParent(canvasGO.transform, false);
+            var closeBtnRT = closeBtnGO.AddComponent<RectTransform>();
+            closeBtnRT.anchorMin = new Vector2(1, 1);
+            closeBtnRT.anchorMax = new Vector2(1, 1);
+            closeBtnRT.pivot = new Vector2(1, 1);
+            closeBtnRT.anchoredPosition = new Vector2(-20, -20);
+            closeBtnRT.sizeDelta = new Vector2(80, 80);
+            var closeBtnImg = closeBtnGO.AddComponent<Image>();
+            closeBtnImg.sprite = whiteSprite;
+            closeBtnImg.color = new Color(0.3f, 0.3f, 0.35f, 1f);
+            var closeButton = closeBtnGO.AddComponent<Button>();
+
+            var closeLblGO = new GameObject("Label");
+            closeLblGO.transform.SetParent(closeBtnGO.transform, false);
+            var closeLblRT = closeLblGO.AddComponent<RectTransform>();
+            closeLblRT.anchorMin = Vector2.zero;
+            closeLblRT.anchorMax = Vector2.one;
+            closeLblRT.offsetMin = Vector2.zero;
+            closeLblRT.offsetMax = Vector2.zero;
+            var closeLbl = closeLblGO.AddComponent<Text>();
+            closeLbl.text = "×";
+            closeLbl.fontSize = 40;
+            closeLbl.color = Color.white;
+            closeLbl.alignment = TextAnchor.MiddleCenter;
+            closeLbl.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+
+            // SFX volume slider
+            CreateCenteredText(canvasGO.transform, "SfxLabel", UIStrings.SfxVolumeLabel, 28,
+                new Vector2(0.5f, 0.75f), new Vector2(600, 50));
+            var sfxSlider = BuildSlider(canvasGO.transform, whiteSprite,
+                new Vector2(0.5f, 0.7f), new Vector2(560, 40));
+
+            // Note speed slider
+            CreateCenteredText(canvasGO.transform, "SpeedLabel", UIStrings.NoteSpeedLabel, 28,
+                new Vector2(0.5f, 0.6f), new Vector2(600, 50));
+            var speedSlider = BuildSlider(canvasGO.transform, whiteSprite,
+                new Vector2(0.5f, 0.55f), new Vector2(560, 40));
+            var speedValueText = CreateCenteredText(canvasGO.transform, "SpeedValue", "2.0", 26,
+                new Vector2(0.5f, 0.5f), new Vector2(200, 40));
+
+            // Recalibrate button
+            var recalButton = BuildPrimaryButton(canvasGO.transform, whiteSprite,
+                UIStrings.RecalibrateButton, new Vector2(0.5f, 0.35f), new Color(0.2f, 0.55f, 0.75f, 1f));
+
+            // Version label bottom-right
+            var versionGO = new GameObject("VersionLabel");
+            versionGO.transform.SetParent(canvasGO.transform, false);
+            var versionRT = versionGO.AddComponent<RectTransform>();
+            versionRT.anchorMin = new Vector2(1, 0);
+            versionRT.anchorMax = new Vector2(1, 0);
+            versionRT.pivot = new Vector2(1, 0);
+            versionRT.anchoredPosition = new Vector2(-20, 20);
+            versionRT.sizeDelta = new Vector2(300, 40);
+            var versionText = versionGO.AddComponent<Text>();
+            versionText.text = "";
+            versionText.fontSize = 20;
+            versionText.color = new Color(0.7f, 0.7f, 0.75f, 1f);
+            versionText.alignment = TextAnchor.MiddleRight;
+            versionText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+
+            var screen = canvasGO.AddComponent<SettingsScreen>();
+            SetField(screen, "sfxVolumeSlider", sfxSlider);
+            SetField(screen, "noteSpeedSlider", speedSlider);
+            SetField(screen, "noteSpeedValueLabel", speedValueText);
+            SetField(screen, "recalibrateButton", recalButton);
+            SetField(screen, "closeButton", closeButton);
+            SetField(screen, "versionLabel", versionText);
+            SetField(screen, "calibration", calibration);
+            return screen;
+        }
+
+        private static Slider BuildSlider(
+            Transform parent, Sprite whiteSprite, Vector2 anchor, Vector2 size)
+        {
+            var sliderGO = new GameObject("Slider");
+            sliderGO.transform.SetParent(parent, false);
+            var sliderRT = sliderGO.AddComponent<RectTransform>();
+            sliderRT.anchorMin = anchor;
+            sliderRT.anchorMax = anchor;
+            sliderRT.pivot = new Vector2(0.5f, 0.5f);
+            sliderRT.sizeDelta = size;
+
+            // Background
+            var bgGO = new GameObject("Background");
+            bgGO.transform.SetParent(sliderGO.transform, false);
+            var bgRT = bgGO.AddComponent<RectTransform>();
+            bgRT.anchorMin = new Vector2(0, 0.25f);
+            bgRT.anchorMax = new Vector2(1, 0.75f);
+            bgRT.offsetMin = Vector2.zero;
+            bgRT.offsetMax = Vector2.zero;
+            var bgImg = bgGO.AddComponent<Image>();
+            bgImg.sprite = whiteSprite;
+            bgImg.color = new Color(0.2f, 0.2f, 0.25f, 1f);
+
+            // Fill area
+            var fillAreaGO = new GameObject("Fill Area");
+            fillAreaGO.transform.SetParent(sliderGO.transform, false);
+            var fillAreaRT = fillAreaGO.AddComponent<RectTransform>();
+            fillAreaRT.anchorMin = new Vector2(0, 0.25f);
+            fillAreaRT.anchorMax = new Vector2(1, 0.75f);
+            fillAreaRT.offsetMin = new Vector2(10, 0);
+            fillAreaRT.offsetMax = new Vector2(-10, 0);
+
+            var fillGO = new GameObject("Fill");
+            fillGO.transform.SetParent(fillAreaGO.transform, false);
+            var fillRT = fillGO.AddComponent<RectTransform>();
+            fillRT.anchorMin = Vector2.zero;
+            fillRT.anchorMax = Vector2.one;
+            fillRT.offsetMin = Vector2.zero;
+            fillRT.offsetMax = Vector2.zero;
+            var fillImg = fillGO.AddComponent<Image>();
+            fillImg.sprite = whiteSprite;
+            fillImg.color = new Color(0.3f, 0.65f, 0.9f, 1f);
+
+            // Handle
+            var handleAreaGO = new GameObject("Handle Slide Area");
+            handleAreaGO.transform.SetParent(sliderGO.transform, false);
+            var handleAreaRT = handleAreaGO.AddComponent<RectTransform>();
+            handleAreaRT.anchorMin = Vector2.zero;
+            handleAreaRT.anchorMax = Vector2.one;
+            handleAreaRT.offsetMin = new Vector2(10, 0);
+            handleAreaRT.offsetMax = new Vector2(-10, 0);
+
+            var handleGO = new GameObject("Handle");
+            handleGO.transform.SetParent(handleAreaGO.transform, false);
+            var handleRT = handleGO.AddComponent<RectTransform>();
+            handleRT.sizeDelta = new Vector2(30, 40);
+            var handleImg = handleGO.AddComponent<Image>();
+            handleImg.sprite = whiteSprite;
+            handleImg.color = Color.white;
+
+            var slider = sliderGO.AddComponent<Slider>();
+            slider.targetGraphic = handleImg;
+            slider.fillRect = fillRT;
+            slider.handleRect = handleRT;
+            slider.direction = Slider.Direction.LeftToRight;
+            return slider;
         }
 
         private static PauseScreen BuildPauseCanvas(Sprite whiteSprite, AudioSyncManager audioSync)
