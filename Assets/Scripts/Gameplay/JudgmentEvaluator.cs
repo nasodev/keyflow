@@ -28,5 +28,8 @@ namespace KeyFlow
             if (abs <= good)        return new JudgmentResult(Judgment.Good, deltaMs);
             return new JudgmentResult(Judgment.Miss, deltaMs);
         }
+
+        public static int GetGoodWindowMs(Difficulty difficulty)
+            => difficulty == Difficulty.Easy ? EasyGoodMs : NormalGoodMs;
     }
 }

@@ -53,7 +53,7 @@ namespace KeyFlow
             float laneX = LaneLayout.LaneToX(n.lane, laneAreaWidth);
             var go = Instantiate(notePrefab);
             var ctrl = go.GetComponent<NoteController>();
-            int missMs = difficulty == Difficulty.Easy ? 225 : 180;
+            int missMs = JudgmentEvaluator.GetGoodWindowMs(difficulty);
             ctrl.Initialize(
                 audioSync, n.lane, laneX,
                 n.t,

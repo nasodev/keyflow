@@ -47,7 +47,7 @@ namespace KeyFlow
             if (!playing || completed) return;
             if (!spawner.AllSpawned) return;
 
-            int missWindowMs = difficulty == Difficulty.Easy ? 225 : 180;
+            int missWindowMs = JudgmentEvaluator.GetGoodWindowMs(difficulty);
             int endSongMs = spawner.LastSpawnedHitMs + spawner.LastSpawnedDurMs + missWindowMs;
             if (audioSync.SongTimeMs < endSongMs) return;
 
