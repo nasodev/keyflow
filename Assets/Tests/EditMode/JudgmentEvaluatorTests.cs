@@ -98,5 +98,22 @@ namespace KeyFlow.Tests
             var r = JudgmentEvaluator.Evaluate(42, Difficulty.Normal);
             Assert.AreEqual(42, r.DeltaMs);
         }
+
+        [Test]
+        public void Evaluate_HoldStartTapInPerfectWindow_BehavesLikeTap()
+        {
+            // Hold start taps use the same evaluator as Tap — this guards against
+            // accidental per-NoteType branching creeping into the evaluator.
+            var result = JudgmentEvaluator.Evaluate(30, Difficulty.Normal);
+            Assert.AreEqual(Judgment.Perfect, result.Judgment);
+            Assert.AreEqual(30, result.DeltaMs);
+        }
+
+        [Test]
+        public void Evaluate_HoldStartTapInGreatWindow_BehavesLikeTap()
+        {
+            var result = JudgmentEvaluator.Evaluate(100, Difficulty.Normal);
+            Assert.AreEqual(Judgment.Great, result.Judgment);
+        }
     }
 }

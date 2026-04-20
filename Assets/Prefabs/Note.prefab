@@ -105,3 +105,4 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: KeyFlow.Runtime::KeyFlow.NoteController
   previewTimeMs: 2000
+  spriteRenderer: {fileID: 2347145914799970393}
