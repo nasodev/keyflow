@@ -1,5 +1,7 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Controls;
 
 namespace KeyFlow
 {
@@ -12,6 +14,14 @@ namespace KeyFlow
 
         public System.Action<int> OnTap;
         public System.Action<int, int> OnLaneTap;
+        public System.Action<int> OnLaneRelease;
+
+        private readonly Dictionary<int, int> touchToLane = new Dictionary<int, int>();
+        private readonly HashSet<int> pressedLanes = new HashSet<int>();
+        private bool mousePressed;
+        private int mouseLane = -1;
+
+        public bool IsLanePressed(int lane) => pressedLanes.Contains(lane);
 
         private void Awake()
         {
@@ -20,38 +30,84 @@ namespace KeyFlow
 
         private void Update()
         {
-            bool tapped = false;
-            Vector2 screenPos = Vector2.zero;
+            int songTimeMs = audioSync != null ? audioSync.SongTimeMs : 0;
 
             if (Touchscreen.current != null)
             {
                 foreach (var touch in Touchscreen.current.touches)
                 {
+                    int tid = touch.touchId.ReadValue();
+
                     if (touch.press.wasPressedThisFrame)
                     {
-                        tapped = true;
-                        screenPos = touch.position.ReadValue();
-                        break;
+                        Vector2 pos = touch.position.ReadValue();
+                        int lane = ScreenToLane(pos);
+                        FirePress(tid, lane, songTimeMs);
+                    }
+                    else if (touch.press.wasReleasedThisFrame)
+                    {
+                        FireRelease(tid);
                     }
                 }
             }
 
-            if (!tapped && Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
+            if (Mouse.current != null)
             {
-                tapped = true;
-                screenPos = Mouse.current.position.ReadValue();
+                if (Mouse.current.leftButton.wasPressedThisFrame)
+                {
+                    Vector2 pos = Mouse.current.position.ReadValue();
+                    int lane = ScreenToLane(pos);
+                    mousePressed = true;
+                    mouseLane = lane;
+                    FirePressRaw(lane, songTimeMs);
+                }
+                else if (Mouse.current.leftButton.wasReleasedThisFrame && mousePressed)
+                {
+                    FireReleaseRaw(mouseLane);
+                    mousePressed = false;
+                    mouseLane = -1;
+                }
             }
+        }
 
-            if (!tapped) return;
-
-            samplePool.PlayOneShot();
-            int songTimeMs = audioSync != null ? audioSync.SongTimeMs : 0;
-
+        private int ScreenToLane(Vector2 screenPos)
+        {
             Vector3 world = mainCamera.ScreenToWorldPoint(new Vector3(screenPos.x, screenPos.y, 10));
-            int lane = LaneLayout.XToLane(world.x, laneAreaWidth);
+            return LaneLayout.XToLane(world.x, laneAreaWidth);
+        }
 
+        private void FirePress(int touchId, int lane, int songTimeMs)
+        {
+            touchToLane[touchId] = lane;
+            pressedLanes.Add(lane);
+            samplePool.PlayOneShot();
             OnTap?.Invoke(songTimeMs);
             OnLaneTap?.Invoke(songTimeMs, lane);
+        }
+
+        private void FireRelease(int touchId)
+        {
+            if (!touchToLane.TryGetValue(touchId, out int lane)) return;
+            touchToLane.Remove(touchId);
+            // Only remove from pressedLanes if no other touch is on this lane
+            bool stillPressed = false;
+            foreach (var kv in touchToLane) if (kv.Value == lane) { stillPressed = true; break; }
+            if (!stillPressed) pressedLanes.Remove(lane);
+            OnLaneRelease?.Invoke(lane);
+        }
+
+        private void FirePressRaw(int lane, int songTimeMs)
+        {
+            pressedLanes.Add(lane);
+            samplePool.PlayOneShot();
+            OnTap?.Invoke(songTimeMs);
+            OnLaneTap?.Invoke(songTimeMs, lane);
+        }
+
+        private void FireReleaseRaw(int lane)
+        {
+            pressedLanes.Remove(lane);
+            OnLaneRelease?.Invoke(lane);
         }
     }
 }
