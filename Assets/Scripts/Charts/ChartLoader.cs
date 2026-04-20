@@ -3,6 +3,7 @@ using System.IO;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
+using UnityEngine.Networking;
 
 namespace KeyFlow
 {
@@ -14,8 +15,26 @@ namespace KeyFlow
         public static ChartData LoadFromStreamingAssets(string songId)
         {
             string path = Path.Combine(Application.streamingAssetsPath, "charts", songId + ".kfchart");
-            string json = File.ReadAllText(path);
+            string json = ReadStreamingAsset(path);
             return ParseJson(json);
+        }
+
+        private static string ReadStreamingAsset(string path)
+        {
+#if UNITY_ANDROID && !UNITY_EDITOR
+            // StreamingAssets on Android live inside the APK as a jar: URI;
+            // File.ReadAllText cannot traverse that. UnityWebRequest can.
+            using (var req = UnityWebRequest.Get(path))
+            {
+                var op = req.SendWebRequest();
+                while (!op.isDone) { }
+                if (req.result != UnityWebRequest.Result.Success)
+                    throw new System.IO.FileNotFoundException($"Failed to load {path}: {req.error}");
+                return req.downloadHandler.text;
+            }
+#else
+            return File.ReadAllText(path);
+#endif
         }
 
         public static ChartData ParseJson(string json)
