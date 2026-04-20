@@ -7,35 +7,65 @@ namespace KeyFlow
         [SerializeField] private int previewTimeMs = 2000;
 
         private AudioSyncManager audioSync;
-        private Vector3 spawnPos;
-        private Vector3 judgmentPos;
         private int hitTimeMs;
+        private int lane;
+        private float spawnY;
+        private float judgmentY;
+        private float laneX;
         private bool initialized;
+        private bool judged;
+        private int missGraceMs;
+        private System.Action<NoteController> onAutoMiss;
 
         public int HitTimeMs => hitTimeMs;
+        public int Lane => lane;
+        public bool Judged => judged;
 
-        public void Initialize(AudioSyncManager sync, Vector3 spawn, Vector3 judgment, int hitMs, int previewMs = 2000)
+        public void Initialize(
+            AudioSyncManager sync,
+            int lane, float laneX,
+            int hitMs,
+            float spawnY, float judgmentY,
+            int previewMs,
+            int missGraceMs,
+            System.Action<NoteController> onAutoMiss)
         {
-            audioSync = sync;
-            spawnPos = spawn;
-            judgmentPos = judgment;
-            hitTimeMs = hitMs;
-            previewTimeMs = previewMs;
-            transform.position = spawn;
+            this.audioSync = sync;
+            this.lane = lane;
+            this.laneX = laneX;
+            this.hitTimeMs = hitMs;
+            this.spawnY = spawnY;
+            this.judgmentY = judgmentY;
+            this.previewTimeMs = previewMs;
+            this.missGraceMs = missGraceMs;
+            this.onAutoMiss = onAutoMiss;
+            transform.position = new Vector3(laneX, spawnY, 0);
             initialized = true;
+        }
+
+        public void MarkJudged()
+        {
+            judged = true;
+            Destroy(gameObject);
         }
 
         private void Update()
         {
-            if (!initialized || !audioSync.IsPlaying) return;
+            if (!initialized || judged || !audioSync.IsPlaying) return;
 
-            float progress = GameTime.GetNoteProgress(audioSync.SongTimeMs, hitTimeMs, previewTimeMs);
+            int songTime = audioSync.SongTimeMs;
+            float progress = GameTime.GetNoteProgress(songTime, hitTimeMs, previewTimeMs);
             if (progress < 0f) return;
 
-            transform.position = Vector3.LerpUnclamped(spawnPos, judgmentPos, progress);
+            transform.position = new Vector3(
+                laneX,
+                Mathf.LerpUnclamped(spawnY, judgmentY, progress),
+                0);
 
-            if (audioSync.SongTimeMs > hitTimeMs + 500)
+            if (songTime > hitTimeMs + missGraceMs)
             {
+                judged = true;
+                onAutoMiss?.Invoke(this);
                 Destroy(gameObject);
             }
         }

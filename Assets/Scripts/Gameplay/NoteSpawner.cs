@@ -5,17 +5,25 @@ namespace KeyFlow
     public class NoteSpawner : MonoBehaviour
     {
         [SerializeField] private GameObject notePrefab;
-        [SerializeField] private Transform spawnPoint;
-        [SerializeField] private Transform judgmentPoint;
         [SerializeField] private AudioSyncManager audioSync;
+        [SerializeField] private JudgmentSystem judgmentSystem;
+        [SerializeField] private float laneAreaWidth = 4f;
+        [SerializeField] private float spawnY = 4f;
+        [SerializeField] private float judgmentY = -3f;
         [SerializeField] private int firstNoteHitMs = 2000;
-        [SerializeField] private int noteIntervalMs = 1000;
+        [SerializeField] private int noteIntervalMs = 800;
         [SerializeField] private int totalNotes = 30;
+        [SerializeField] private int previewMs = 2000;
+        [SerializeField] private Difficulty difficulty = Difficulty.Normal;
 
         private int spawnedCount;
 
+        public int TotalNotes => totalNotes;
+        public Difficulty CurrentDifficulty => difficulty;
+
         private void Start()
         {
+            judgmentSystem.Initialize(totalNotes, difficulty);
             audioSync.StartSilentSong();
         }
 
@@ -25,19 +33,28 @@ namespace KeyFlow
             if (spawnedCount >= totalNotes) return;
 
             int nextHitMs = firstNoteHitMs + spawnedCount * noteIntervalMs;
-            int previewMs = 2000;
             if (audioSync.SongTimeMs >= nextHitMs - previewMs)
             {
-                SpawnNote(nextHitMs);
+                SpawnNote(nextHitMs, spawnedCount % LaneLayout.LaneCount);
                 spawnedCount++;
             }
         }
 
-        private void SpawnNote(int hitTimeMs)
+        private void SpawnNote(int hitTimeMs, int lane)
         {
-            var go = Instantiate(notePrefab, spawnPoint.position, Quaternion.identity);
+            float laneX = LaneLayout.LaneToX(lane, laneAreaWidth);
+            var go = Instantiate(notePrefab);
             var ctrl = go.GetComponent<NoteController>();
-            ctrl.Initialize(audioSync, spawnPoint.position, judgmentPoint.position, hitTimeMs);
+            // Miss grace = difficulty's Good window (spec §5.1)
+            int missMs = difficulty == Difficulty.Easy ? 225 : 180;
+            ctrl.Initialize(
+                audioSync, lane, laneX,
+                hitTimeMs,
+                spawnY, judgmentY,
+                previewMs,
+                missMs,
+                onAutoMiss: n => judgmentSystem.HandleAutoMiss(n));
+            judgmentSystem.RegisterPendingNote(ctrl);
         }
     }
 }
