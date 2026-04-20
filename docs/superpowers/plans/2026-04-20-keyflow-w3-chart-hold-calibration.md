@@ -84,7 +84,7 @@ Assets/
 │       └─ CompletionPanel.cs          (C)  MonoBehaviour + overlay UI
 ├─ StreamingAssets/
 │   └─ charts/
-│       └─ beethoven_fur_elise.kfchart (C)  hand-authored Easy chart, ~72 notes, 45s
+│       └─ beethoven_fur_elise.kfchart (C)  hand-authored Easy chart, 73 notes, 45s
 ├─ Editor/
 │   └─ SceneBuilder.cs                 (M)  W3 rewrite; menu renamed Build W3 Gameplay Scene
 └─ Tests/EditMode/
@@ -662,7 +662,7 @@ Run in Test Runner. **If green, revert this test** (it's an IO test that require
 
 ```bash
 cd /c/dev/unity-music && git add Assets/StreamingAssets/ && git commit -m "$(cat <<'EOF'
-feat(chart): hand-authored Für Elise Easy chart (72 notes, 45s)
+feat(chart): hand-authored Für Elise Easy chart (73 notes, 45s)
 
 Covers iconic opening motif + two Hold notes (mid + end) for
 W3 device verification. All pitches MIDI 48-67 to stay within
