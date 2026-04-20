@@ -22,7 +22,12 @@ namespace KeyFlow
         {
             UserPrefs.MigrateLegacy();
 
-            string songId = SongSession.CurrentSongId ?? "beethoven_fur_elise";
+            string songId = SongSession.CurrentSongId;
+            if (string.IsNullOrEmpty(songId))
+            {
+                Debug.LogError("[KeyFlow] GameplayController.Start with no SongSession.CurrentSongId");
+                return;
+            }
             difficulty = SongSession.CurrentDifficulty;
             chart = ChartLoader.LoadFromStreamingAssets(songId);
 

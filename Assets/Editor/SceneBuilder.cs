@@ -72,10 +72,13 @@ namespace KeyFlow.Editor
             var completionPanel = BuildCompletionPanel(whiteSprite);
             BuildGameplayController(calibration, audioSync, spawner, judgmentSystem, completionPanel, gameplayRoot.transform);
 
-            // ScreenManager. mainRoot/resultsCanvas wire in later tasks; gameplay
-            // + calibration refs can be filled now.
+            var mainCanvas = BuildMainCanvas(whiteSprite);
+
+            // ScreenManager. resultsCanvas/pauseOverlay/settingsOverlay wire in
+            // later tasks; Replace() and HideAllOverlays() null-guard those fields.
             var screenManagerGO = new GameObject("ScreenManager");
             var screenMgr = screenManagerGO.AddComponent<ScreenManager>();
+            SetField(screenMgr, "mainRoot", mainCanvas);
             SetField(screenMgr, "gameplayRoot", gameplayRoot);
             SetField(screenMgr, "calibrationOverlay", calibration);
 
@@ -351,6 +354,302 @@ namespace KeyFlow.Editor
             SetArrayField(controller, "beatIndicators", indicators);
 
             return controller;
+        }
+
+        private static GameObject BuildMainCanvas(Sprite whiteSprite)
+        {
+            var starFilled = AssetDatabase.LoadAssetAtPath<Sprite>(StarFilledPath);
+            var starEmpty = AssetDatabase.LoadAssetAtPath<Sprite>(StarEmptyPath);
+
+            var canvasGO = new GameObject("MainCanvas");
+            var canvas = canvasGO.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.sortingOrder = 5;
+            var scaler = canvasGO.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(720, 1280);
+            scaler.matchWidthOrHeight = 0.5f;
+            canvasGO.AddComponent<GraphicRaycaster>();
+
+            // Background fill
+            var bgGO = new GameObject("Background");
+            bgGO.transform.SetParent(canvasGO.transform, false);
+            var bgRT = bgGO.AddComponent<RectTransform>();
+            bgRT.anchorMin = Vector2.zero;
+            bgRT.anchorMax = Vector2.one;
+            bgRT.offsetMin = Vector2.zero;
+            bgRT.offsetMax = Vector2.zero;
+            var bgImg = bgGO.AddComponent<Image>();
+            bgImg.color = new Color(0.08f, 0.08f, 0.12f, 1f);
+
+            // Header
+            var headerGO = new GameObject("Header");
+            headerGO.transform.SetParent(canvasGO.transform, false);
+            var headerRT = headerGO.AddComponent<RectTransform>();
+            headerRT.anchorMin = new Vector2(0, 1);
+            headerRT.anchorMax = new Vector2(1, 1);
+            headerRT.pivot = new Vector2(0.5f, 1);
+            headerRT.sizeDelta = new Vector2(0, 120);
+            headerRT.anchoredPosition = Vector2.zero;
+            var headerImg = headerGO.AddComponent<Image>();
+            headerImg.color = new Color(0.12f, 0.12f, 0.16f, 1f);
+
+            var titleGO = new GameObject("TitleText");
+            titleGO.transform.SetParent(headerGO.transform, false);
+            var titleRT = titleGO.AddComponent<RectTransform>();
+            titleRT.anchorMin = new Vector2(0, 0.5f);
+            titleRT.anchorMax = new Vector2(0, 0.5f);
+            titleRT.pivot = new Vector2(0, 0.5f);
+            titleRT.anchoredPosition = new Vector2(24, 0);
+            titleRT.sizeDelta = new Vector2(400, 60);
+            var titleText = titleGO.AddComponent<Text>();
+            titleText.text = "KeyFlow";
+            titleText.fontSize = 42;
+            titleText.color = Color.white;
+            titleText.alignment = TextAnchor.MiddleLeft;
+            titleText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+
+            var settingsBtnGO = new GameObject("SettingsButton");
+            settingsBtnGO.transform.SetParent(headerGO.transform, false);
+            var settingsBtnRT = settingsBtnGO.AddComponent<RectTransform>();
+            settingsBtnRT.anchorMin = new Vector2(1, 0.5f);
+            settingsBtnRT.anchorMax = new Vector2(1, 0.5f);
+            settingsBtnRT.pivot = new Vector2(1, 0.5f);
+            settingsBtnRT.anchoredPosition = new Vector2(-24, 0);
+            settingsBtnRT.sizeDelta = new Vector2(80, 80);
+            var settingsBtnImg = settingsBtnGO.AddComponent<Image>();
+            settingsBtnImg.sprite = whiteSprite;
+            settingsBtnImg.color = new Color(0.25f, 0.25f, 0.3f, 1f);
+            var settingsButton = settingsBtnGO.AddComponent<Button>();
+
+            var settingsBtnTextGO = new GameObject("Label");
+            settingsBtnTextGO.transform.SetParent(settingsBtnGO.transform, false);
+            var settingsBtnTextRT = settingsBtnTextGO.AddComponent<RectTransform>();
+            settingsBtnTextRT.anchorMin = Vector2.zero;
+            settingsBtnTextRT.anchorMax = Vector2.one;
+            settingsBtnTextRT.offsetMin = Vector2.zero;
+            settingsBtnTextRT.offsetMax = Vector2.zero;
+            var settingsBtnText = settingsBtnTextGO.AddComponent<Text>();
+            settingsBtnText.text = "⚙";
+            settingsBtnText.fontSize = 42;
+            settingsBtnText.color = Color.white;
+            settingsBtnText.alignment = TextAnchor.MiddleCenter;
+            settingsBtnText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+
+            // ScrollView
+            var scrollGO = new GameObject("ScrollView");
+            scrollGO.transform.SetParent(canvasGO.transform, false);
+            var scrollRT = scrollGO.AddComponent<RectTransform>();
+            scrollRT.anchorMin = new Vector2(0, 0);
+            scrollRT.anchorMax = new Vector2(1, 1);
+            scrollRT.offsetMin = Vector2.zero;
+            scrollRT.offsetMax = new Vector2(0, -120); // leave room for Header
+            var scrollRect = scrollGO.AddComponent<ScrollRect>();
+            scrollRect.horizontal = false;
+            scrollRect.vertical = true;
+            scrollGO.AddComponent<Image>().color = new Color(0, 0, 0, 0);
+
+            var viewportGO = new GameObject("Viewport");
+            viewportGO.transform.SetParent(scrollGO.transform, false);
+            var viewportRT = viewportGO.AddComponent<RectTransform>();
+            viewportRT.anchorMin = Vector2.zero;
+            viewportRT.anchorMax = Vector2.one;
+            viewportRT.offsetMin = Vector2.zero;
+            viewportRT.offsetMax = Vector2.zero;
+            var viewportImg = viewportGO.AddComponent<Image>();
+            viewportImg.color = new Color(0, 0, 0, 0.01f); // must have Image for Mask
+            viewportGO.AddComponent<Mask>().showMaskGraphic = false;
+
+            var contentGO = new GameObject("Content");
+            contentGO.transform.SetParent(viewportGO.transform, false);
+            var contentRT = contentGO.AddComponent<RectTransform>();
+            contentRT.anchorMin = new Vector2(0, 1);
+            contentRT.anchorMax = new Vector2(1, 1);
+            contentRT.pivot = new Vector2(0.5f, 1);
+            contentRT.anchoredPosition = Vector2.zero;
+            contentRT.sizeDelta = new Vector2(0, 0);
+            var vlg = contentGO.AddComponent<VerticalLayoutGroup>();
+            vlg.spacing = 12;
+            vlg.padding = new RectOffset(16, 16, 16, 16);
+            vlg.childControlWidth = true;
+            vlg.childControlHeight = false;
+            vlg.childForceExpandWidth = true;
+            vlg.childForceExpandHeight = false;
+            var fitter = contentGO.AddComponent<ContentSizeFitter>();
+            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            scrollRect.viewport = viewportRT;
+            scrollRect.content = contentRT;
+
+            // Card template (inactive; MainScreen clones this)
+            var cardTemplate = BuildCardTemplate(contentGO.transform, whiteSprite, starFilled, starEmpty);
+            cardTemplate.SetActive(false);
+
+            // MainScreen controller
+            var mainScreen = canvasGO.AddComponent<MainScreen>();
+            SetField(mainScreen, "cardContainer", contentGO.transform);
+            SetField(mainScreen, "cardPrefab", cardTemplate);
+            SetField(mainScreen, "settingsButton", settingsButton);
+            SetField(mainScreen, "starFilled", starFilled);
+            SetField(mainScreen, "starEmpty", starEmpty);
+            // settingsOverlay wires in Task 16.
+
+            return canvasGO;
+        }
+
+        private static GameObject BuildCardTemplate(
+            Transform parent, Sprite whiteSprite, Sprite starFilled, Sprite starEmpty)
+        {
+            var cardGO = new GameObject("CardTemplate");
+            cardGO.transform.SetParent(parent, false);
+            var cardRT = cardGO.AddComponent<RectTransform>();
+            cardRT.sizeDelta = new Vector2(0, 150);
+            var cardImg = cardGO.AddComponent<Image>();
+            cardImg.sprite = whiteSprite;
+            cardImg.color = new Color(0.18f, 0.18f, 0.22f, 1f);
+            var cardLE = cardGO.AddComponent<LayoutElement>();
+            cardLE.preferredHeight = 150;
+            var canvasGroup = cardGO.AddComponent<CanvasGroup>();
+            var hlg = cardGO.AddComponent<HorizontalLayoutGroup>();
+            hlg.spacing = 12;
+            hlg.padding = new RectOffset(12, 12, 12, 12);
+            hlg.childControlWidth = false;
+            hlg.childControlHeight = true;
+            hlg.childForceExpandWidth = false;
+            hlg.childForceExpandHeight = true;
+
+            // Thumbnail (112px)
+            var thumbGO = new GameObject("Thumbnail");
+            thumbGO.transform.SetParent(cardGO.transform, false);
+            var thumbRT = thumbGO.AddComponent<RectTransform>();
+            thumbRT.sizeDelta = new Vector2(112, 112);
+            var thumbImg = thumbGO.AddComponent<Image>();
+            thumbImg.color = Color.white;
+            var thumbLE = thumbGO.AddComponent<LayoutElement>();
+            thumbLE.preferredWidth = 112;
+            thumbLE.preferredHeight = 112;
+
+            // Center VStack (title/composer/stars)
+            var centerGO = new GameObject("Center");
+            centerGO.transform.SetParent(cardGO.transform, false);
+            var centerRT = centerGO.AddComponent<RectTransform>();
+            var centerLE = centerGO.AddComponent<LayoutElement>();
+            centerLE.flexibleWidth = 1;
+            var centerVLG = centerGO.AddComponent<VerticalLayoutGroup>();
+            centerVLG.spacing = 4;
+            centerVLG.childControlWidth = true;
+            centerVLG.childControlHeight = false;
+            centerVLG.childForceExpandWidth = true;
+            centerVLG.childAlignment = TextAnchor.MiddleLeft;
+
+            var titleGO = new GameObject("Title");
+            titleGO.transform.SetParent(centerGO.transform, false);
+            titleGO.AddComponent<RectTransform>();
+            var titleText = titleGO.AddComponent<Text>();
+            titleText.text = "Title";
+            titleText.fontSize = 24;
+            titleText.color = Color.white;
+            titleText.alignment = TextAnchor.MiddleLeft;
+            titleText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            var titleLE = titleGO.AddComponent<LayoutElement>();
+            titleLE.preferredHeight = 32;
+
+            var composerGO = new GameObject("Composer");
+            composerGO.transform.SetParent(centerGO.transform, false);
+            composerGO.AddComponent<RectTransform>();
+            var composerText = composerGO.AddComponent<Text>();
+            composerText.text = "Composer";
+            composerText.fontSize = 18;
+            composerText.color = new Color(0.75f, 0.75f, 0.8f, 1f);
+            composerText.alignment = TextAnchor.MiddleLeft;
+            composerText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            var composerLE = composerGO.AddComponent<LayoutElement>();
+            composerLE.preferredHeight = 24;
+
+            var starsGO = new GameObject("Stars");
+            starsGO.transform.SetParent(centerGO.transform, false);
+            starsGO.AddComponent<RectTransform>();
+            var starsHLG = starsGO.AddComponent<HorizontalLayoutGroup>();
+            starsHLG.spacing = 4;
+            starsHLG.childAlignment = TextAnchor.MiddleLeft;
+            starsHLG.childControlWidth = false;
+            starsHLG.childControlHeight = false;
+            starsHLG.childForceExpandWidth = false;
+            starsHLG.childForceExpandHeight = false;
+            var starsLE = starsGO.AddComponent<LayoutElement>();
+            starsLE.preferredHeight = 32;
+            var starImages = new Image[3];
+            for (int i = 0; i < 3; i++)
+            {
+                var starGO = new GameObject($"Star{i}");
+                starGO.transform.SetParent(starsGO.transform, false);
+                var starRT = starGO.AddComponent<RectTransform>();
+                starRT.sizeDelta = new Vector2(28, 28);
+                var starImg = starGO.AddComponent<Image>();
+                starImg.sprite = starEmpty;
+                starImg.preserveAspect = true;
+                var starLE = starGO.AddComponent<LayoutElement>();
+                starLE.preferredWidth = 28;
+                starLE.preferredHeight = 28;
+                starImages[i] = starImg;
+            }
+
+            // Right VStack (Easy/Normal)
+            var rightGO = new GameObject("Right");
+            rightGO.transform.SetParent(cardGO.transform, false);
+            rightGO.AddComponent<RectTransform>();
+            var rightLE = rightGO.AddComponent<LayoutElement>();
+            rightLE.preferredWidth = 140;
+            var rightVLG = rightGO.AddComponent<VerticalLayoutGroup>();
+            rightVLG.spacing = 6;
+            rightVLG.childControlWidth = true;
+            rightVLG.childControlHeight = true;
+            rightVLG.childForceExpandWidth = true;
+            rightVLG.childForceExpandHeight = false;
+
+            var easyButton = BuildCardButton(rightGO.transform, whiteSprite, "Easy", new Color(0.25f, 0.6f, 0.4f, 1f));
+            var normalButton = BuildCardButton(rightGO.transform, whiteSprite, "Normal", new Color(0.6f, 0.5f, 0.2f, 1f));
+
+            var view = cardGO.AddComponent<SongCardView>();
+            SetField(view, "thumbnailImage", thumbImg);
+            SetField(view, "titleText", titleText);
+            SetField(view, "composerText", composerText);
+            SetField(view, "easyButton", easyButton);
+            SetField(view, "normalButton", normalButton);
+            SetField(view, "canvasGroup", canvasGroup);
+            SetField(view, "starFilled", starFilled);
+            SetField(view, "starEmpty", starEmpty);
+            SetArrayField(view, "starImages", starImages);
+
+            return cardGO;
+        }
+
+        private static Button BuildCardButton(Transform parent, Sprite whiteSprite, string label, Color bg)
+        {
+            var btnGO = new GameObject(label + "Button");
+            btnGO.transform.SetParent(parent, false);
+            btnGO.AddComponent<RectTransform>();
+            var img = btnGO.AddComponent<Image>();
+            img.sprite = whiteSprite;
+            img.color = bg;
+            var btn = btnGO.AddComponent<Button>();
+            var btnLE = btnGO.AddComponent<LayoutElement>();
+            btnLE.preferredHeight = 52;
+
+            var txtGO = new GameObject("Label");
+            txtGO.transform.SetParent(btnGO.transform, false);
+            var txtRT = txtGO.AddComponent<RectTransform>();
+            txtRT.anchorMin = Vector2.zero;
+            txtRT.anchorMax = Vector2.one;
+            txtRT.offsetMin = Vector2.zero;
+            txtRT.offsetMax = Vector2.zero;
+            var txt = txtGO.AddComponent<Text>();
+            txt.text = label;
+            txt.fontSize = 22;
+            txt.color = Color.white;
+            txt.alignment = TextAnchor.MiddleCenter;
+            txt.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            return btn;
         }
 
         private static CompletionPanel BuildCompletionPanel(Sprite whiteSprite)
