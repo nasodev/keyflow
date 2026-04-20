@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Turn W2's hardcoded-sequence judgment engine into a data-driven song player. Deliver a build in which **Für Elise Easy plays end-to-end on Galaxy S22**, with Hold notes, first-launch audio calibration, and a completion panel that can Restart. On completion, EditMode test count rises from 40 → ~65, and the APK passes the device checklist in the W3 spec.
+**Goal:** Turn W2's hardcoded-sequence judgment engine into a data-driven song player. Deliver a build in which **Für Elise Easy plays end-to-end on Galaxy S22**, with Hold notes, first-launch audio calibration, and a completion panel that can Restart. On completion, EditMode test count rises from 40 → 68, and the APK passes the device checklist in the W3 spec.
 
 **Architecture:** Three new pure-logic units (`ChartLoader.ParseJson`, `HoldStateMachine`, `CalibrationCalculator`) with full EditMode tests, plus four new MonoBehaviours (`HoldTracker`, `CalibrationController`, `CompletionPanel`, `GameplayController`). W2 components (`AudioSyncManager`, `AudioSamplePool`, `LaneLayout`, `JudgmentEvaluator`, `ScoreManager`, `LatencyMeter`) stay untouched. W2 MonoBehaviours (`TapInputHandler`, `NoteController`, `NoteSpawner`, `JudgmentSystem`) get targeted extensions for release tracking, Hold rendering, Hold handoff, and chart-driven spawning. `SceneBuilder` is rewritten to generate overlays; menu renamed `Build W3 Gameplay Scene`.
 
@@ -92,7 +92,7 @@ Assets/
     ├─ LaneLayoutTests.cs              (unchanged)
     ├─ JudgmentEvaluatorTests.cs       (M)  +2 Hold-start-tap regression tests
     ├─ ScoreManagerTests.cs            (unchanged)
-    ├─ ChartLoaderTests.cs             (C)  6–8 ParseJson tests
+    ├─ ChartLoaderTests.cs             (C)  10 ParseJson tests
     ├─ HoldStateMachineTests.cs        (C)  7–9 state transition tests
     └─ CalibrationCalculatorTests.cs   (C)  6–7 compute tests
 
@@ -308,7 +308,7 @@ namespace KeyFlow.Tests.EditMode
         public void ParseJson_ValidInput_PopulatesAllFields()
         {
             var c = ChartLoader.ParseJson(ValidJson);
-            Assert.AreEqual(""test_song"", c.songId);
+            Assert.AreEqual("test_song", c.songId);
             Assert.AreEqual(120, c.bpm);
             Assert.AreEqual(5000, c.durationMs);
             Assert.IsTrue(c.charts.ContainsKey(Difficulty.Easy));
@@ -370,6 +370,20 @@ namespace KeyFlow.Tests.EditMode
         {
             var c = ChartLoader.ParseJson(ValidJson.Replace(@"""pitch"": 60", @"""pitch"": 100"));
             Assert.AreEqual(83, c.charts[Difficulty.Easy].notes[0].pitch);
+        }
+
+        [Test]
+        public void ParseJson_TimeBeyondDuration_Throws()
+        {
+            var bad = ValidJson.Replace(@"""t"": 1000", @"""t"": 999999");
+            Assert.Throws<ChartValidationException>(() => ChartLoader.ParseJson(bad));
+        }
+
+        [Test]
+        public void ParseJson_NegativeTime_Throws()
+        {
+            var bad = ValidJson.Replace(@"""t"": 1000", @"""t"": -10");
+            Assert.Throws<ChartValidationException>(() => ChartLoader.ParseJson(bad));
         }
     }
 }
@@ -443,7 +457,7 @@ namespace KeyFlow
                         type = ParseType((string)n["type"]),
                         dur = (int)n["dur"]
                     };
-                    Validate(note);
+                    Validate(note, chart.durationMs);
                     cd.notes.Add(note);
                 }
                 chart.charts[diff] = cd;
@@ -471,8 +485,12 @@ namespace KeyFlow
             }
         }
 
-        private static void Validate(ChartNote n)
+        private static void Validate(ChartNote n, int durationMs)
         {
+            if (n.t < 0)
+                throw new ChartValidationException($"t {n.t} negative");
+            if (n.t > durationMs)
+                throw new ChartValidationException($"t {n.t} exceeds durationMs {durationMs}");
             if (n.lane < 0 || n.lane > 3)
                 throw new ChartValidationException($"lane {n.lane} out of range [0,3] at t={n.t}");
             if (n.dur < 0)
@@ -486,7 +504,7 @@ namespace KeyFlow
 }
 ```
 
-- [ ] **Step 3.5: Run tests — expect all 8 pass**
+- [ ] **Step 3.5: Run tests — expect all 10 pass**
 
 In Test Runner: Run All → EditMode. Expected: 40 W2 tests + 8 new ChartLoader tests = 48 total, all green.
 
@@ -496,7 +514,7 @@ If any fail: read error, fix `ChartLoader.cs` only (tests are the spec). Re-run.
 
 ```bash
 cd /c/dev/unity-music && git add Assets/Scripts/Charts/ChartLoader.cs Assets/Tests/EditMode/ChartLoaderTests.cs Assets/Tests/EditMode/KeyFlow.Tests.EditMode.asmdef && git commit -m "$(cat <<'EOF'
-feat(chart): pure ChartLoader.ParseJson + 8 tests (spec 3.3-3.4)
+feat(chart): pure ChartLoader.ParseJson + 10 tests (spec 3.3-3.4)
 
 Newtonsoft.Json-based parser. Validates lane 0..3, dur sign
 matches type, clamps pitch to MIDI 36..83 silently.
@@ -533,7 +551,7 @@ Create `Assets/StreamingAssets/charts/beethoven_fur_elise.kfchart`. The chart co
   "durationMs": 45000,
   "charts": {
     "EASY": {
-      "totalNotes": 72,
+      "totalNotes": 73,
       "notes": [
         {"t": 2000, "lane": 3, "pitch": 64, "type": "TAP", "dur": 0},
         {"t": 2400, "lane": 3, "pitch": 63, "type": "TAP", "dur": 0},
@@ -615,7 +633,7 @@ Create `Assets/StreamingAssets/charts/beethoven_fur_elise.kfchart`. The chart co
 ```
 
 Notes:
-- 72 total notes over ~40 seconds of active play. `durationMs: 45000` leaves 5s tail after last Hold ends (`38000 + 1500 = 39500`).
+- 73 total notes over ~40 seconds of active play. `durationMs: 45000` leaves 5s tail after last Hold ends (`38000 + 1500 = 39500`).
 - Pitches span MIDI 48 (C3) to 67 (G4), all within ±1 octave of C4 for pitch-shift tolerance.
 - Two Hold notes: short (800ms) at t=9600, long (1500ms) final at t=38000.
 - 3-same-lane-in-a-row only appears at lanes 3 (the melody motif) — this is musically intentional for Für Elise's repeated high E, accepted.
@@ -634,7 +652,7 @@ public void LoadFromStreamingAssets_FurElise_Parses()
 {
     var c = ChartLoader.LoadFromStreamingAssets("beethoven_fur_elise");
     Assert.AreEqual("beethoven_fur_elise", c.songId);
-    Assert.AreEqual(72, c.charts[Difficulty.Easy].notes.Count);
+    Assert.AreEqual(73, c.charts[Difficulty.Easy].notes.Count);
 }
 ```
 
@@ -864,7 +882,7 @@ namespace KeyFlow
 
 - [ ] **Step 5.4: Run tests — expect all 9 pass**
 
-Test Runner → Run All. Expected: 48 + 9 = 57 tests passing.
+Test Runner → Run All. Expected: 50 + 9 = 59 tests passing.
 
 - [ ] **Step 5.5: Commit**
 
@@ -1013,7 +1031,7 @@ Return to Unity Editor. Console should be clean.
 
 - [ ] **Step 6.3: Run EditMode tests (smoke, nothing new here)**
 
-Test Runner → Run All. Expected: 57 tests still pass (TapInputHandler has no EditMode tests; this is just a regression check — if compilation broke anything, some W2 test may fail).
+Test Runner → Run All. Expected: 59 tests still pass (TapInputHandler has no EditMode tests; this is just a regression check — if compilation broke anything, some W2 test may fail).
 
 - [ ] **Step 6.4: Commit**
 
@@ -1112,15 +1130,21 @@ namespace KeyFlow
             Destroy(gameObject);
         }
 
+        public void MarkAcceptedAsHold()
+        {
+            // Called by JudgmentSystem when a HOLD start tap is judged P/G/G.
+            // Marks judged to block auto-miss, but leaves the GameObject alive
+            // so HoldTracker can drive Completion/Broken visuals.
+            judged = true;
+        }
+
         public void MarkHoldCompleted()
         {
-            judged = true;
             Destroy(gameObject);
         }
 
         public void MarkHoldBroken()
         {
-            judged = true;
             if (spriteRenderer != null)
                 spriteRenderer.color = new Color(0.4f, 0.4f, 0.4f, 0.5f);
             Destroy(gameObject, 0.2f);
@@ -1139,15 +1163,11 @@ namespace KeyFlow
                 Mathf.LerpUnclamped(spawnY, judgmentY, progress),
                 0);
 
-            if (noteType == NoteType.TAP && songTime > hitTimeMs + missGraceMs)
+            // Auto-miss: start tap never came within the miss window.
+            // Applies to both TAP and HOLD (HOLD whose start tap was accepted
+            // is already `judged=true` and returns at the top of Update).
+            if (songTime > hitTimeMs + missGraceMs)
             {
-                judged = true;
-                onAutoMiss?.Invoke(this);
-                Destroy(gameObject);
-            }
-            else if (noteType == NoteType.HOLD && songTime > hitTimeMs + missGraceMs && !judged)
-            {
-                // HOLD start tap missed (never tapped within miss window)
                 judged = true;
                 onAutoMiss?.Invoke(this);
                 Destroy(gameObject);
@@ -1187,7 +1207,7 @@ This is a surgical 2-line change just to keep the build green.
 
 - [ ] **Step 7.4: Run EditMode tests**
 
-Test Runner → Run All. Expected: 57 tests still pass.
+Test Runner → Run All. Expected: 59 tests still pass.
 
 - [ ] **Step 7.5: Commit**
 
@@ -1307,6 +1327,7 @@ namespace KeyFlow
 
             if (closest.Type == NoteType.HOLD && holdTracker != null)
             {
+                closest.MarkAcceptedAsHold();
                 holdTracker.OnHoldStartTapAccepted(closest);
             }
             else
@@ -1340,7 +1361,7 @@ Save as `Assets/Scripts/Gameplay/HoldTracker.cs`. Task 9 overwrites this file.
 
 - [ ] **Step 8.3: Run EditMode tests**
 
-Test Runner → Run All. Expected: 57 tests still pass.
+Test Runner → Run All. Expected: 59 tests still pass.
 
 - [ ] **Step 8.4: Commit**
 
@@ -1427,7 +1448,7 @@ Editor Console clean. No pending errors.
 
 - [ ] **Step 9.3: Run EditMode tests**
 
-Test Runner → Run All. Expected: 57 tests still pass.
+Test Runner → Run All. Expected: 59 tests still pass.
 
 - [ ] **Step 9.4: Commit**
 
@@ -1634,7 +1655,7 @@ namespace KeyFlow
 
 - [ ] **Step 10.5: Run tests — expect all 7 pass**
 
-Test Runner → Run All. Expected: 57 + 7 = 64 tests passing.
+Test Runner → Run All. Expected: 59 + 7 = 66 tests passing.
 
 If variance test fails because `reliable` threshold interpretation differs: the spec says MAD ≤ 50ms is reliable. Check test data: the `jitter` array has MAD > 50ms, so `reliable` should be false. If implementation returns true, inspect `madMs` value and adjust either threshold or test data (keeping spec threshold fixed).
 
@@ -1809,7 +1830,7 @@ Editor Console clean.
 
 - [ ] **Step 11.3: Run EditMode tests**
 
-Test Runner → Run All. Expected: 64 tests still pass.
+Test Runner → Run All. Expected: 66 tests still pass.
 
 - [ ] **Step 11.4: Commit**
 
@@ -1894,7 +1915,7 @@ namespace KeyFlow
 
 - [ ] **Step 12.2: Verify compile + tests**
 
-Expected: 64 tests still pass.
+Expected: 66 tests still pass.
 
 - [ ] **Step 12.3: Commit**
 
@@ -2100,7 +2121,7 @@ Console clean.
 
 - [ ] **Step 14.3: Run EditMode tests**
 
-Test Runner → Run All. Expected: 64 tests still pass.
+Test Runner → Run All. Expected: 66 tests still pass.
 
 - [ ] **Step 14.4: Commit**
 
@@ -2148,7 +2169,7 @@ public void Evaluate_HoldStartTapInGreatWindow_BehavesLikeTap()
 }
 ```
 
-Run tests. Expected: 66 tests passing.
+Run tests. Expected: 68 tests passing.
 
 - [ ] **Step 15.2: Close Unity Editor**
 
@@ -2165,13 +2186,15 @@ Due to scene-construction complexity, the full body of SceneBuilder is long. Mat
 
 ```csharp
 // Inside BuildScene():
-var holdTracker = CreateGameObject("HoldTracker", rootObjects);
-var ht = holdTracker.AddComponent<HoldTracker>();
+var holdTrackerGo = CreateGameObject("HoldTracker", rootObjects);
+var ht = holdTrackerGo.AddComponent<HoldTracker>();
 SetField(ht, "tapInput", tapInputHandlerRef);
 SetField(ht, "audioSync", audioSyncRef);
 SetField(ht, "judgmentSystem", judgmentSystemRef);
 
-// Also set judgmentSystem.holdTracker = ht (via reflection or SerializedObject).
+// Wire the reverse direction: JudgmentSystem needs a HoldTracker reference
+// for the HOLD start-tap handoff branch in HandleTap (Task 8).
+SetField(judgmentSystemRef, "holdTracker", ht);
 
 var calibCanvas = CreateCalibrationOverlay(mainCanvasParent);
 var compPanel = CreateCompletionPanel(mainCanvasParent);
@@ -2212,7 +2235,7 @@ In Unity menu: `KeyFlow → Build W3 Gameplay Scene`. Verify:
 
 - [ ] **Step 15.6: Run EditMode tests (regression)**
 
-Test Runner → Run All. Expected: 66 tests passing.
+Test Runner → Run All. Expected: 68 tests passing.
 
 - [ ] **Step 15.7: Commit**
 
@@ -2284,6 +2307,7 @@ Using spec §6.3 checklist, verify on-device:
 - [ ] Second launch: calibration skipped (PlayerPrefs persistence)
 - [ ] Für Elise Easy plays to completion
 - [ ] Hold notes COMPLETED / BROKEN / MISSED observably distinct
+- [ ] Hold start-tap success + hold-through: **exactly one** P/G/G scored, no Miss on top (guards against the auto-miss regression fixed in Task 7)
 - [ ] CompletionPanel shows final Score + Max Combo + P/G/G/M + stars
 - [ ] Restart button reloads scene, playable immediately
 - [ ] 30+ seconds continuous play, no crashes
@@ -2308,7 +2332,7 @@ Create `docs/superpowers/reports/2026-04-20-w3-completion.md`, modeled on [2026-
 |---|---|---|
 | 1 | <hash> | Newtonsoft.Json package (if added) |
 | 2 | <hash> | Chart data types |
-| 3 | <hash> | ChartLoader.ParseJson + 8 tests |
+| 3 | <hash> | ChartLoader.ParseJson + 10 tests |
 | ...etc |
 
 ## Test count
