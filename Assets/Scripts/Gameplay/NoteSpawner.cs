@@ -10,52 +10,59 @@ namespace KeyFlow
         [SerializeField] private float laneAreaWidth = 4f;
         [SerializeField] private float spawnY = 4f;
         [SerializeField] private float judgmentY = -3f;
-        [SerializeField] private int firstNoteHitMs = 2000;
-        [SerializeField] private int noteIntervalMs = 800;
-        [SerializeField] private int totalNotes = 30;
         [SerializeField] private int previewMs = 2000;
-        [SerializeField] private Difficulty difficulty = Difficulty.Normal;
 
+        private ChartDifficulty chart;
+        private Difficulty difficulty;
         private int spawnedCount;
+        private bool initialized;
 
-        public int TotalNotes => totalNotes;
+        public int LastSpawnedHitMs { get; private set; }
+        public int LastSpawnedDurMs { get; private set; }
         public Difficulty CurrentDifficulty => difficulty;
+        public int TotalNotes => chart != null ? chart.notes.Count : 0;
 
-        private void Start()
+        public void Initialize(ChartDifficulty chartDifficulty, Difficulty diff)
         {
-            judgmentSystem.Initialize(totalNotes, difficulty);
-            audioSync.StartSilentSong();
+            this.chart = chartDifficulty;
+            this.difficulty = diff;
+            this.spawnedCount = 0;
+            this.initialized = true;
+            judgmentSystem.Initialize(chart.notes.Count, diff);
         }
+
+        public bool AllSpawned => initialized && spawnedCount >= chart.notes.Count;
 
         private void Update()
         {
-            if (!audioSync.IsPlaying) return;
-            if (spawnedCount >= totalNotes) return;
+            if (!initialized || !audioSync.IsPlaying) return;
+            if (spawnedCount >= chart.notes.Count) return;
 
-            int nextHitMs = firstNoteHitMs + spawnedCount * noteIntervalMs;
-            if (audioSync.SongTimeMs >= nextHitMs - previewMs)
+            var next = chart.notes[spawnedCount];
+            if (audioSync.SongTimeMs >= next.t - previewMs)
             {
-                SpawnNote(nextHitMs, spawnedCount % LaneLayout.LaneCount);
+                SpawnNote(next);
+                LastSpawnedHitMs = next.t;
+                LastSpawnedDurMs = next.dur;
                 spawnedCount++;
             }
         }
 
-        private void SpawnNote(int hitTimeMs, int lane)
+        private void SpawnNote(ChartNote n)
         {
-            float laneX = LaneLayout.LaneToX(lane, laneAreaWidth);
+            float laneX = LaneLayout.LaneToX(n.lane, laneAreaWidth);
             var go = Instantiate(notePrefab);
             var ctrl = go.GetComponent<NoteController>();
-            // Miss grace = difficulty's Good window (spec §5.1)
             int missMs = difficulty == Difficulty.Easy ? 225 : 180;
             ctrl.Initialize(
-                audioSync, lane, laneX,
-                hitTimeMs,
-                NoteType.TAP,
-                0,
+                audioSync, n.lane, laneX,
+                n.t,
+                n.type,
+                n.dur,
                 spawnY, judgmentY,
                 previewMs,
                 missMs,
-                onAutoMiss: n => judgmentSystem.HandleAutoMiss(n));
+                onAutoMiss: missed => judgmentSystem.HandleAutoMiss(missed));
             judgmentSystem.RegisterPendingNote(ctrl);
         }
     }
