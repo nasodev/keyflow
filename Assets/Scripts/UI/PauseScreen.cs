@@ -21,15 +21,18 @@ namespace KeyFlow.UI
             if (audioSync != null) audioSync.Pause();
         }
 
-        private void OnResume()
+        protected override void OnFinishing()
         {
             if (audioSync != null) audioSync.Resume();
+        }
+
+        private void OnResume()
+        {
             Finish();
         }
 
         private void OnQuit()
         {
-            if (audioSync != null) audioSync.Resume();
             Finish();
             ScreenManager.Instance.Replace(AppScreen.Main);
         }
