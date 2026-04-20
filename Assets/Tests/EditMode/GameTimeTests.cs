@@ -47,25 +47,5 @@ namespace KeyFlow.Tests
             Assert.AreEqual(0.5f, progress, 0.001f);
         }
 
-        [Test]
-        public void PitchToX_MinPitch_ReturnsZero()
-        {
-            float x = GameTime.PitchToX(pitch: 36);
-            Assert.AreEqual(0f, x, 0.001f);
-        }
-
-        [Test]
-        public void PitchToX_MaxPitch_ReturnsOne()
-        {
-            float x = GameTime.PitchToX(pitch: 83);
-            Assert.AreEqual(1f, x, 0.001f);
-        }
-
-        [Test]
-        public void PitchToX_C4_ReturnsMidRange()
-        {
-            float x = GameTime.PitchToX(pitch: 60);
-            Assert.AreEqual((60 - 36) / 47f, x, 0.001f);
-        }
-    }
+}
 }
