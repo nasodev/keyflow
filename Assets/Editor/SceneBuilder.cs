@@ -13,8 +13,13 @@ namespace KeyFlow.Editor
         private const string NotePrefabPath = "Assets/Prefabs/Note.prefab";
         private const string WhiteSpritePath = "Assets/Sprites/white.png";
 
-        [MenuItem("KeyFlow/Build W1 PoC Scene")]
-        public static void BuildPoCScene()
+        // Portrait layout (camera orthographic size 8 → 9 world-unit-wide viewport at 9:16 aspect)
+        private const float LaneAreaWidth = 4f;       // world units
+        private const float SpawnY = 6.5f;
+        private const float JudgmentY = -5f;           // ~81% down the viewport (spec §4.3 target: 80%)
+
+        [MenuItem("KeyFlow/Build W2 Gameplay Scene")]
+        public static void BuildScene()
         {
             EnsureFolder("Assets/Scenes");
             EnsureFolder("Assets/Prefabs");
@@ -33,71 +38,73 @@ namespace KeyFlow.Editor
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             scene.name = "GameplayScene";
 
-            BuildMainCamera();
+            var camera = BuildMainCamera();
+            BuildLaneDividers(whiteSprite);
             var judgmentLine = BuildJudgmentLine(whiteSprite);
-            var spawnPoint = BuildSpawnPoint();
-            BuildManagers(pianoClip, notePrefab, spawnPoint, judgmentLine,
-                out var audioSync, out var samplePool, out var tapInput);
-            BuildHUD(audioSync, tapInput, samplePool);
+            BuildManagers(
+                camera, pianoClip, notePrefab,
+                out var audioSync, out var samplePool, out var tapInput, out var judgmentSystem);
+            BuildHUD(audioSync, tapInput, samplePool, judgmentSystem);
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene, ScenePath);
 
-            EditorBuildSettings.scenes = new[]
-            {
-                new EditorBuildSettingsScene(ScenePath, true)
-            };
-
+            EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
             EditorSceneManager.OpenScene(ScenePath);
 
-            Debug.Log($"[KeyFlow] W1 PoC scene built: {ScenePath}");
+            Debug.Log($"[KeyFlow] W2 4-lane portrait scene built: {ScenePath}");
         }
 
-        private static void BuildMainCamera()
+        private static Camera BuildMainCamera()
         {
             var cam = new GameObject("Main Camera");
             cam.tag = "MainCamera";
             cam.transform.position = new Vector3(0, 0, -10);
-
             var camera = cam.AddComponent<Camera>();
             camera.orthographic = true;
-            camera.orthographicSize = 5;
-            camera.backgroundColor = new Color(0.1f, 0.1f, 0.1f, 1);
+            camera.orthographicSize = 8;
+            camera.backgroundColor = new Color(0.08f, 0.08f, 0.12f, 1);
             camera.clearFlags = CameraClearFlags.SolidColor;
-            camera.nearClipPlane = 0.3f;
-            camera.farClipPlane = 1000f;
-
             cam.AddComponent<AudioListener>();
+            return camera;
+        }
+
+        private static void BuildLaneDividers(Sprite sprite)
+        {
+            float leftEdge = -LaneAreaWidth / 2f;
+            for (int i = 0; i <= LaneLayout.LaneCount; i++)
+            {
+                float x = leftEdge + i * (LaneAreaWidth / LaneLayout.LaneCount);
+                var go = new GameObject($"LaneDivider_{i}");
+                go.transform.position = new Vector3(x, 0, 0);
+                go.transform.localScale = new Vector3(0.02f, 20f, 1);
+                var sr = go.AddComponent<SpriteRenderer>();
+                sr.sprite = sprite;
+                sr.color = new Color(0.3f, 0.3f, 0.4f, 0.8f);
+                sr.sortingOrder = -1;
+            }
         }
 
         private static GameObject BuildJudgmentLine(Sprite sprite)
         {
             var go = new GameObject("JudgmentLine");
-            go.transform.position = new Vector3(0, -3, 0);
-            go.transform.localScale = new Vector3(10, 0.2f, 1);
-
+            go.transform.position = new Vector3(0, JudgmentY, 0);
+            go.transform.localScale = new Vector3(LaneAreaWidth, 0.12f, 1);
             var sr = go.AddComponent<SpriteRenderer>();
             sr.sprite = sprite;
-            sr.color = new Color(0.0f, 0.9f, 1.0f, 1.0f);
+            sr.color = new Color(0.2f, 0.9f, 1.0f, 1);
             sr.sortingOrder = 0;
             return go;
         }
 
-        private static GameObject BuildSpawnPoint()
-        {
-            var go = new GameObject("SpawnPoint");
-            go.transform.position = new Vector3(0, 4, 0);
-            return go;
-        }
-
         private static void BuildManagers(
+            Camera camera,
             AudioClip pianoClip,
             GameObject notePrefab,
-            GameObject spawnPoint,
-            GameObject judgmentPoint,
             out AudioSyncManager audioSync,
             out AudioSamplePool samplePool,
-            out TapInputHandler tapInput)
+            out TapInputHandler tapInput,
+            out JudgmentSystem judgmentSystem)
         {
             var managers = new GameObject("Managers");
 
@@ -116,27 +123,37 @@ namespace KeyFlow.Editor
             tapInput = tapInputGO.AddComponent<TapInputHandler>();
             SetField(tapInput, "samplePool", samplePool);
             SetField(tapInput, "audioSync", audioSync);
+            SetField(tapInput, "mainCamera", camera);
+            SetField(tapInput, "laneAreaWidth", LaneAreaWidth);
+
+            var judgmentGO = new GameObject("JudgmentSystem");
+            judgmentGO.transform.SetParent(managers.transform);
+            judgmentSystem = judgmentGO.AddComponent<JudgmentSystem>();
+            SetField(judgmentSystem, "tapInput", tapInput);
 
             var spawnerGO = new GameObject("Spawner");
             spawnerGO.transform.SetParent(managers.transform);
             var spawner = spawnerGO.AddComponent<NoteSpawner>();
             SetField(spawner, "notePrefab", notePrefab);
-            SetField(spawner, "spawnPoint", spawnPoint.transform);
-            SetField(spawner, "judgmentPoint", judgmentPoint.transform);
             SetField(spawner, "audioSync", audioSync);
+            SetField(spawner, "judgmentSystem", judgmentSystem);
+            SetField(spawner, "laneAreaWidth", LaneAreaWidth);
+            SetField(spawner, "spawnY", SpawnY);
+            SetField(spawner, "judgmentY", JudgmentY);
         }
 
         private static void BuildHUD(
             AudioSyncManager audioSync,
             TapInputHandler tapInput,
-            AudioSamplePool samplePool)
+            AudioSamplePool samplePool,
+            JudgmentSystem judgmentSystem)
         {
             var canvasGO = new GameObject("HUDCanvas");
             var canvas = canvasGO.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             var scaler = canvasGO.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1280, 720);
+            scaler.referenceResolution = new Vector2(720, 1280);
             scaler.matchWidthOrHeight = 0.5f;
             canvasGO.AddComponent<GraphicRaycaster>();
 
@@ -147,7 +164,7 @@ namespace KeyFlow.Editor
             rt.anchorMax = new Vector2(0, 1);
             rt.pivot = new Vector2(0, 1);
             rt.anchoredPosition = new Vector2(20, -20);
-            rt.sizeDelta = new Vector2(500, 160);
+            rt.sizeDelta = new Vector2(680, 260);
 
             var text = textGO.AddComponent<Text>();
             text.text = "Initializing...";
@@ -163,18 +180,17 @@ namespace KeyFlow.Editor
             SetField(meter, "audioSync", audioSync);
             SetField(meter, "tapInput", tapInput);
             SetField(meter, "samplePool", samplePool);
+            SetField(meter, "judgmentSystem", judgmentSystem);
         }
 
         private static GameObject BuildNotePrefab(Sprite sprite)
         {
             var go = new GameObject("Note");
-            go.transform.localScale = new Vector3(0.5f, 0.5f, 1);
-
+            go.transform.localScale = new Vector3(0.8f, 0.4f, 1);
             var sr = go.AddComponent<SpriteRenderer>();
             sr.sprite = sprite;
-            sr.color = Color.white;
+            sr.color = new Color(1f, 0.95f, 0.85f, 1);
             sr.sortingOrder = 1;
-
             go.AddComponent<NoteController>();
 
             var prefab = PrefabUtility.SaveAsPrefabAsset(go, NotePrefabPath);
@@ -223,12 +239,17 @@ namespace KeyFlow.Editor
         {
             var so = new SerializedObject(target);
             var prop = so.FindProperty(name);
-            if (prop == null)
-            {
-                Debug.LogError($"[KeyFlow] Field '{name}' not found on {target.GetType().Name}");
-                return;
-            }
+            if (prop == null) { Debug.LogError($"[KeyFlow] Field '{name}' not found on {target.GetType().Name}"); return; }
             prop.objectReferenceValue = value;
+            so.ApplyModifiedProperties();
+        }
+
+        private static void SetField(Object target, string name, float value)
+        {
+            var so = new SerializedObject(target);
+            var prop = so.FindProperty(name);
+            if (prop == null) { Debug.LogError($"[KeyFlow] Field '{name}' not found on {target.GetType().Name}"); return; }
+            prop.floatValue = value;
             so.ApplyModifiedProperties();
         }
     }
