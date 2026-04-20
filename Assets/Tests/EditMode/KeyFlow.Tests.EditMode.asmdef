@@ -4,7 +4,8 @@
     "references": [
         "KeyFlow.Runtime",
         "UnityEngine.TestRunner",
-        "UnityEditor.TestRunner"
+        "UnityEditor.TestRunner",
+        "Unity.Nuget.Newtonsoft.Json"
     ],
     "includePlatforms": [
         "Editor"
