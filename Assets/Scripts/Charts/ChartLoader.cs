@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using Newtonsoft.Json;
@@ -20,28 +21,34 @@ namespace KeyFlow.Charts
             return ParseJson(System.IO.File.ReadAllText(absolutePath));
         }
 
-        public static ChartData LoadFromStreamingAssets(string songId)
+        public static IEnumerator LoadFromStreamingAssetsCo(
+            string songId,
+            System.Action<ChartData> onLoaded,
+            System.Action<string> onError)
         {
-            string path = Path.Combine(Application.streamingAssetsPath, "charts", songId + ".kfchart");
-            string json = ReadStreamingAsset(path);
-            return ParseJson(json);
-        }
+            string path = System.IO.Path.Combine(
+                UnityEngine.Application.streamingAssetsPath, "charts", songId + ".kfchart");
 
-        private static string ReadStreamingAsset(string path)
-        {
 #if UNITY_ANDROID && !UNITY_EDITOR
-            // StreamingAssets on Android live inside the APK as a jar: URI;
-            // File.ReadAllText cannot traverse that. UnityWebRequest can.
-            using (var req = UnityWebRequest.Get(path))
+            using (var req = UnityEngine.Networking.UnityWebRequest.Get(path))
             {
-                var op = req.SendWebRequest();
-                while (!op.isDone) { }
-                if (req.result != UnityWebRequest.Result.Success)
-                    throw new System.IO.FileNotFoundException($"Failed to load {path}: {req.error}");
-                return req.downloadHandler.text;
+                yield return req.SendWebRequest();
+                if (req.result != UnityEngine.Networking.UnityWebRequest.Result.Success)
+                {
+                    onError?.Invoke($"{path}: {req.error}");
+                    yield break;
+                }
+                ChartData loaded;
+                try { loaded = ParseJson(req.downloadHandler.text); }
+                catch (System.Exception e) { onError?.Invoke(e.Message); yield break; }
+                onLoaded?.Invoke(loaded);
             }
 #else
-            return File.ReadAllText(path);
+            ChartData chart;
+            try { chart = LoadFromPath(path); }
+            catch (System.Exception e) { onError?.Invoke(e.Message); yield break; }
+            yield return null;  // yield once for symmetry with Android path
+            onLoaded?.Invoke(chart);
 #endif
         }
 

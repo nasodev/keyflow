@@ -49,10 +49,18 @@ namespace KeyFlow
                 return;
             }
             difficulty = SongSession.CurrentDifficulty;
-            chart = ChartLoader.LoadFromStreamingAssets(songId);
 
             playing = false;
             completed = false;
+
+            StartCoroutine(ChartLoader.LoadFromStreamingAssetsCo(
+                songId,
+                loaded => { chart = loaded; ContinueAfterChartLoaded(); },
+                err => Debug.LogError($"[KeyFlow] chart load failed: {err}")));
+        }
+
+        private void ContinueAfterChartLoaded()
+        {
             spawner.ResetForRetry();
             holdTracker.ResetForRetry();
             judgmentSystem.ResetForRetry();
