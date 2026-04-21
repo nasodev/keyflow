@@ -1055,8 +1055,13 @@ Expected: `[OK] NORMAL: NN notes -> .../beethoven_fur_elise.kfchart`.
 Verify:
 - `charts.EASY` key still present (73 notes, unchanged).
 - `charts.NORMAL.notes` length consistent with NPS 3.0–4.0 over 45s (expect ~135–180 notes, allow slack).
-- Hold notes ≥ 5 (`jq '.charts.NORMAL.notes | map(select(.type=="HOLD")) | length'`).
-- No 3-consecutive same-lane (`jq ...` or eyeball).
+- Hold notes ≥ 5 and no 3-consecutive same-lane. Verify via Python:
+
+```bash
+python -c "import json; d=json.load(open('Assets/StreamingAssets/charts/beethoven_fur_elise.kfchart', encoding='utf-8')); n=d['charts']['NORMAL']['notes']; holds=sum(1 for x in n if x['type']=='HOLD'); triple=any(n[i]['lane']==n[i-1]['lane']==n[i-2]['lane'] for i in range(2,len(n))); print(f'notes={len(n)} holds={holds} triple_lane={triple}')"
+```
+
+Pass: `holds >= 5`, `triple_lane=False`.
 
 If any check fails, adjust `--target-nps` and re-run, or hand-edit JSON with README caveat.
 
@@ -1168,7 +1173,7 @@ if (cd.totalNotes != cd.notes.Count)
 
 Read `test-results.xml` `<test-run total="91" passed="91">`.
 
-**Potential issue:** the existing Task 11-generated Für Elise chart has `charts.EASY.totalNotes` set by the W3 hand-authored file (should be 73, matching 73 notes). If Task 11's `--merge-into` preserved it, the check passes. If it doesn't, re-run Task 11 to regenerate — but more likely the existing EASY was untouched by merge.
+Verified in plan drafting: existing Für Elise EASY chart has `totalNotes=73` and 73 notes — the new `totalNotes == notes.Count` check passes.
 
 - [ ] **Step 5: Commit**
 
