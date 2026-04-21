@@ -68,7 +68,7 @@ namespace KeyFlow.Charts
                     {
                         t = (int)n["t"],
                         lane = (int)n["lane"],
-                        pitch = Mathf.Clamp((int)n["pitch"], PitchMin, PitchMax),
+                        pitch = System.Math.Clamp((int)n["pitch"], PitchMin, PitchMax),
                         type = ParseType((string)n["type"]),
                         dur = (int)n["dur"]
                     };

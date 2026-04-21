@@ -40,7 +40,7 @@ namespace KeyFlow.Calibration
             double mad = Median(absDev);
 
             int offsetMs = Mathf.RoundToInt((float)(median * 1000.0));
-            offsetMs = Mathf.Clamp(offsetMs, -500, 500);
+            offsetMs = System.Math.Clamp(offsetMs, -500, 500);
             int madMs = Mathf.RoundToInt((float)(mad * 1000.0));
 
             return new Result
