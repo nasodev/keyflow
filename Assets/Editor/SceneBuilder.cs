@@ -540,115 +540,106 @@ namespace KeyFlow.Editor
         private static GameObject BuildCardTemplate(
             Transform parent, Sprite whiteSprite, Sprite starFilled, Sprite starEmpty)
         {
+            // Anchor-based layout — card is full-width of container.
+            // Content columns: [Thumb 112] [Center flex] [Right 160]
             var cardGO = new GameObject("CardTemplate");
             cardGO.transform.SetParent(parent, false);
             var cardRT = cardGO.AddComponent<RectTransform>();
+            // Top-stretch anchor so VerticalLayoutGroup on Content can stack
+            // cards top-to-bottom. VLG assigns anchoredPosition.
+            cardRT.anchorMin = new Vector2(0, 1);
+            cardRT.anchorMax = new Vector2(1, 1);
+            cardRT.pivot = new Vector2(0.5f, 1);
             cardRT.sizeDelta = new Vector2(0, 150);
             var cardImg = cardGO.AddComponent<Image>();
             cardImg.sprite = whiteSprite;
             cardImg.color = new Color(0.18f, 0.18f, 0.22f, 1f);
             var cardLE = cardGO.AddComponent<LayoutElement>();
             cardLE.preferredHeight = 150;
+            cardLE.minHeight = 150;
             var canvasGroup = cardGO.AddComponent<CanvasGroup>();
-            var hlg = cardGO.AddComponent<HorizontalLayoutGroup>();
-            hlg.spacing = 12;
-            hlg.padding = new RectOffset(12, 12, 12, 12);
-            hlg.childControlWidth = false;
-            hlg.childControlHeight = true;
-            hlg.childForceExpandWidth = false;
-            hlg.childForceExpandHeight = true;
 
-            // Thumbnail (112px)
+            // Thumbnail (left, vertically centered)
             var thumbGO = new GameObject("Thumbnail");
             thumbGO.transform.SetParent(cardGO.transform, false);
             var thumbRT = thumbGO.AddComponent<RectTransform>();
+            thumbRT.anchorMin = new Vector2(0, 0.5f);
+            thumbRT.anchorMax = new Vector2(0, 0.5f);
+            thumbRT.pivot = new Vector2(0, 0.5f);
+            thumbRT.anchoredPosition = new Vector2(12, 0);
             thumbRT.sizeDelta = new Vector2(112, 112);
             var thumbImg = thumbGO.AddComponent<Image>();
             thumbImg.color = Color.white;
-            var thumbLE = thumbGO.AddComponent<LayoutElement>();
-            thumbLE.preferredWidth = 112;
-            thumbLE.preferredHeight = 112;
+            thumbImg.preserveAspect = true;
 
-            // Center VStack (title/composer/stars)
-            var centerGO = new GameObject("Center");
-            centerGO.transform.SetParent(cardGO.transform, false);
-            var centerRT = centerGO.AddComponent<RectTransform>();
-            var centerLE = centerGO.AddComponent<LayoutElement>();
-            centerLE.flexibleWidth = 1;
-            var centerVLG = centerGO.AddComponent<VerticalLayoutGroup>();
-            centerVLG.spacing = 4;
-            centerVLG.childControlWidth = true;
-            centerVLG.childControlHeight = false;
-            centerVLG.childForceExpandWidth = true;
-            centerVLG.childAlignment = TextAnchor.MiddleLeft;
-
+            // Title (top of middle column)
             var titleGO = new GameObject("Title");
-            titleGO.transform.SetParent(centerGO.transform, false);
-            titleGO.AddComponent<RectTransform>();
+            titleGO.transform.SetParent(cardGO.transform, false);
+            var titleRT = titleGO.AddComponent<RectTransform>();
+            titleRT.anchorMin = new Vector2(0, 1);
+            titleRT.anchorMax = new Vector2(1, 1);
+            titleRT.pivot = new Vector2(0, 1);
+            titleRT.anchoredPosition = new Vector2(136, -12);
+            titleRT.offsetMax = new Vector2(-172, titleRT.offsetMax.y);
+            titleRT.sizeDelta = new Vector2(titleRT.sizeDelta.x, 34);
             var titleText = titleGO.AddComponent<Text>();
             titleText.text = "Title";
-            titleText.fontSize = 24;
+            titleText.fontSize = 26;
             titleText.color = Color.white;
-            titleText.alignment = TextAnchor.MiddleLeft;
+            titleText.alignment = TextAnchor.UpperLeft;
+            titleText.horizontalOverflow = HorizontalWrapMode.Overflow;
+            titleText.verticalOverflow = VerticalWrapMode.Truncate;
             titleText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            var titleLE = titleGO.AddComponent<LayoutElement>();
-            titleLE.preferredHeight = 32;
+            titleText.raycastTarget = false;
 
+            // Composer (below title)
             var composerGO = new GameObject("Composer");
-            composerGO.transform.SetParent(centerGO.transform, false);
-            composerGO.AddComponent<RectTransform>();
+            composerGO.transform.SetParent(cardGO.transform, false);
+            var composerRT = composerGO.AddComponent<RectTransform>();
+            composerRT.anchorMin = new Vector2(0, 1);
+            composerRT.anchorMax = new Vector2(1, 1);
+            composerRT.pivot = new Vector2(0, 1);
+            composerRT.anchoredPosition = new Vector2(136, -52);
+            composerRT.offsetMax = new Vector2(-172, composerRT.offsetMax.y);
+            composerRT.sizeDelta = new Vector2(composerRT.sizeDelta.x, 26);
             var composerText = composerGO.AddComponent<Text>();
             composerText.text = "Composer";
             composerText.fontSize = 18;
             composerText.color = new Color(0.75f, 0.75f, 0.8f, 1f);
-            composerText.alignment = TextAnchor.MiddleLeft;
+            composerText.alignment = TextAnchor.UpperLeft;
+            composerText.horizontalOverflow = HorizontalWrapMode.Overflow;
+            composerText.verticalOverflow = VerticalWrapMode.Truncate;
             composerText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            var composerLE = composerGO.AddComponent<LayoutElement>();
-            composerLE.preferredHeight = 24;
+            composerText.raycastTarget = false;
 
-            var starsGO = new GameObject("Stars");
-            starsGO.transform.SetParent(centerGO.transform, false);
-            starsGO.AddComponent<RectTransform>();
-            var starsHLG = starsGO.AddComponent<HorizontalLayoutGroup>();
-            starsHLG.spacing = 4;
-            starsHLG.childAlignment = TextAnchor.MiddleLeft;
-            starsHLG.childControlWidth = false;
-            starsHLG.childControlHeight = false;
-            starsHLG.childForceExpandWidth = false;
-            starsHLG.childForceExpandHeight = false;
-            var starsLE = starsGO.AddComponent<LayoutElement>();
-            starsLE.preferredHeight = 32;
+            // Stars row (bottom of middle column)
             var starImages = new Image[3];
             for (int i = 0; i < 3; i++)
             {
                 var starGO = new GameObject($"Star{i}");
-                starGO.transform.SetParent(starsGO.transform, false);
+                starGO.transform.SetParent(cardGO.transform, false);
                 var starRT = starGO.AddComponent<RectTransform>();
-                starRT.sizeDelta = new Vector2(28, 28);
+                starRT.anchorMin = new Vector2(0, 0);
+                starRT.anchorMax = new Vector2(0, 0);
+                starRT.pivot = new Vector2(0, 0);
+                starRT.anchoredPosition = new Vector2(136 + i * 38, 14);
+                starRT.sizeDelta = new Vector2(32, 32);
                 var starImg = starGO.AddComponent<Image>();
                 starImg.sprite = starEmpty;
                 starImg.preserveAspect = true;
-                var starLE = starGO.AddComponent<LayoutElement>();
-                starLE.preferredWidth = 28;
-                starLE.preferredHeight = 28;
+                starImg.raycastTarget = false;
                 starImages[i] = starImg;
             }
 
-            // Right VStack (Easy/Normal)
-            var rightGO = new GameObject("Right");
-            rightGO.transform.SetParent(cardGO.transform, false);
-            rightGO.AddComponent<RectTransform>();
-            var rightLE = rightGO.AddComponent<LayoutElement>();
-            rightLE.preferredWidth = 140;
-            var rightVLG = rightGO.AddComponent<VerticalLayoutGroup>();
-            rightVLG.spacing = 6;
-            rightVLG.childControlWidth = true;
-            rightVLG.childControlHeight = true;
-            rightVLG.childForceExpandWidth = true;
-            rightVLG.childForceExpandHeight = false;
-
-            var easyButton = BuildCardButton(rightGO.transform, whiteSprite, "Easy", new Color(0.25f, 0.6f, 0.4f, 1f));
-            var normalButton = BuildCardButton(rightGO.transform, whiteSprite, "Normal", new Color(0.6f, 0.5f, 0.2f, 1f));
+            // Right column: Easy (top), Normal (bottom), stacked vertically
+            var easyButton = BuildCardButtonAnchored(
+                cardGO.transform, whiteSprite, "Easy",
+                new Color(0.25f, 0.6f, 0.4f, 1f),
+                new Vector2(1, 1), new Vector2(-12, -14), new Vector2(150, 56));
+            var normalButton = BuildCardButtonAnchored(
+                cardGO.transform, whiteSprite, "Normal",
+                new Color(0.6f, 0.5f, 0.2f, 1f),
+                new Vector2(1, 0), new Vector2(-12, 14), new Vector2(150, 56));
 
             var view = cardGO.AddComponent<SongCardView>();
             SetField(view, "thumbnailImage", thumbImg);
@@ -664,17 +655,23 @@ namespace KeyFlow.Editor
             return cardGO;
         }
 
-        private static Button BuildCardButton(Transform parent, Sprite whiteSprite, string label, Color bg)
+        // Anchor-based button. Pivot follows anchor so anchoredPosition is an inset from that corner.
+        private static Button BuildCardButtonAnchored(
+            Transform parent, Sprite whiteSprite, string label, Color color,
+            Vector2 anchor, Vector2 anchoredPos, Vector2 size)
         {
             var btnGO = new GameObject(label + "Button");
             btnGO.transform.SetParent(parent, false);
-            btnGO.AddComponent<RectTransform>();
+            var rt = btnGO.AddComponent<RectTransform>();
+            rt.anchorMin = anchor;
+            rt.anchorMax = anchor;
+            rt.pivot = anchor; // e.g. top-right anchor -> pivot top-right -> inset from that corner
+            rt.anchoredPosition = anchoredPos;
+            rt.sizeDelta = size;
             var img = btnGO.AddComponent<Image>();
             img.sprite = whiteSprite;
-            img.color = bg;
+            img.color = color;
             var btn = btnGO.AddComponent<Button>();
-            var btnLE = btnGO.AddComponent<LayoutElement>();
-            btnLE.preferredHeight = 52;
 
             var txtGO = new GameObject("Label");
             txtGO.transform.SetParent(btnGO.transform, false);
@@ -689,6 +686,7 @@ namespace KeyFlow.Editor
             txt.color = Color.white;
             txt.alignment = TextAnchor.MiddleCenter;
             txt.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            txt.raycastTarget = false;
             return btn;
         }
 
