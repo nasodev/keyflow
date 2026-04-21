@@ -61,6 +61,8 @@ mkdir -p tools/midi_to_kfchart/midi_sources
 
 - [ ] **Step 2: Search Mutopia for each piece**
 
+**Note**: `WebFetch` is a deferred tool in this harness. Before first use, load its schema via `ToolSearch` (`query: "select:WebFetch,WebSearch"`).
+
 For each song, use WebFetch against `https://www.mutopiaproject.org/cgibin/make-table.cgi?searchingfor=<query>`:
 
 | song_id | Query |
@@ -94,9 +96,10 @@ Expected: no exception. Repeat for other 3.
 - [ ] **Step 5: Fallback for unavailable songs**
 
 If WebFetch reveals no PD/CC0 MIDI for any of the 4 songs on Mutopia:
-- STOP. Do not proceed to Task 2.
-- Document which song failed, what searches were attempted, and what licenses were available.
-- Report back with a summary; the user will decide whether to (a) drop that song from scope, (b) search an alternative PD archive, or (c) commission self-sequencing as a separate sub-project.
+- **Pause and report back to the user** — do not auto-decide to skip, substitute, or proceed without the missing piece.
+- Document which song failed, what searches were attempted, and what licenses were available (PD/CC0 vs CC-BY/CC-BY-SA).
+- The user will decide whether to (a) drop that song from scope (spec §5 permits partial completion — ship 2 or 3 songs this sub-project), (b) search an alternative PD archive (e.g. IMSLP), or (c) commission self-sequencing as a separate sub-project.
+- Only proceed to Task 2 after the user resolves the gap, either by supplying the missing MIDI or by explicitly reducing scope.
 
 - [ ] **Step 6: Commit MIDI sources**
 
