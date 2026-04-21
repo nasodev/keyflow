@@ -411,6 +411,11 @@ def test_empty_passes_through():
 
 def test_zero_duration_returns_empty():
     assert thin(_make(5), target_nps=10, duration_ms=0) == []
+
+def test_extreme_ratio_returns_empty():
+    # 100 notes / 1s = 100 NPS. target 1 NPS -> step would be <2 -> empty.
+    notes = _make(100)
+    assert thin(notes, target_nps=1, duration_ms=1000) == []
 ```
 
 - [ ] **Step 2: Run — expect fail**
@@ -431,15 +436,14 @@ def thin(notes: list[dict], target_nps: float, duration_ms: int) -> list[dict]:
     allowed_nps = target_nps * 1.1
     if current_nps <= allowed_nps:
         return list(notes)
-    keep_ratio = allowed_nps / current_nps  # <1
-    if keep_ratio <= 0:
-        return []
-    # step = every Nth note is dropped.
-    step = max(2, round(1 / (1 - keep_ratio)))
+    keep_ratio = allowed_nps / current_nps  # in (0, 1)
+    step = round(1 / (1 - keep_ratio))
+    if step < 2:
+        return []  # ratio so extreme that every note drops
     return [n for i, n in enumerate(notes) if (i + 1) % step != 0]
 ```
 
-- [ ] **Step 4: Run — expect 4 passed**
+- [ ] **Step 4: Run — expect 5 passed**
 
 - [ ] **Step 5: Commit**
 

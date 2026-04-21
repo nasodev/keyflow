@@ -24,3 +24,9 @@ def test_empty_passes_through():
 
 def test_zero_duration_returns_empty():
     assert thin(_make(5), target_nps=10, duration_ms=0) == []
+
+
+def test_extreme_ratio_returns_empty():
+    # 100 notes / 1s = 100 NPS. target 1 NPS -> step would be <2 -> empty.
+    notes = _make(100)
+    assert thin(notes, target_nps=1, duration_ms=1000) == []
