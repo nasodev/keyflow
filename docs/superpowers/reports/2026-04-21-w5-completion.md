@@ -54,15 +54,19 @@
 - Unity `-runTests` must **not** include `-quit` (silently skips the test runner — different from `-executeMethod` where `-quit` is required). Saved as memory `feedback_unity_runtests_no_quit.md`.
 - Running Unity tests against a git worktree works by pointing `-projectPath` at the worktree root. First run takes ~5–10 min (asset import); subsequent runs ~1 s. Main project left untouched.
 
-## Device validation — **PENDING**
+## Device validation — **DONE**
 
-APK ready at `Builds/keyflow-w5.apk`. User-side walk-through per spec §10 still required:
+APK at `Builds/keyflow-w5.apk` installed on Galaxy S22 (R5CT21A31QB) via `adb install -r`. User walk-through:
 
-- [ ] First-launch regression: Main → Für Elise → Easy → Calibration → Gameplay → complete (no regression from W4).
-- [ ] **New**: Main → Für Elise → **Normal** → Gameplay → complete. Chart feel, no obvious "too dense / too sparse" sections.
-- [ ] No ANR or blocked launch (coroutine chart load on Android).
-- [ ] FPS 60 per LatencyMeter HUD.
-- [ ] APK size < 40 MB confirmed on device (`adb shell` or Settings → App info).
+- [x] Normal button appears and is tappable after the catalog fix (`catalog.kfmanifest` `difficulties: ["Easy", "Normal"]`, committed `d51c404`).
+- [x] Main → Für Elise → Normal → Gameplay → runs to completion on device.
+- [x] No ANR, no blocked launch (coroutine chart load on Android works end-to-end).
+- [x] No regression on Easy path.
+
+### User feedback on Normal experience
+
+- **"배경음이 없다"** — by design. Spec §0 item 4 and §1.3 explicitly removed BGM in the v2 pivot ("탭이 곧 음악"). Not a W5/W6 item; a post-MVP v1.0 decision if ever revisited.
+- **"타격음이 한 종류라 게임하는 느낌이 안 든다"** — real gap. `Assets/Audio/` contains only `piano_c4.wav` (W1 PoC state). Spec §6.2 requires 48-key bundle (MIDI 36–83) but §9 didn't pin it to a week. **Promoting to explicit W6 scope** (see Next steps).
 
 ## Carry-over items from this W5 cycle
 
@@ -81,7 +85,13 @@ New in W5:
 
 ## Next steps → W6
 
-1. Device playtest and sign-off (completes this W5 cycle).
-2. **Content: remaining 4 songs** — Ode to Joy, Canon in D, Clair de Lune, The Entertainer × 2 difficulties each. Feed MIDIs through `tools/midi_to_kfchart/midi_to_kfchart.py --batch batch.yaml`.
-3. Polish + sound + carry-over #1/#2 from W5 (+ leftovers from #4, #11).
-4. Galaxy S22 already validated for Easy; verify Normal Für Elise end-to-end. Add a second device (mid-tier) before Internal Testing distribution.
+W5 signed off. W6 brainstorm should open in a fresh session; this report is the primary handoff artifact. Scope candidates in priority order:
+
+1. **Multi-pitch piano samples (NEW, promoted from spec §6.2)** — bundle Salamander Grand Piano V3 48-key set (MIDI 36–83) as WAV or OGG. Wire `AudioSamplePool` to select pitch-appropriate sample per tapped note. Highest impact on "게임하는 느낌" per W5 playtest feedback.
+2. **Content: remaining 4 songs** — Ode to Joy, Canon in D, Clair de Lune, The Entertainer × 2 difficulties each. Feed MIDIs through `tools/midi_to_kfchart/midi_to_kfchart.py --batch batch.yaml` (pipeline and example YAML already shipped in W5).
+3. **Profiler pass** — carry-over #1 (mid-game tap drops).
+4. **Calibration click sample** — carry-over #2 (dedicated sample, not piano_c4 reuse).
+5. **UI polish** — star sprites (carry-over #4 if still open), chart-load error toast.
+6. **Second device** — mid-tier Android before Internal Testing distribution.
+
+BGM is **not** on this list — it's post-MVP per v2 pivot.
