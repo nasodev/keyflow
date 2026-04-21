@@ -1196,9 +1196,28 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 
 Sign-off gate. Every checkbox must pass before marking the plan complete.
 
-- [ ] **Step 1: Build the APK**
+- [ ] **Step 1a: Bump APK output filename to w6**
 
-Rename pattern consistent with W5 (`keyflow-w5.apk`). Use `ApkBuilder` entry point (check `Assets/Editor/ApkBuilder.cs` for the current `[MenuItem]` + method name — W5 renamed via that file).
+Edit `Assets/Editor/ApkBuilder.cs` line 14:
+
+```csharp
+string apk = Path.Combine(dir, "keyflow-w5.apk");
+```
+→
+```csharp
+string apk = Path.Combine(dir, "keyflow-w6.apk");
+```
+
+Commit the rename as its own micro-commit:
+
+```bash
+git add Assets/Editor/ApkBuilder.cs
+git commit -m "chore(w6): rename APK artifact to keyflow-w6.apk
+
+Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
+```
+
+- [ ] **Step 1b: Build the APK**
 
 ```bash
 "C:/Program Files/Unity/Hub/Editor/6000.3.13f1/Editor/Unity.exe" -batchmode -nographics \
@@ -1207,7 +1226,7 @@ Rename pattern consistent with W5 (`keyflow-w5.apk`). Use `ApkBuilder` entry poi
   -logFile - -quit
 ```
 
-If the artifact lands as `keyflow-w5.apk`, rename the output path in `ApkBuilder.cs` to `keyflow-w6.apk` and re-run. Expected final: `Builds/keyflow-w6.apk`.
+Expected final artifact: `Builds/keyflow-w6.apk`. Log line: `[KeyFlow] APK built at Builds/keyflow-w6.apk, size <N> MB`.
 
 - [ ] **Step 2: APK size check**
 
