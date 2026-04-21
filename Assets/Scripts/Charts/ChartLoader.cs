@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using Newtonsoft.Json;
@@ -13,28 +14,43 @@ namespace KeyFlow.Charts
         private const int PitchMin = 36;
         private const int PitchMax = 83;
 
-        public static ChartData LoadFromStreamingAssets(string songId)
+        public static ChartData LoadFromPath(string absolutePath)
         {
-            string path = Path.Combine(Application.streamingAssetsPath, "charts", songId + ".kfchart");
-            string json = ReadStreamingAsset(path);
-            return ParseJson(json);
+            if (!System.IO.File.Exists(absolutePath))
+                throw new System.IO.FileNotFoundException($"Chart not found: {absolutePath}");
+            return ParseJson(System.IO.File.ReadAllText(absolutePath));
         }
 
-        private static string ReadStreamingAsset(string path)
+        public static IEnumerator LoadFromStreamingAssetsCo(
+            string songId,
+            System.Action<ChartData> onLoaded,
+            System.Action<string> onError)
         {
+            string path = System.IO.Path.Combine(
+                UnityEngine.Application.streamingAssetsPath, "charts", songId + ".kfchart");
+
 #if UNITY_ANDROID && !UNITY_EDITOR
-            // StreamingAssets on Android live inside the APK as a jar: URI;
-            // File.ReadAllText cannot traverse that. UnityWebRequest can.
-            using (var req = UnityWebRequest.Get(path))
+            var req = UnityEngine.Networking.UnityWebRequest.Get(path);
+            yield return req.SendWebRequest();
+            var result = req.result;
+            var text = req.downloadHandler.text;
+            var error = req.error;
+            req.Dispose();
+            if (result != UnityEngine.Networking.UnityWebRequest.Result.Success)
             {
-                var op = req.SendWebRequest();
-                while (!op.isDone) { }
-                if (req.result != UnityWebRequest.Result.Success)
-                    throw new System.IO.FileNotFoundException($"Failed to load {path}: {req.error}");
-                return req.downloadHandler.text;
+                onError?.Invoke($"{path}: {error}");
+                yield break;
             }
+            ChartData loaded;
+            try { loaded = ParseJson(text); }
+            catch (System.Exception e) { onError?.Invoke(e.Message); yield break; }
+            onLoaded?.Invoke(loaded);
 #else
-            return File.ReadAllText(path);
+            ChartData chart;
+            try { chart = LoadFromPath(path); }
+            catch (System.Exception e) { onError?.Invoke(e.Message); yield break; }
+            yield return null;  // yield once for symmetry with Android path
+            onLoaded?.Invoke(chart);
 #endif
         }
 
@@ -68,13 +84,23 @@ namespace KeyFlow.Charts
                     {
                         t = (int)n["t"],
                         lane = (int)n["lane"],
-                        pitch = Mathf.Clamp((int)n["pitch"], PitchMin, PitchMax),
+                        pitch = System.Math.Clamp((int)n["pitch"], PitchMin, PitchMax),
                         type = ParseType((string)n["type"]),
                         dur = (int)n["dur"]
                     };
                     Validate(note, chart.durationMs);
                     cd.notes.Add(note);
                 }
+                if (cd.notes.Count == 0)
+                    throw new ChartValidationException($"{prop.Name} has no notes");
+                for (int i = 1; i < cd.notes.Count; i++)
+                {
+                    if (cd.notes[i].t < cd.notes[i - 1].t)
+                        throw new ChartValidationException($"{prop.Name} notes not sorted at idx {i}");
+                }
+                if (cd.totalNotes != cd.notes.Count)
+                    throw new ChartValidationException(
+                        $"{prop.Name} totalNotes {cd.totalNotes} != actual {cd.notes.Count}");
                 chart.charts[diff] = cd;
             }
             return chart;

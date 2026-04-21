@@ -11,7 +11,7 @@ namespace KeyFlow.Editor
         {
             string dir = "Builds";
             Directory.CreateDirectory(dir);
-            string apk = Path.Combine(dir, "keyflow-w4.apk");
+            string apk = Path.Combine(dir, "keyflow-w5.apk");
 
             var opts = new BuildPlayerOptions
             {

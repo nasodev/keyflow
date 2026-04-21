@@ -1,0 +1,11 @@
+defaults:
+  out_dir: Assets/StreamingAssets/charts/
+songs:
+  - song_id: beethoven_fur_elise
+    midi: midi_sources/fur_elise.mid
+    title: "Für Elise"
+    composer: "Beethoven"
+    bpm: 72
+    duration_ms: 45000
+    difficulties:
+      NORMAL: { target_nps: 3.5 }
