@@ -110,7 +110,7 @@ python tools/midi_to_kfchart/midi_to_kfchart.py \
 
 - `--merge-into`: 지정 시 기존 `.kfchart`를 읽어 `charts.<NORMAL|EASY>` 키만 덮어씀 (다른 난이도 보존). 파일이 없으면 신규 생성.
 - `--out <path>`: 지정 시 해당 경로에 단독 쓰기. `--merge-into`와 상호 배타.
-- `--seed <int>`: thinning·레인 완화에서 결정적 pseudo-random 필요 시. 기본 42.
+- W5 파이프라인은 완전 결정론적 (random/seed 미사용). `density`와 `lane_assigner` 모두 인덱스 기반.
 
 **배치 모드** (W5 범위에서 구현하되 W6 콘텐츠 주간에 실제 사용):
 
@@ -135,6 +135,8 @@ songs:
       EASY:  { target_nps: 1.5 }
       NORMAL: { target_nps: 3.0 }
 ```
+
+배치 모드는 YAML 각 `(song × difficulty)` 조합마다 단일 파일 모드 파이프라인을 1회씩 실행하고, 동일 song_id의 결과를 `--merge-into` 로직으로 통합한다. 즉 파이프라인 코어에는 배치 전용 로직이 없으며 YAML 파서 + 반복 호출이 전부다.
 
 ### 3.3 데이터 플로우
 
@@ -176,7 +178,7 @@ input.mid
 **density**
 - 현재 NPS = `len(notes) / (duration_ms / 1000)`.
 - `target_nps * 1.1` 초과 시 `int(excess_ratio * len(notes))` 만큼 drop.
-- drop 대상: `pitch` 기준 중간 음역(멜로디 외곽) 우선. 구체 규칙은 `pitch` 히스토그램에서 최빈 구간 밖의 노트를 n번째마다 제거 (naive: 짝수 인덱스 drop도 허용 — W5에서는 단순 n번째 drop으로 시작, W6 튜닝 가능성).
+- drop 규칙: 결정론적 인덱스 기반. `keep_ratio = target_nps * 1.1 / current_nps` (<1) 계산 후 `step = round(1 / (1 - keep_ratio))`마다 1건 drop. 예: keep_ratio 0.75 → step 4 → 4번째마다 drop. seed/random 없음.
 - `target_nps * 0.7` 미만이어도 인위적으로 채우지 않음 (노트 부풀리기 금지).
 
 **pitch_clamp**
@@ -226,6 +228,8 @@ input.mid
 - `--bpm 72` (기존 Easy 차트와 동일)
 - `--duration-ms 45000` (기존 Easy와 동일 범위)
 
+> v2 §3는 Für Elise 총 길이를 2:00(120,000ms)으로 명시하지만, W5에서는 기존 Easy 차트(45s, W3에서 짧은 도입부만 hand-authored)와 동일 범위를 유지해 툴 검증 변수를 최소화한다. 곡 전체 길이로의 확장은 W6 콘텐츠 스프린트에서 Easy/Normal 둘 다 재생성하며 반영한다.
+
 ### 4.3 튜닝 루프
 
 1. 파이프라인 실행 → `charts.NORMAL` 키 생성.
@@ -252,12 +256,15 @@ input.mid
 
 ```csharp
 public static ChartData ParseJson(string json);
-public static ChartData LoadFromPath(string absolutePath);  // 신규: File.ReadAllText → ParseJson
 ```
 
 **신규**:
 
 ```csharp
+// 에디터·Windows 스탠드얼론 경로와 EditMode 테스트용 동기 로드.
+public static ChartData LoadFromPath(string absolutePath);
+
+// 런타임(Gameplay) 경로. Android 빌드에서 busy-wait 제거.
 public static IEnumerator LoadFromStreamingAssetsCo(
     string songId,
     System.Action<ChartData> onLoaded,
@@ -307,13 +314,13 @@ StartCoroutine(ChartLoader.LoadFromStreamingAssetsCo(
 
 ### 6.1 추가 규칙
 
-`ChartLoader.ParseJson` 내부에서 각 난이도 파싱 후 노트 리스트에 대해:
+`ChartLoader.ParseJson` 내부에서 각 난이도 파싱 후 노트 리스트에 대해 아래 3종 검사를 **모두 신규 추가**한다 (현재 코드 `Validate(ChartNote, durationMs)`는 노트 단위 범위·type만 확인, 리스트 단위 검사는 없음):
 
 | 검사 | 위반 시 |
 |---|---|
 | `cd.notes.Count > 0` | `ChartValidationException("{diff} has no notes")` |
 | 모든 i ≥ 1에 대해 `notes[i].t >= notes[i-1].t` | `ChartValidationException("{diff} notes not sorted at idx {i}")` |
-| `cd.totalNotes == cd.notes.Count` | 기존 규칙 유지 (이미 구현 여부 확인 필요) |
+| `cd.totalNotes == cd.notes.Count` | `ChartValidationException("{diff} totalNotes {declared} != actual {actual}")` |
 
 ### 6.2 테스트
 
