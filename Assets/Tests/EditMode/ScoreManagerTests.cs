@@ -1,7 +1,7 @@
 using NUnit.Framework;
 using KeyFlow;
 
-namespace KeyFlow.Tests
+namespace KeyFlow.Tests.EditMode
 {
     public class ScoreManagerTests
     {

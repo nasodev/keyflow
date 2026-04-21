@@ -4,8 +4,9 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 using UnityEngine.Networking;
+using KeyFlow;
 
-namespace KeyFlow
+namespace KeyFlow.Charts
 {
     public static class ChartLoader
     {

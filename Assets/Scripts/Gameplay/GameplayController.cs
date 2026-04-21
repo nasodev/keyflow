@@ -1,41 +1,75 @@
 using UnityEngine;
+using KeyFlow.Charts;
+using KeyFlow.Calibration;
+using KeyFlow.UI;
 
 namespace KeyFlow
 {
     public class GameplayController : MonoBehaviour
     {
-        [SerializeField] private string songId = "beethoven_fur_elise";
-        [SerializeField] private Difficulty difficulty = Difficulty.Easy;
-
         [SerializeField] private CalibrationController calibration;
         [SerializeField] private AudioSyncManager audioSync;
         [SerializeField] private NoteSpawner spawner;
         [SerializeField] private JudgmentSystem judgmentSystem;
-        [SerializeField] private CompletionPanel completionPanel;
+        [SerializeField] private ResultsScreen resultsScreen;
+
+        [SerializeField] private HoldTracker holdTracker;
 
         private ChartData chart;
         private bool playing;
         private bool completed;
+        private Difficulty difficulty;
+        private bool prefsMigrated;
 
-        private void Start()
+        private void OnEnable()
         {
+            if (ScreenManager.Instance != null)
+                ScreenManager.Instance.OnReplaced += HandleScreenReplaced;
+        }
+
+        private void OnDisable()
+        {
+            if (ScreenManager.Instance != null)
+                ScreenManager.Instance.OnReplaced -= HandleScreenReplaced;
+        }
+
+        private void HandleScreenReplaced(AppScreen target)
+        {
+            if (target == AppScreen.Gameplay) ResetAndStart();
+        }
+
+        public void ResetAndStart()
+        {
+            if (!prefsMigrated) { UserPrefs.MigrateLegacy(); prefsMigrated = true; }
+
+            string songId = SongSession.CurrentSongId;
+            if (string.IsNullOrEmpty(songId))
+            {
+                Debug.LogError("[KeyFlow] GameplayController.ResetAndStart with no SongSession.CurrentSongId");
+                return;
+            }
+            difficulty = SongSession.CurrentDifficulty;
             chart = ChartLoader.LoadFromStreamingAssets(songId);
 
-            if (CalibrationController.HasSavedOffset())
+            playing = false;
+            completed = false;
+            spawner.ResetForRetry();
+            holdTracker.ResetForRetry();
+            judgmentSystem.ResetForRetry();
+
+            if (UserPrefs.HasCalibration)
             {
-                audioSync.CalibrationOffsetSec = CalibrationController.LoadSavedOffsetMs() / 1000.0;
+                audioSync.CalibrationOffsetSec = UserPrefs.CalibrationOffsetMs / 1000.0;
                 BeginGameplay();
             }
             else
             {
-                calibration.OnCalibrationDone = BeginGameplay;
-                calibration.Begin();
+                calibration.Begin(BeginGameplay);
             }
         }
 
         private void BeginGameplay()
         {
-            calibration.OnCalibrationDone = null;
             var chartDiff = chart.charts[difficulty];
             spawner.Initialize(chartDiff, difficulty);
             audioSync.StartSilentSong();
@@ -55,7 +89,13 @@ namespace KeyFlow
             if (judgmentSystem.Score != null && judgmentSystem.Score.JudgedCount < judgedExpected) return;
 
             completed = true;
-            completionPanel.Show(judgmentSystem.Score);
+            var score = judgmentSystem.Score;
+            bool newRecord = UserPrefs.TrySetBest(
+                SongSession.CurrentSongId, SongSession.CurrentDifficulty,
+                score.Stars, score.Score);
+            SongSession.LastScore = score;
+            ScreenManager.Instance.Replace(AppScreen.Results);
+            resultsScreen.Display(score, newRecord);
         }
     }
 }

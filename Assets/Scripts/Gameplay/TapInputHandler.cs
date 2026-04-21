@@ -1,7 +1,9 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
+using KeyFlow.UI;
 
 namespace KeyFlow
 {
@@ -30,6 +32,8 @@ namespace KeyFlow
 
         private void Update()
         {
+            if (audioSync != null && audioSync.IsPaused) return;
+            if (ScreenManager.Instance != null && ScreenManager.Instance.AnyOverlayVisible) return;
             int songTimeMs = audioSync != null ? audioSync.SongTimeMs : 0;
 
             if (Touchscreen.current != null)
@@ -41,6 +45,7 @@ namespace KeyFlow
                     if (touch.press.wasPressedThisFrame)
                     {
                         Vector2 pos = touch.position.ReadValue();
+                        if (IsOverUI(pos)) continue;
                         int lane = ScreenToLane(pos);
                         FirePress(tid, lane, songTimeMs);
                     }
@@ -56,10 +61,13 @@ namespace KeyFlow
                 if (Mouse.current.leftButton.wasPressedThisFrame)
                 {
                     Vector2 pos = Mouse.current.position.ReadValue();
-                    int lane = ScreenToLane(pos);
-                    mousePressed = true;
-                    mouseLane = lane;
-                    FirePressRaw(lane, songTimeMs);
+                    if (!IsOverUI(pos))
+                    {
+                        int lane = ScreenToLane(pos);
+                        mousePressed = true;
+                        mouseLane = lane;
+                        FirePressRaw(lane, songTimeMs);
+                    }
                 }
                 else if (Mouse.current.leftButton.wasReleasedThisFrame && mousePressed)
                 {
@@ -68,6 +76,18 @@ namespace KeyFlow
                     mouseLane = -1;
                 }
             }
+        }
+
+        private static readonly List<RaycastResult> raycastResults = new List<RaycastResult>();
+
+        private static bool IsOverUI(Vector2 screenPos)
+        {
+            var es = EventSystem.current;
+            if (es == null) return false;
+            var data = new PointerEventData(es) { position = screenPos };
+            raycastResults.Clear();
+            es.RaycastAll(data, raycastResults);
+            return raycastResults.Count > 0;
         }
 
         private int ScreenToLane(Vector2 screenPos)

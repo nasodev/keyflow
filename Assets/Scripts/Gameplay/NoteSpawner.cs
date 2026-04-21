@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using UnityEngine;
+using KeyFlow.Charts;
 
 namespace KeyFlow
 {
@@ -16,6 +18,7 @@ namespace KeyFlow
         private Difficulty difficulty;
         private int spawnedCount;
         private bool initialized;
+        private readonly List<NoteController> liveNotes = new List<NoteController>();
 
         public int LastSpawnedHitMs { get; private set; }
         public int LastSpawnedDurMs { get; private set; }
@@ -33,9 +36,20 @@ namespace KeyFlow
 
         public bool AllSpawned => initialized && spawnedCount >= chart.notes.Count;
 
+        public void ResetForRetry()
+        {
+            foreach (var n in liveNotes)
+                if (n != null) Destroy(n.gameObject);
+            liveNotes.Clear();
+            spawnedCount = 0;
+            LastSpawnedHitMs = 0;
+            LastSpawnedDurMs = 0;
+            initialized = false;
+        }
+
         private void Update()
         {
-            if (!initialized || !audioSync.IsPlaying) return;
+            if (!initialized || !audioSync.IsPlaying || audioSync.IsPaused) return;
             if (spawnedCount >= chart.notes.Count) return;
 
             var next = chart.notes[spawnedCount];
@@ -64,6 +78,7 @@ namespace KeyFlow
                 missMs,
                 onAutoMiss: missed => judgmentSystem.HandleAutoMiss(missed));
             judgmentSystem.RegisterPendingNote(ctrl);
+            liveNotes.Add(ctrl);
         }
     }
 }

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using KeyFlow.Charts;
 
 namespace KeyFlow
 {
@@ -21,6 +22,14 @@ namespace KeyFlow
             this.difficulty = difficulty;
             score = new ScoreManager(totalNotes);
             LastJudgment = Judgment.Miss;
+        }
+
+        public void ResetForRetry()
+        {
+            pending.Clear();
+            score = null;
+            LastJudgment = Judgment.Miss;
+            LastDeltaMs = 0;
         }
 
         private void OnEnable()

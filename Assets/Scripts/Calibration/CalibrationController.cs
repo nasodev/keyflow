@@ -1,14 +1,16 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.InputSystem;
+using KeyFlow;
+using KeyFlow.UI;
 
-namespace KeyFlow
+namespace KeyFlow.Calibration
 {
-    public class CalibrationController : MonoBehaviour
+    public class CalibrationController : OverlayBase
     {
-        private const string PrefsKey = "CalibOffsetMs";
         private const int ClickCount = 8;
         private const double IntervalSec = 0.5;
         private const double LeadInSec = 2.0;
@@ -21,29 +23,28 @@ namespace KeyFlow
         [SerializeField] private Button startButton;
         [SerializeField] private Image[] beatIndicators;
 
-        public System.Action OnCalibrationDone;
-
+        private Action onDoneCallback;
         private int retryCount;
         private bool running;
         private readonly List<double> tapDspTimes = new List<double>();
         private double[] expectedDspTimes;
 
-        public static bool HasSavedOffset() => PlayerPrefs.HasKey(PrefsKey);
-
-        public static int LoadSavedOffsetMs() => PlayerPrefs.GetInt(PrefsKey, 0);
-
-        private void Awake()
+        public void Begin(Action onDone)
         {
-            gameObject.SetActive(false);
-        }
-
-        public void Begin()
-        {
-            gameObject.SetActive(true);
+            onDoneCallback = onDone;
+            Show();
             retryCount = 0;
-            ShowIdle("화면 아무 곳이나, 클릭 소리에 맞춰 8번 탭하세요.");
+            ShowIdle(UIStrings.CalibrationPrompt);
             startButton.onClick.RemoveAllListeners();
             startButton.onClick.AddListener(StartOneRun);
+        }
+
+        public override void Finish()
+        {
+            base.Finish();
+            var cb = onDoneCallback;
+            onDoneCallback = null;
+            cb?.Invoke();
         }
 
         private void ShowIdle(string message)
@@ -76,7 +77,6 @@ namespace KeyFlow
                 }
             }
 
-            // Flash indicators at each click time
             for (int i = 0; i < ClickCount; i++)
             {
                 while (AudioSettings.dspTime < expectedDspTimes[i]) yield return null;
@@ -84,7 +84,6 @@ namespace KeyFlow
                 promptText.text = $"탭 {i + 1} / {ClickCount}";
             }
 
-            // Wait 500ms tail after last click
             double tailEnd = expectedDspTimes[ClickCount - 1] + 0.5;
             while (AudioSettings.dspTime < tailEnd) yield return null;
 
@@ -131,15 +130,8 @@ namespace KeyFlow
 
         private void Save(int offsetMs)
         {
-            PlayerPrefs.SetInt(PrefsKey, offsetMs);
-            PlayerPrefs.Save();
+            UserPrefs.CalibrationOffsetMs = offsetMs;
             if (audioSync != null) audioSync.CalibrationOffsetSec = offsetMs / 1000.0;
-        }
-
-        private void Finish()
-        {
-            gameObject.SetActive(false);
-            OnCalibrationDone?.Invoke();
         }
     }
 }

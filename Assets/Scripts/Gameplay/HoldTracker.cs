@@ -12,6 +12,12 @@ namespace KeyFlow
         private readonly HoldStateMachine stateMachine = new HoldStateMachine();
         private readonly Dictionary<int, NoteController> idToNote = new Dictionary<int, NoteController>();
 
+        public void ResetForRetry()
+        {
+            stateMachine.Clear();
+            idToNote.Clear();
+        }
+
         public void OnHoldStartTapAccepted(NoteController note)
         {
             int endMs = note.HitTimeMs + note.DurMs;
@@ -22,7 +28,7 @@ namespace KeyFlow
 
         private void Update()
         {
-            if (!audioSync.IsPlaying) return;
+            if (!audioSync.IsPlaying || audioSync.IsPaused) return;
             if (idToNote.Count == 0) return;
 
             var pressed = new HashSet<int>();

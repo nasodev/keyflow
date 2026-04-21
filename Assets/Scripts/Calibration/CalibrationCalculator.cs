@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace KeyFlow
+namespace KeyFlow.Calibration
 {
     public static class CalibrationCalculator
     {
