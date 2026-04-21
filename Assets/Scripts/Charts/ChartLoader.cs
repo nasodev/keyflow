@@ -30,19 +30,21 @@ namespace KeyFlow.Charts
                 UnityEngine.Application.streamingAssetsPath, "charts", songId + ".kfchart");
 
 #if UNITY_ANDROID && !UNITY_EDITOR
-            using (var req = UnityEngine.Networking.UnityWebRequest.Get(path))
+            var req = UnityEngine.Networking.UnityWebRequest.Get(path);
+            yield return req.SendWebRequest();
+            var result = req.result;
+            var text = req.downloadHandler.text;
+            var error = req.error;
+            req.Dispose();
+            if (result != UnityEngine.Networking.UnityWebRequest.Result.Success)
             {
-                yield return req.SendWebRequest();
-                if (req.result != UnityEngine.Networking.UnityWebRequest.Result.Success)
-                {
-                    onError?.Invoke($"{path}: {req.error}");
-                    yield break;
-                }
-                ChartData loaded;
-                try { loaded = ParseJson(req.downloadHandler.text); }
-                catch (System.Exception e) { onError?.Invoke(e.Message); yield break; }
-                onLoaded?.Invoke(loaded);
+                onError?.Invoke($"{path}: {error}");
+                yield break;
             }
+            ChartData loaded;
+            try { loaded = ParseJson(text); }
+            catch (System.Exception e) { onError?.Invoke(e.Message); yield break; }
+            onLoaded?.Invoke(loaded);
 #else
             ChartData chart;
             try { chart = LoadFromPath(path); }
