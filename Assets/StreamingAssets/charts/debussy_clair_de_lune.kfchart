@@ -1,0 +1,1888 @@
+{
+  "songId": "debussy_clair_de_lune",
+  "title": "Clair de Lune",
+  "composer": "Debussy",
+  "bpm": 60,
+  "durationMs": 120000,
+  "charts": {
+    "EASY": {
+      "totalNotes": 107,
+      "notes": [
+        {
+          "t": 500,
+          "lane": 2,
+          "pitch": 68,
+          "type": "HOLD",
+          "dur": 4000
+        },
+        {
+          "t": 1000,
+          "lane": 3,
+          "pitch": 80,
+          "type": "HOLD",
+          "dur": 2000
+        },
+        {
+          "t": 4500,
+          "lane": 2,
+          "pitch": 69,
+          "type": "HOLD",
+          "dur": 4000
+        },
+        {
+          "t": 5000,
+          "lane": 3,
+          "pitch": 75,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 6000,
+          "lane": 3,
+          "pitch": 75,
+          "type": "HOLD",
+          "dur": 3500
+        },
+        {
+          "t": 9000,
+          "lane": 2,
+          "pitch": 68,
+          "type": "HOLD",
+          "dur": 4000
+        },
+        {
+          "t": 10000,
+          "lane": 3,
+          "pitch": 75,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 10500,
+          "lane": 3,
+          "pitch": 73,
+          "type": "HOLD",
+          "dur": 750
+        },
+        {
+          "t": 12750,
+          "lane": 0,
+          "pitch": 73,
+          "type": "HOLD",
+          "dur": 1250
+        },
+        {
+          "t": 13500,
+          "lane": 2,
+          "pitch": 66,
+          "type": "HOLD",
+          "dur": 4000
+        },
+        {
+          "t": 14500,
+          "lane": 3,
+          "pitch": 73,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 15000,
+          "lane": 3,
+          "pitch": 72,
+          "type": "HOLD",
+          "dur": 3500
+        },
+        {
+          "t": 18500,
+          "lane": 2,
+          "pitch": 70,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 19000,
+          "lane": 3,
+          "pitch": 72,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 20000,
+          "lane": 3,
+          "pitch": 75,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 20500,
+          "lane": 2,
+          "pitch": 70,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 21500,
+          "lane": 2,
+          "pitch": 70,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 22000,
+          "lane": 3,
+          "pitch": 68,
+          "type": "HOLD",
+          "dur": 1000
+        },
+        {
+          "t": 23000,
+          "lane": 2,
+          "pitch": 66,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 23500,
+          "lane": 2,
+          "pitch": 68,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 25500,
+          "lane": 3,
+          "pitch": 65,
+          "type": "HOLD",
+          "dur": 2000
+        },
+        {
+          "t": 27000,
+          "lane": 2,
+          "pitch": 61,
+          "type": "HOLD",
+          "dur": 4000
+        },
+        {
+          "t": 28000,
+          "lane": 2,
+          "pitch": 66,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 28500,
+          "lane": 3,
+          "pitch": 65,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 29500,
+          "lane": 2,
+          "pitch": 65,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 30000,
+          "lane": 2,
+          "pitch": 63,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 31000,
+          "lane": 3,
+          "pitch": 63,
+          "type": "HOLD",
+          "dur": 1000
+        },
+        {
+          "t": 31500,
+          "lane": 1,
+          "pitch": 56,
+          "type": "HOLD",
+          "dur": 3000
+        },
+        {
+          "t": 32500,
+          "lane": 2,
+          "pitch": 63,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 33000,
+          "lane": 2,
+          "pitch": 61,
+          "type": "HOLD",
+          "dur": 1500
+        },
+        {
+          "t": 35250,
+          "lane": 0,
+          "pitch": 44,
+          "type": "HOLD",
+          "dur": 1250
+        },
+        {
+          "t": 36000,
+          "lane": 0,
+          "pitch": 37,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 37000,
+          "lane": 2,
+          "pitch": 68,
+          "type": "HOLD",
+          "dur": 3500
+        },
+        {
+          "t": 37500,
+          "lane": 3,
+          "pitch": 80,
+          "type": "HOLD",
+          "dur": 1500
+        },
+        {
+          "t": 40500,
+          "lane": 1,
+          "pitch": 49,
+          "type": "HOLD",
+          "dur": 4000
+        },
+        {
+          "t": 41000,
+          "lane": 3,
+          "pitch": 75,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 42000,
+          "lane": 3,
+          "pitch": 75,
+          "type": "HOLD",
+          "dur": 3500
+        },
+        {
+          "t": 45000,
+          "lane": 1,
+          "pitch": 49,
+          "type": "HOLD",
+          "dur": 3000
+        },
+        {
+          "t": 46000,
+          "lane": 3,
+          "pitch": 75,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 46500,
+          "lane": 3,
+          "pitch": 80,
+          "type": "HOLD",
+          "dur": 1500
+        },
+        {
+          "t": 49500,
+          "lane": 1,
+          "pitch": 49,
+          "type": "HOLD",
+          "dur": 4000
+        },
+        {
+          "t": 50000,
+          "lane": 3,
+          "pitch": 75,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 51000,
+          "lane": 3,
+          "pitch": 75,
+          "type": "HOLD",
+          "dur": 1500
+        },
+        {
+          "t": 52500,
+          "lane": 0,
+          "pitch": 73,
+          "type": "HOLD",
+          "dur": 2000
+        },
+        {
+          "t": 54500,
+          "lane": 3,
+          "pitch": 73,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 55000,
+          "lane": 3,
+          "pitch": 75,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 56250,
+          "lane": 0,
+          "pitch": 80,
+          "type": "HOLD",
+          "dur": 1500
+        },
+        {
+          "t": 57750,
+          "lane": 2,
+          "pitch": 65,
+          "type": "HOLD",
+          "dur": 750
+        },
+        {
+          "t": 59000,
+          "lane": 3,
+          "pitch": 75,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 59500,
+          "lane": 3,
+          "pitch": 77,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 60750,
+          "lane": 0,
+          "pitch": 73,
+          "type": "HOLD",
+          "dur": 1500
+        },
+        {
+          "t": 63000,
+          "lane": 0,
+          "pitch": 39,
+          "type": "HOLD",
+          "dur": 3000
+        },
+        {
+          "t": 65000,
+          "lane": 3,
+          "pitch": 75,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 65500,
+          "lane": 3,
+          "pitch": 75,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 66500,
+          "lane": 0,
+          "pitch": 73,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 67000,
+          "lane": 3,
+          "pitch": 73,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 68000,
+          "lane": 3,
+          "pitch": 72,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 68500,
+          "lane": 0,
+          "pitch": 72,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 69750,
+          "lane": 3,
+          "pitch": 73,
+          "type": "HOLD",
+          "dur": 750
+        },
+        {
+          "t": 70500,
+          "lane": 3,
+          "pitch": 82,
+          "type": "HOLD",
+          "dur": 1500
+        },
+        {
+          "t": 72750,
+          "lane": 0,
+          "pitch": 77,
+          "type": "HOLD",
+          "dur": 1250
+        },
+        {
+          "t": 74000,
+          "lane": 3,
+          "pitch": 78,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 75000,
+          "lane": 3,
+          "pitch": 75,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 75500,
+          "lane": 0,
+          "pitch": 77,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 76500,
+          "lane": 3,
+          "pitch": 73,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 77000,
+          "lane": 3,
+          "pitch": 75,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 78000,
+          "lane": 0,
+          "pitch": 72,
+          "type": "HOLD",
+          "dur": 581
+        },
+        {
+          "t": 78581,
+          "lane": 3,
+          "pitch": 75,
+          "type": "TAP",
+          "dur": 0
+        },
+        {
+          "t": 79500,
+          "lane": 3,
+          "pitch": 82,
+          "type": "HOLD",
+          "dur": 2250
+        },
+        {
+          "t": 81000,
+          "lane": 0,
+          "pitch": 44,
+          "type": "HOLD",
+          "dur": 3000
+        },
+        {
+          "t": 82500,
+          "lane": 3,
+          "pitch": 80,
+          "type": "HOLD",
+          "dur": 750
+        },
+        {
+          "t": 83250,
+          "lane": 3,
+          "pitch": 72,
+          "type": "HOLD",
+          "dur": 750
+        },
+        {
+          "t": 84750,
+          "lane": 0,
+          "pitch": 78,
+          "type": "HOLD",
+          "dur": 750
+        },
+        {
+          "t": 85500,
+          "lane": 0,
+          "pitch": 45,
+          "type": "HOLD",
+          "dur": 3000
+        },
+        {
+          "t": 86500,
+          "lane": 3,
+          "pitch": 78,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 87000,
+          "lane": 3,
+          "pitch": 78,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 88000,
+          "lane": 0,
+          "pitch": 80,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 88500,
+          "lane": 3,
+          "pitch": 78,
+          "type": "HOLD",
+          "dur": 1500
+        },
+        {
+          "t": 90750,
+          "lane": 3,
+          "pitch": 78,
+          "type": "HOLD",
+          "dur": 750
+        },
+        {
+          "t": 91500,
+          "lane": 0,
+          "pitch": 80,
+          "type": "HOLD",
+          "dur": 750
+        },
+        {
+          "t": 93000,
+          "lane": 3,
+          "pitch": 82,
+          "type": "HOLD",
+          "dur": 750
+        },
+        {
+          "t": 93750,
+          "lane": 1,
+          "pitch": 54,
+          "type": "HOLD",
+          "dur": 750
+        },
+        {
+          "t": 95000,
+          "lane": 3,
+          "pitch": 78,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 95500,
+          "lane": 3,
+          "pitch": 78,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 96500,
+          "lane": 0,
+          "pitch": 78,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 97000,
+          "lane": 3,
+          "pitch": 80,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 99000,
+          "lane": 1,
+          "pitch": 49,
+          "type": "HOLD",
+          "dur": 3000
+        },
+        {
+          "t": 99750,
+          "lane": 3,
+          "pitch": 78,
+          "type": "HOLD",
+          "dur": 750
+        },
+        {
+          "t": 101250,
+          "lane": 3,
+          "pitch": 75,
+          "type": "HOLD",
+          "dur": 750
+        },
+        {
+          "t": 102000,
+          "lane": 0,
+          "pitch": 73,
+          "type": "HOLD",
+          "dur": 750
+        },
+        {
+          "t": 103500,
+          "lane": 1,
+          "pitch": 51,
+          "type": "HOLD",
+          "dur": 3000
+        },
+        {
+          "t": 104000,
+          "lane": 3,
+          "pitch": 82,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 105000,
+          "lane": 3,
+          "pitch": 82,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 105500,
+          "lane": 0,
+          "pitch": 82,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 106500,
+          "lane": 3,
+          "pitch": 82,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 107000,
+          "lane": 3,
+          "pitch": 73,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 108000,
+          "lane": 0,
+          "pitch": 80,
+          "type": "HOLD",
+          "dur": 3000
+        },
+        {
+          "t": 111000,
+          "lane": 3,
+          "pitch": 80,
+          "type": "HOLD",
+          "dur": 1500
+        },
+        {
+          "t": 115500,
+          "lane": 3,
+          "pitch": 80,
+          "type": "HOLD",
+          "dur": 1500
+        },
+        {
+          "t": 117000,
+          "lane": 2,
+          "pitch": 68,
+          "type": "HOLD",
+          "dur": 3000
+        },
+        {
+          "t": 117500,
+          "lane": 1,
+          "pitch": 49,
+          "type": "TAP",
+          "dur": 0
+        },
+        {
+          "t": 117750,
+          "lane": 1,
+          "pitch": 53,
+          "type": "TAP",
+          "dur": 0
+        },
+        {
+          "t": 118250,
+          "lane": 2,
+          "pitch": 61,
+          "type": "TAP",
+          "dur": 0
+        },
+        {
+          "t": 118500,
+          "lane": 0,
+          "pitch": 41,
+          "type": "HOLD",
+          "dur": 1500
+        },
+        {
+          "t": 119000,
+          "lane": 1,
+          "pitch": 53,
+          "type": "TAP",
+          "dur": 0
+        },
+        {
+          "t": 119250,
+          "lane": 1,
+          "pitch": 56,
+          "type": "TAP",
+          "dur": 0
+        },
+        {
+          "t": 120000,
+          "lane": 2,
+          "pitch": 71,
+          "type": "HOLD",
+          "dur": 1000
+        }
+      ]
+    },
+    "NORMAL": {
+      "totalNotes": 160,
+      "notes": [
+        {
+          "t": 500,
+          "lane": 2,
+          "pitch": 68,
+          "type": "HOLD",
+          "dur": 4000
+        },
+        {
+          "t": 1000,
+          "lane": 3,
+          "pitch": 80,
+          "type": "HOLD",
+          "dur": 2000
+        },
+        {
+          "t": 3000,
+          "lane": 3,
+          "pitch": 77,
+          "type": "HOLD",
+          "dur": 2000
+        },
+        {
+          "t": 4500,
+          "lane": 2,
+          "pitch": 69,
+          "type": "HOLD",
+          "dur": 4000
+        },
+        {
+          "t": 5000,
+          "lane": 3,
+          "pitch": 75,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 5500,
+          "lane": 3,
+          "pitch": 77,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 6000,
+          "lane": 0,
+          "pitch": 75,
+          "type": "HOLD",
+          "dur": 3500
+        },
+        {
+          "t": 9000,
+          "lane": 2,
+          "pitch": 68,
+          "type": "HOLD",
+          "dur": 4000
+        },
+        {
+          "t": 9500,
+          "lane": 3,
+          "pitch": 73,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 10000,
+          "lane": 3,
+          "pitch": 75,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 10500,
+          "lane": 0,
+          "pitch": 73,
+          "type": "HOLD",
+          "dur": 750
+        },
+        {
+          "t": 11250,
+          "lane": 3,
+          "pitch": 77,
+          "type": "HOLD",
+          "dur": 1500
+        },
+        {
+          "t": 12750,
+          "lane": 3,
+          "pitch": 73,
+          "type": "HOLD",
+          "dur": 1250
+        },
+        {
+          "t": 13500,
+          "lane": 2,
+          "pitch": 66,
+          "type": "HOLD",
+          "dur": 4000
+        },
+        {
+          "t": 14000,
+          "lane": 3,
+          "pitch": 72,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 14500,
+          "lane": 3,
+          "pitch": 73,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 15000,
+          "lane": 0,
+          "pitch": 72,
+          "type": "HOLD",
+          "dur": 3500
+        },
+        {
+          "t": 18000,
+          "lane": 2,
+          "pitch": 63,
+          "type": "HOLD",
+          "dur": 3000
+        },
+        {
+          "t": 18500,
+          "lane": 2,
+          "pitch": 70,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 19000,
+          "lane": 3,
+          "pitch": 72,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 19500,
+          "lane": 2,
+          "pitch": 70,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 20000,
+          "lane": 3,
+          "pitch": 75,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 20500,
+          "lane": 2,
+          "pitch": 70,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 21000,
+          "lane": 2,
+          "pitch": 68,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 21500,
+          "lane": 3,
+          "pitch": 70,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 22000,
+          "lane": 2,
+          "pitch": 68,
+          "type": "HOLD",
+          "dur": 1000
+        },
+        {
+          "t": 22500,
+          "lane": 2,
+          "pitch": 61,
+          "type": "HOLD",
+          "dur": 3000
+        },
+        {
+          "t": 23000,
+          "lane": 3,
+          "pitch": 66,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 23500,
+          "lane": 2,
+          "pitch": 68,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 24000,
+          "lane": 2,
+          "pitch": 66,
+          "type": "HOLD",
+          "dur": 1500
+        },
+        {
+          "t": 25500,
+          "lane": 3,
+          "pitch": 65,
+          "type": "HOLD",
+          "dur": 2000
+        },
+        {
+          "t": 27000,
+          "lane": 2,
+          "pitch": 61,
+          "type": "HOLD",
+          "dur": 4000
+        },
+        {
+          "t": 27500,
+          "lane": 2,
+          "pitch": 65,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 28000,
+          "lane": 3,
+          "pitch": 66,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 28500,
+          "lane": 2,
+          "pitch": 65,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 29000,
+          "lane": 2,
+          "pitch": 70,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 29500,
+          "lane": 3,
+          "pitch": 65,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 30000,
+          "lane": 2,
+          "pitch": 63,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 30500,
+          "lane": 2,
+          "pitch": 65,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 31000,
+          "lane": 3,
+          "pitch": 63,
+          "type": "HOLD",
+          "dur": 1000
+        },
+        {
+          "t": 31500,
+          "lane": 1,
+          "pitch": 56,
+          "type": "HOLD",
+          "dur": 3000
+        },
+        {
+          "t": 32000,
+          "lane": 2,
+          "pitch": 61,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 32500,
+          "lane": 2,
+          "pitch": 63,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 33000,
+          "lane": 3,
+          "pitch": 61,
+          "type": "HOLD",
+          "dur": 1500
+        },
+        {
+          "t": 34500,
+          "lane": 2,
+          "pitch": 60,
+          "type": "HOLD",
+          "dur": 1500
+        },
+        {
+          "t": 35250,
+          "lane": 0,
+          "pitch": 44,
+          "type": "HOLD",
+          "dur": 1250
+        },
+        {
+          "t": 36000,
+          "lane": 0,
+          "pitch": 37,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 36500,
+          "lane": 1,
+          "pitch": 56,
+          "type": "HOLD",
+          "dur": 1000
+        },
+        {
+          "t": 37000,
+          "lane": 2,
+          "pitch": 68,
+          "type": "HOLD",
+          "dur": 3500
+        },
+        {
+          "t": 37500,
+          "lane": 3,
+          "pitch": 80,
+          "type": "HOLD",
+          "dur": 1500
+        },
+        {
+          "t": 39000,
+          "lane": 3,
+          "pitch": 77,
+          "type": "HOLD",
+          "dur": 2000
+        },
+        {
+          "t": 40500,
+          "lane": 1,
+          "pitch": 49,
+          "type": "HOLD",
+          "dur": 4000
+        },
+        {
+          "t": 41000,
+          "lane": 3,
+          "pitch": 75,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 41500,
+          "lane": 3,
+          "pitch": 77,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 42000,
+          "lane": 0,
+          "pitch": 75,
+          "type": "HOLD",
+          "dur": 3500
+        },
+        {
+          "t": 45000,
+          "lane": 1,
+          "pitch": 49,
+          "type": "HOLD",
+          "dur": 3000
+        },
+        {
+          "t": 45500,
+          "lane": 3,
+          "pitch": 73,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 46000,
+          "lane": 3,
+          "pitch": 75,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 46500,
+          "lane": 0,
+          "pitch": 80,
+          "type": "HOLD",
+          "dur": 1500
+        },
+        {
+          "t": 48000,
+          "lane": 3,
+          "pitch": 77,
+          "type": "HOLD",
+          "dur": 2000
+        },
+        {
+          "t": 49500,
+          "lane": 1,
+          "pitch": 49,
+          "type": "HOLD",
+          "dur": 4000
+        },
+        {
+          "t": 50000,
+          "lane": 3,
+          "pitch": 75,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 50500,
+          "lane": 3,
+          "pitch": 77,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 51000,
+          "lane": 0,
+          "pitch": 75,
+          "type": "HOLD",
+          "dur": 1500
+        },
+        {
+          "t": 52500,
+          "lane": 3,
+          "pitch": 73,
+          "type": "HOLD",
+          "dur": 2000
+        },
+        {
+          "t": 54000,
+          "lane": 0,
+          "pitch": 44,
+          "type": "HOLD",
+          "dur": 4000
+        },
+        {
+          "t": 54500,
+          "lane": 3,
+          "pitch": 73,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 55000,
+          "lane": 3,
+          "pitch": 75,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 55500,
+          "lane": 0,
+          "pitch": 82,
+          "type": "HOLD",
+          "dur": 750
+        },
+        {
+          "t": 56250,
+          "lane": 3,
+          "pitch": 80,
+          "type": "HOLD",
+          "dur": 1500
+        },
+        {
+          "t": 57750,
+          "lane": 2,
+          "pitch": 65,
+          "type": "HOLD",
+          "dur": 750
+        },
+        {
+          "t": 58500,
+          "lane": 3,
+          "pitch": 77,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 59000,
+          "lane": 3,
+          "pitch": 75,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 59500,
+          "lane": 0,
+          "pitch": 77,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 60000,
+          "lane": 3,
+          "pitch": 75,
+          "type": "HOLD",
+          "dur": 750
+        },
+        {
+          "t": 60750,
+          "lane": 3,
+          "pitch": 73,
+          "type": "HOLD",
+          "dur": 1500
+        },
+        {
+          "t": 63000,
+          "lane": 0,
+          "pitch": 39,
+          "type": "HOLD",
+          "dur": 3000
+        },
+        {
+          "t": 63750,
+          "lane": 3,
+          "pitch": 77,
+          "type": "HOLD",
+          "dur": 1250
+        },
+        {
+          "t": 65000,
+          "lane": 3,
+          "pitch": 75,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 65500,
+          "lane": 0,
+          "pitch": 75,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 66000,
+          "lane": 3,
+          "pitch": 75,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 66500,
+          "lane": 3,
+          "pitch": 73,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 67000,
+          "lane": 0,
+          "pitch": 73,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 67500,
+          "lane": 3,
+          "pitch": 73,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 68000,
+          "lane": 3,
+          "pitch": 72,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 68500,
+          "lane": 0,
+          "pitch": 72,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 69000,
+          "lane": 3,
+          "pitch": 72,
+          "type": "HOLD",
+          "dur": 750
+        },
+        {
+          "t": 69750,
+          "lane": 3,
+          "pitch": 73,
+          "type": "HOLD",
+          "dur": 750
+        },
+        {
+          "t": 70500,
+          "lane": 0,
+          "pitch": 82,
+          "type": "HOLD",
+          "dur": 1500
+        },
+        {
+          "t": 72000,
+          "lane": 0,
+          "pitch": 46,
+          "type": "HOLD",
+          "dur": 3000
+        },
+        {
+          "t": 72750,
+          "lane": 3,
+          "pitch": 77,
+          "type": "HOLD",
+          "dur": 1250
+        },
+        {
+          "t": 74000,
+          "lane": 3,
+          "pitch": 78,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 74500,
+          "lane": 0,
+          "pitch": 77,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 75000,
+          "lane": 3,
+          "pitch": 75,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 75500,
+          "lane": 3,
+          "pitch": 77,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 76000,
+          "lane": 0,
+          "pitch": 75,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 76500,
+          "lane": 3,
+          "pitch": 73,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 77000,
+          "lane": 3,
+          "pitch": 75,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 77500,
+          "lane": 0,
+          "pitch": 73,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 78000,
+          "lane": 3,
+          "pitch": 72,
+          "type": "HOLD",
+          "dur": 581
+        },
+        {
+          "t": 78581,
+          "lane": 3,
+          "pitch": 75,
+          "type": "TAP",
+          "dur": 0
+        },
+        {
+          "t": 78750,
+          "lane": 0,
+          "pitch": 73,
+          "type": "HOLD",
+          "dur": 750
+        },
+        {
+          "t": 79500,
+          "lane": 3,
+          "pitch": 82,
+          "type": "HOLD",
+          "dur": 2250
+        },
+        {
+          "t": 81000,
+          "lane": 0,
+          "pitch": 44,
+          "type": "HOLD",
+          "dur": 3000
+        },
+        {
+          "t": 81750,
+          "lane": 3,
+          "pitch": 78,
+          "type": "HOLD",
+          "dur": 750
+        },
+        {
+          "t": 82500,
+          "lane": 3,
+          "pitch": 80,
+          "type": "HOLD",
+          "dur": 750
+        },
+        {
+          "t": 83250,
+          "lane": 0,
+          "pitch": 72,
+          "type": "HOLD",
+          "dur": 750
+        },
+        {
+          "t": 84000,
+          "lane": 3,
+          "pitch": 82,
+          "type": "HOLD",
+          "dur": 750
+        },
+        {
+          "t": 84750,
+          "lane": 3,
+          "pitch": 78,
+          "type": "HOLD",
+          "dur": 750
+        },
+        {
+          "t": 85500,
+          "lane": 0,
+          "pitch": 45,
+          "type": "HOLD",
+          "dur": 3000
+        },
+        {
+          "t": 86000,
+          "lane": 3,
+          "pitch": 78,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 86500,
+          "lane": 3,
+          "pitch": 78,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 87000,
+          "lane": 0,
+          "pitch": 78,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 87500,
+          "lane": 3,
+          "pitch": 78,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 88000,
+          "lane": 3,
+          "pitch": 80,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 88500,
+          "lane": 0,
+          "pitch": 78,
+          "type": "HOLD",
+          "dur": 1500
+        },
+        {
+          "t": 90000,
+          "lane": 0,
+          "pitch": 46,
+          "type": "HOLD",
+          "dur": 3000
+        },
+        {
+          "t": 90750,
+          "lane": 3,
+          "pitch": 78,
+          "type": "HOLD",
+          "dur": 750
+        },
+        {
+          "t": 91500,
+          "lane": 3,
+          "pitch": 80,
+          "type": "HOLD",
+          "dur": 750
+        },
+        {
+          "t": 92250,
+          "lane": 0,
+          "pitch": 73,
+          "type": "HOLD",
+          "dur": 750
+        },
+        {
+          "t": 93000,
+          "lane": 3,
+          "pitch": 82,
+          "type": "HOLD",
+          "dur": 750
+        },
+        {
+          "t": 93750,
+          "lane": 1,
+          "pitch": 54,
+          "type": "HOLD",
+          "dur": 750
+        },
+        {
+          "t": 94500,
+          "lane": 0,
+          "pitch": 44,
+          "type": "HOLD",
+          "dur": 3000
+        },
+        {
+          "t": 95000,
+          "lane": 3,
+          "pitch": 78,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 95500,
+          "lane": 3,
+          "pitch": 78,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 96000,
+          "lane": 0,
+          "pitch": 78,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 96500,
+          "lane": 3,
+          "pitch": 78,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 97000,
+          "lane": 3,
+          "pitch": 80,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 97500,
+          "lane": 0,
+          "pitch": 78,
+          "type": "HOLD",
+          "dur": 1500
+        },
+        {
+          "t": 99000,
+          "lane": 1,
+          "pitch": 49,
+          "type": "HOLD",
+          "dur": 3000
+        },
+        {
+          "t": 99750,
+          "lane": 3,
+          "pitch": 78,
+          "type": "HOLD",
+          "dur": 750
+        },
+        {
+          "t": 100500,
+          "lane": 3,
+          "pitch": 80,
+          "type": "HOLD",
+          "dur": 750
+        },
+        {
+          "t": 101250,
+          "lane": 0,
+          "pitch": 75,
+          "type": "HOLD",
+          "dur": 750
+        },
+        {
+          "t": 102000,
+          "lane": 3,
+          "pitch": 73,
+          "type": "HOLD",
+          "dur": 750
+        },
+        {
+          "t": 102750,
+          "lane": 1,
+          "pitch": 58,
+          "type": "HOLD",
+          "dur": 750
+        },
+        {
+          "t": 103500,
+          "lane": 1,
+          "pitch": 51,
+          "type": "HOLD",
+          "dur": 3000
+        },
+        {
+          "t": 104000,
+          "lane": 3,
+          "pitch": 82,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 104500,
+          "lane": 3,
+          "pitch": 82,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 105000,
+          "lane": 0,
+          "pitch": 82,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 105500,
+          "lane": 3,
+          "pitch": 82,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 106000,
+          "lane": 3,
+          "pitch": 72,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 106500,
+          "lane": 0,
+          "pitch": 82,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 107000,
+          "lane": 3,
+          "pitch": 73,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 107500,
+          "lane": 3,
+          "pitch": 75,
+          "type": "HOLD",
+          "dur": 500
+        },
+        {
+          "t": 108000,
+          "lane": 0,
+          "pitch": 80,
+          "type": "HOLD",
+          "dur": 3000
+        },
+        {
+          "t": 111000,
+          "lane": 3,
+          "pitch": 80,
+          "type": "HOLD",
+          "dur": 1500
+        },
+        {
+          "t": 112500,
+          "lane": 3,
+          "pitch": 80,
+          "type": "HOLD",
+          "dur": 3000
+        },
+        {
+          "t": 115500,
+          "lane": 0,
+          "pitch": 80,
+          "type": "HOLD",
+          "dur": 1500
+        },
+        {
+          "t": 117000,
+          "lane": 2,
+          "pitch": 68,
+          "type": "HOLD",
+          "dur": 3000
+        },
+        {
+          "t": 117250,
+          "lane": 0,
+          "pitch": 44,
+          "type": "TAP",
+          "dur": 0
+        },
+        {
+          "t": 117500,
+          "lane": 1,
+          "pitch": 49,
+          "type": "TAP",
+          "dur": 0
+        },
+        {
+          "t": 117750,
+          "lane": 1,
+          "pitch": 53,
+          "type": "TAP",
+          "dur": 0
+        },
+        {
+          "t": 118000,
+          "lane": 2,
+          "pitch": 56,
+          "type": "TAP",
+          "dur": 0
+        },
+        {
+          "t": 118250,
+          "lane": 2,
+          "pitch": 61,
+          "type": "TAP",
+          "dur": 0
+        },
+        {
+          "t": 118500,
+          "lane": 0,
+          "pitch": 41,
+          "type": "HOLD",
+          "dur": 1500
+        },
+        {
+          "t": 118750,
+          "lane": 0,
+          "pitch": 48,
+          "type": "TAP",
+          "dur": 0
+        },
+        {
+          "t": 119000,
+          "lane": 1,
+          "pitch": 53,
+          "type": "TAP",
+          "dur": 0
+        },
+        {
+          "t": 119250,
+          "lane": 1,
+          "pitch": 56,
+          "type": "TAP",
+          "dur": 0
+        },
+        {
+          "t": 119500,
+          "lane": 2,
+          "pitch": 60,
+          "type": "TAP",
+          "dur": 0
+        },
+        {
+          "t": 120000,
+          "lane": 2,
+          "pitch": 71,
+          "type": "HOLD",
+          "dur": 1000
+        }
+      ]
+    }
+  }
+}
