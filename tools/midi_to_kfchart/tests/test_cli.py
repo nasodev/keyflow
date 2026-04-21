@@ -44,3 +44,29 @@ def test_cli_rejects_both_out_and_merge(tmp_path):
         "--duration-ms", "5000", "--out", str(out), "--merge-into", str(merge),
     ], capture_output=True, text=True)
     assert r.returncode != 0
+
+
+def test_cli_batch_mode(tmp_path):
+    midi = tmp_path / "tiny.mid"
+    _make_tiny_midi(midi)
+    out_dir = tmp_path / "out"
+    yml = tmp_path / "batch.yaml"
+    yml.write_text(f"""
+defaults:
+  out_dir: {out_dir.as_posix()}/
+songs:
+  - song_id: tiny
+    midi: {midi.as_posix()}
+    title: Tiny
+    composer: Test
+    bpm: 120
+    duration_ms: 5000
+    difficulties:
+      EASY: {{ target_nps: 5 }}
+""", encoding="utf-8")
+    r = subprocess.run(
+        [sys.executable, str(TOOL), "--batch", str(yml)],
+        capture_output=True, text=True,
+    )
+    assert r.returncode == 0, r.stderr
+    assert (out_dir / "tiny.kfchart").exists()
