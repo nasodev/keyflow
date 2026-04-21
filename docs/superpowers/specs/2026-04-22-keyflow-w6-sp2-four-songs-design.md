@@ -64,12 +64,25 @@ Mutopia CC0/PD MIDI (4)
 
 **허용 라이선스**: Mutopia Project의 `Public Domain` 또는 `CC0`만. CC-BY / CC-BY-SA 제외 (재배포 조건 복잡).
 
+### 부모 MVP §11.2와의 관계 (의도적 재해석)
+
+MVP §11.2 문구는 *"인터넷 무료 MIDI 파일 사용 금지 (재배포 라이선스 불명확)"* + *"자체 MIDI 시퀀싱"*을 규정한다. 본 sub-project는 **자체 시퀀싱 대신 Mutopia PD/CC0 MIDI**를 1차 소스로 채택한다. 근거:
+
+- MVP §11.2의 금지 대상은 *"라이선스 불명확"한 일반 무료 MIDI 사이트*이며, Mutopia는 piece별로 PD/CC0/CC-BY 라이선스를 명시하는 전문 아카이브다.
+- 본 spec은 **PD/CC0로 명시된 piece만** 허용하도록 필터링하여 MVP §11.2의 *진의*(재배포 리스크 제거)는 유지.
+- 자체 시퀀싱은 solo 개발 8주 MVP 스케줄에서 곡당 수 시간의 음악 저작 작업을 요구 — ROI 미흡.
+- 사후 70년 경과 PD 작곡에 대한 PD MIDI는 공법적으로 추가 리스크 없음.
+
+Fallback (Mutopia 부재 시) 경로에서는 자체 시퀀싱을 별도 sub-project로 재검토한다.
+
 | # | 곡 | 작곡가 | Mutopia 검색 가이드 |
 |---|---|---|---|
 | 1 | Ode to Joy | Beethoven | "Symphony No. 9" 4악장 합창 주제부, 또는 단독 편곡본 |
-| 3 | Canon in D | Pachelbel | 3-성부 카논, PD 여러 편곡 존재 |
-| 4 | Clair de Lune | Debussy | Suite bergamasque 3번, Debussy 1918 사망 → PD |
-| 5 | The Entertainer | Joplin | Joplin 1917 사망 → PD |
+| 2 | Canon in D | Pachelbel | 3-성부 카논, PD 여러 편곡 존재 |
+| 3 | Clair de Lune | Debussy | Suite bergamasque 3번, Debussy 1918 사망 → PD |
+| 4 | The Entertainer | Joplin | Joplin 1917 사망 → PD |
+
+(번호는 본 sub-project 내 작업 순서; MVP §3 곡 번호와 무관.)
 
 ### Verification procedure (implementation 중)
 1. 각 곡의 Mutopia piece 페이지 방문 (WebFetch)
@@ -222,7 +235,7 @@ Für Elise 기존 썸네일(`thumbs/fur_elise.png`, 64×64, 다크 블루 `#2830
 - NORMAL `totalNotes` > EASY `totalNotes` (density 오름차순)
 - `durationMs == 120000`
 - 첫 note `t >= 1000` (시작 버퍼)
-- note `lane` 값이 0..3 범위, `pitch` 값이 36..96 범위 (Salamander sample range)
+- note `lane` 값이 0..3 범위, `pitch` 값이 36..84 범위 (W6-1 Salamander sample bank 실 범위: MIDI 36–84, 17개 샘플 × minor-third 간격; ResolveSample이 ±1 semitone 까지 pitch-shift로 보간, 범위 밖은 최외곽 샘플로 클램프)
 
 ### Device playtest
 Galaxy S22 (`R5CT21A31QB`), `Builds/keyflow-w6-sp2.apk`:
