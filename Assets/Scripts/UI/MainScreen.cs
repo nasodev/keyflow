@@ -18,17 +18,37 @@ namespace KeyFlow.UI
         [SerializeField] private Sprite starEmpty;
 
         private readonly List<SongCardView> cards = new();
+        private bool populated;
 
         private IEnumerator Start()
         {
             settingsButton.onClick.AddListener(() => settingsOverlay.Show());
             yield return SongCatalog.LoadAsync();
             PopulateCards();
+            populated = true;
+        }
+
+        private void OnEnable()
+        {
+            if (ScreenManager.Instance != null)
+                ScreenManager.Instance.OnReplaced += HandleReplaced;
+        }
+
+        private void OnDisable()
+        {
+            if (ScreenManager.Instance != null)
+                ScreenManager.Instance.OnReplaced -= HandleReplaced;
+        }
+
+        private void HandleReplaced(AppScreen target)
+        {
+            if (target == AppScreen.Main && populated) Refresh();
         }
 
         public void Refresh()
         {
-            foreach (Transform child in cardContainer) Destroy(child.gameObject);
+            foreach (Transform child in cardContainer)
+                if (child.gameObject != cardPrefab) Destroy(child.gameObject);
             cards.Clear();
             PopulateCards();
         }

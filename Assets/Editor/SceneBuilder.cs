@@ -245,6 +245,7 @@ namespace KeyFlow.Editor
             text.verticalOverflow = VerticalWrapMode.Overflow;
             text.alignment = TextAnchor.UpperLeft;
             text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.raycastTarget = false;
 
             var meter = canvasGO.AddComponent<LatencyMeter>();
             SetField(meter, "hudText", text);
@@ -894,6 +895,37 @@ namespace KeyFlow.Editor
             return pauseScreen;
         }
 
+        private static Button BuildSizedButton(
+            Transform parent, Sprite whiteSprite, string label, Vector2 anchor, Vector2 size, Color color)
+        {
+            var btnGO = new GameObject(label + "Button");
+            btnGO.transform.SetParent(parent, false);
+            var btnRT = btnGO.AddComponent<RectTransform>();
+            btnRT.anchorMin = anchor;
+            btnRT.anchorMax = anchor;
+            btnRT.pivot = new Vector2(0.5f, 0.5f);
+            btnRT.sizeDelta = size;
+            var btnImg = btnGO.AddComponent<Image>();
+            btnImg.sprite = whiteSprite;
+            btnImg.color = color;
+            var btn = btnGO.AddComponent<Button>();
+
+            var labelGO = new GameObject("Label");
+            labelGO.transform.SetParent(btnGO.transform, false);
+            var labelRT = labelGO.AddComponent<RectTransform>();
+            labelRT.anchorMin = Vector2.zero;
+            labelRT.anchorMax = Vector2.one;
+            labelRT.offsetMin = Vector2.zero;
+            labelRT.offsetMax = Vector2.zero;
+            var labelText = labelGO.AddComponent<Text>();
+            labelText.text = label;
+            labelText.fontSize = 28;
+            labelText.color = Color.white;
+            labelText.alignment = TextAnchor.MiddleCenter;
+            labelText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            return btn;
+        }
+
         private static Button BuildPrimaryButton(
             Transform parent, Sprite whiteSprite, string label, Vector2 anchor, Color color)
         {
@@ -987,10 +1019,12 @@ namespace KeyFlow.Editor
             newRecord.color = new Color(1f, 0.85f, 0.25f, 1f);
             newRecord.gameObject.SetActive(false);
 
-            var retryBtn = BuildPrimaryButton(canvasGO.transform, whiteSprite,
-                UIStrings.Retry, new Vector2(0.32f, 0.18f), new Color(0.2f, 0.6f, 0.9f, 1f));
-            var homeBtn = BuildPrimaryButton(canvasGO.transform, whiteSprite,
-                UIStrings.Home, new Vector2(0.68f, 0.18f), new Color(0.35f, 0.35f, 0.4f, 1f));
+            var retryBtn = BuildSizedButton(canvasGO.transform, whiteSprite,
+                UIStrings.Retry, new Vector2(0.3f, 0.18f), new Vector2(300, 96),
+                new Color(0.2f, 0.6f, 0.9f, 1f));
+            var homeBtn = BuildSizedButton(canvasGO.transform, whiteSprite,
+                UIStrings.Home, new Vector2(0.7f, 0.18f), new Vector2(300, 96),
+                new Color(0.35f, 0.35f, 0.4f, 1f));
 
             var screen = canvasGO.AddComponent<ResultsScreen>();
             SetField(screen, "titleText", title);
