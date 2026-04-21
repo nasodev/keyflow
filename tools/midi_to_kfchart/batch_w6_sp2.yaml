@@ -1,0 +1,33 @@
+defaults:
+  out_dir: Assets/StreamingAssets/charts/
+
+songs:
+  - song_id: beethoven_ode_to_joy
+    midi: midi_sources/ode_to_joy.mid
+    title: "Ode to Joy"
+    composer: "Beethoven"
+    bpm: 100
+    duration_ms: 120000
+    difficulties:
+      EASY:   { target_nps: 1.5 }
+      NORMAL: { target_nps: 3.0 }
+
+  - song_id: debussy_clair_de_lune
+    midi: midi_sources/clair_de_lune.mid
+    title: "Clair de Lune"
+    composer: "Debussy"
+    bpm: 60
+    duration_ms: 120000
+    difficulties:
+      EASY:   { target_nps: 1.5 }
+      NORMAL: { target_nps: 2.8 }
+
+  - song_id: joplin_the_entertainer
+    midi: midi_sources/the_entertainer.mid
+    title: "The Entertainer"
+    composer: "Joplin"
+    bpm: 72
+    duration_ms: 120000
+    difficulties:
+      EASY:   { target_nps: 2.2 }
+      NORMAL: { target_nps: 4.0 }
