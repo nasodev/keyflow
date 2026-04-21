@@ -139,5 +139,24 @@ namespace KeyFlow.Tests.EditMode
             }";
             Assert.Throws<ChartValidationException>(() => ChartLoader.ParseJson(bad));
         }
+
+        [Test]
+        public void LoadFromPath_RealChart_ParsesFurEliseEasy()
+        {
+            string path = System.IO.Path.Combine(
+                UnityEngine.Application.streamingAssetsPath,
+                "charts", "beethoven_fur_elise.kfchart");
+            var chart = ChartLoader.LoadFromPath(path);
+            Assert.AreEqual("beethoven_fur_elise", chart.songId);
+            Assert.IsTrue(chart.charts.ContainsKey(Difficulty.Easy));
+            Assert.Greater(chart.charts[Difficulty.Easy].notes.Count, 0);
+        }
+
+        [Test]
+        public void LoadFromPath_MissingFile_Throws()
+        {
+            Assert.Throws<System.IO.FileNotFoundException>(() =>
+                ChartLoader.LoadFromPath("no/such/path.kfchart"));
+        }
     }
 }

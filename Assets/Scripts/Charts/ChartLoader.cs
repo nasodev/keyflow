@@ -13,6 +13,13 @@ namespace KeyFlow.Charts
         private const int PitchMin = 36;
         private const int PitchMax = 83;
 
+        public static ChartData LoadFromPath(string absolutePath)
+        {
+            if (!System.IO.File.Exists(absolutePath))
+                throw new System.IO.FileNotFoundException($"Chart not found: {absolutePath}");
+            return ParseJson(System.IO.File.ReadAllText(absolutePath));
+        }
+
         public static ChartData LoadFromStreamingAssets(string songId)
         {
             string path = Path.Combine(Application.streamingAssetsPath, "charts", songId + ".kfchart");
