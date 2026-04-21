@@ -119,5 +119,27 @@ namespace KeyFlow.Tests.EditMode
             Assert.IsNull(r.clip);
             Assert.AreEqual(1f, r.pitchRatio, 1e-6f);
         }
+
+        [Test]
+        public void PlayForPitch_AssignsClipAndPitchToSource_NotLayered()
+        {
+            var go = new GameObject("pool");
+            var pool = go.AddComponent<AudioSamplePool>();
+            pool.InitializeForTest(channels: 4);
+
+            var map = MakeDummyMap(17);
+            pool.SetPitchMapForTest(map, 36, 3);
+
+            pool.PlayForPitch(48); // midi 48 → map[4], ratio 1.0; uses sources[0]
+
+            var sources = go.GetComponents<AudioSource>();
+            Assert.AreSame(map[4], sources[0].clip,
+                "PlayForPitch must assign the clip to the AudioSource (not layered PlayOneShot). " +
+                "Layered PlayOneShot leaves src.clip null, exhausting Unity's real voice budget on rapid taps.");
+            Assert.AreEqual(1f, sources[0].pitch, 1e-6f,
+                "Pitch ratio must be applied to the source before Play().");
+
+            Object.DestroyImmediate(go);
+        }
     }
 }

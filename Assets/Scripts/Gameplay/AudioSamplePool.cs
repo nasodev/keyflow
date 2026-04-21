@@ -38,6 +38,13 @@ namespace KeyFlow
 
         public void InitializeForTest(int channels) => Initialize(channels);
 
+        public void SetPitchMapForTest(AudioClip[] samples, int baseMidiValue, int stepSemitonesValue)
+        {
+            pitchSamples = samples;
+            baseMidi = baseMidiValue;
+            stepSemitones = stepSemitonesValue;
+        }
+
         public AudioSource NextSource()
         {
             var src = sources[nextIndex];
@@ -62,7 +69,8 @@ namespace KeyFlow
             }
             var src = NextSource();
             src.pitch = ratio;
-            src.PlayOneShot(clip);
+            src.clip = clip;
+            src.Play();
         }
 
         public static (AudioClip clip, float pitchRatio) ResolveSample(
