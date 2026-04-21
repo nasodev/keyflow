@@ -285,7 +285,7 @@ def midi_to_chart(midi_path, difficulty):
 "Smule", "Magic Piano" 등 일체 사용 금지. 앱명 KeyFlow, 패키지명 `com.yourcompany.keyflow`. Smule의 보라+시안 브랜드 컬러 회피, KeyFlow는 주황+딥퍼플 계열.
 
 ### 11.2 저작권
-MVP 수록 5곡 전원 **작곡 저작권 PD 확정**(Beethoven 1827 사망, Debussy 1918, Joplin 1917, Pachelbel 1706, 모두 사후 70년 경과). 녹음은 **자체 MIDI 시퀀싱 + Salamander CC0 샘플러**로 렌더링하여 연주 저작권도 해결. 인터넷 무료 MIDI 파일 사용 금지(재배포 라이선스 불명확). 각 곡 메타데이터에 `"licenseInfo": "PD-composition; self-sequenced; CC0-samples(Salamander)"` 기록.
+MVP 수록 5곡 전원 **작곡 저작권 PD 확정**(Beethoven 1827 사망, Debussy 1918, Joplin 1917, Pachelbel 1706, 모두 사후 70년 경과). 녹음은 **자체 MIDI 시퀀싱 + Salamander CC-BY 샘플러**로 렌더링하여 연주 저작권도 해결 (CC-BY 3.0, 저자: Alexander Holm — Assets/StreamingAssets/licenses/salamander-piano-v3.txt 및 Settings Credits에 귀속 표기). 인터넷 무료 MIDI 파일 사용 금지(재배포 라이선스 불명확). 각 곡 메타데이터에 `"licenseInfo": "PD-composition; self-sequenced; CC-BY-samples(Salamander V3, Alexander Holm)"` 기록.
 
 ### 11.3 Play Console
 MVP는 Play Store 공개 배포 대신 **Internal Testing Track** 또는 **APK 직접 배포**(테스터에게 설치 파일 전달)를 권장. 공개 배포는 v1.0부터.
