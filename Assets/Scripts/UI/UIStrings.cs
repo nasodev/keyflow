@@ -36,5 +36,8 @@ namespace KeyFlow.UI
         public const string MaxComboFmt = "최대 콤보 {0}";
         public const string BreakdownFmt = "P:{0}  G:{1}  G:{2}  M:{3}";
         public const string NewRecord = "최고 기록!";
+
+        // Credits
+        public const string CreditsSamples = "Piano samples: Salamander Grand Piano V3 by Alexander Holm, CC-BY 3.0";
     }
 }
