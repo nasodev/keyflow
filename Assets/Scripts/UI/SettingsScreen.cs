@@ -13,6 +13,7 @@ namespace KeyFlow.UI
         [SerializeField] private Button recalibrateButton;
         [SerializeField] private Button closeButton;
         [SerializeField] private Text versionLabel;
+        [SerializeField] private Text creditsLabel;
         [SerializeField] private CalibrationController calibration;
 
         private void Awake()
@@ -33,6 +34,8 @@ namespace KeyFlow.UI
             if (closeButton != null) closeButton.onClick.AddListener(Finish);
             if (versionLabel != null)
                 versionLabel.text = string.Format(UIStrings.VersionLabelFmt, Application.version);
+            if (creditsLabel != null)
+                creditsLabel.text = UIStrings.CreditsSamples;
         }
 
         protected override void OnShown()

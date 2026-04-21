@@ -107,5 +107,26 @@ namespace KeyFlow
                 closest.MarkJudged();
             }
         }
+
+        public int GetClosestPendingPitch(int lane, int tapTimeMs, int windowMs)
+        {
+            NoteController closest = null;
+            int closestAbsDelta = int.MaxValue;
+            for (int i = 0; i < pending.Count; i++)
+            {
+                var n = pending[i];
+                if (n == null || n.Judged) continue;
+                if (n.Lane != lane) continue;
+                int delta = tapTimeMs - n.HitTimeMs;
+                int abs = delta < 0 ? -delta : delta;
+                if (abs < closestAbsDelta)
+                {
+                    closestAbsDelta = abs;
+                    closest = n;
+                }
+            }
+            if (closest == null || closestAbsDelta > windowMs) return -1;
+            return closest.Pitch;
+        }
     }
 }

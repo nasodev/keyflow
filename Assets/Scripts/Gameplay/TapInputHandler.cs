@@ -12,6 +12,8 @@ namespace KeyFlow
         [SerializeField] private AudioSamplePool samplePool;
         [SerializeField] private AudioSyncManager audioSync;
         [SerializeField] private Camera mainCamera;
+        [SerializeField] private JudgmentSystem judgmentSystem;
+        [SerializeField] private int pitchLookupWindowMs = 500;
         [SerializeField] private float laneAreaWidth = 4f;
 
         public System.Action<int> OnTap;
@@ -96,11 +98,20 @@ namespace KeyFlow
             return LaneLayout.XToLane(world.x, laneAreaWidth);
         }
 
+        private void PlayTapSound(int lane, int songTimeMs)
+        {
+            int pitch = judgmentSystem != null
+                ? judgmentSystem.GetClosestPendingPitch(lane, songTimeMs, pitchLookupWindowMs)
+                : -1;
+            if (pitch < 0) pitch = LanePitches.Default(lane);
+            samplePool.PlayForPitch(pitch);
+        }
+
         private void FirePress(int touchId, int lane, int songTimeMs)
         {
             touchToLane[touchId] = lane;
             pressedLanes.Add(lane);
-            samplePool.PlayOneShot();
+            PlayTapSound(lane, songTimeMs);
             OnTap?.Invoke(songTimeMs);
             OnLaneTap?.Invoke(songTimeMs, lane);
         }
@@ -119,7 +130,7 @@ namespace KeyFlow
         private void FirePressRaw(int lane, int songTimeMs)
         {
             pressedLanes.Add(lane);
-            samplePool.PlayOneShot();
+            PlayTapSound(lane, songTimeMs);
             OnTap?.Invoke(songTimeMs);
             OnLaneTap?.Invoke(songTimeMs, lane);
         }
