@@ -6,7 +6,7 @@
       "title": "엘리제를 위하여",
       "composer": "Beethoven",
       "thumbnail": "thumbs/fur_elise.png",
-      "difficulties": ["Easy"],
+      "difficulties": ["Easy", "Normal"],
       "chartAvailable": true
     },
     { "id": "placeholder_w5_1", "title": "(W5에 공개)", "composer": "—",
