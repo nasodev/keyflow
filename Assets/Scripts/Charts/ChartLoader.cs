@@ -75,6 +75,16 @@ namespace KeyFlow.Charts
                     Validate(note, chart.durationMs);
                     cd.notes.Add(note);
                 }
+                if (cd.notes.Count == 0)
+                    throw new ChartValidationException($"{prop.Name} has no notes");
+                for (int i = 1; i < cd.notes.Count; i++)
+                {
+                    if (cd.notes[i].t < cd.notes[i - 1].t)
+                        throw new ChartValidationException($"{prop.Name} notes not sorted at idx {i}");
+                }
+                if (cd.totalNotes != cd.notes.Count)
+                    throw new ChartValidationException(
+                        $"{prop.Name} totalNotes {cd.totalNotes} != actual {cd.notes.Count}");
                 chart.charts[diff] = cd;
             }
             return chart;

@@ -104,5 +104,40 @@ namespace KeyFlow.Tests.EditMode
             var bad = ValidJson.Replace(@"""t"": 1000", @"""t"": -10");
             Assert.Throws<ChartValidationException>(() => ChartLoader.ParseJson(bad));
         }
+
+        [Test]
+        public void ParseJson_EmptyNotes_Throws()
+        {
+            var bad = @"{
+                ""songId"":""x"",""title"":""x"",""composer"":""x"",""bpm"":120,""durationMs"":5000,
+                ""charts"":{""EASY"":{""totalNotes"":0,""notes"":[]}}
+            }";
+            Assert.Throws<ChartValidationException>(() => ChartLoader.ParseJson(bad));
+        }
+
+        [Test]
+        public void ParseJson_UnsortedNotes_Throws()
+        {
+            var bad = @"{
+                ""songId"":""x"",""title"":""x"",""composer"":""x"",""bpm"":120,""durationMs"":5000,
+                ""charts"":{""EASY"":{""totalNotes"":2,""notes"":[
+                    {""t"":2000,""lane"":0,""pitch"":60,""type"":""TAP"",""dur"":0},
+                    {""t"":1000,""lane"":1,""pitch"":61,""type"":""TAP"",""dur"":0}
+                ]}}
+            }";
+            Assert.Throws<ChartValidationException>(() => ChartLoader.ParseJson(bad));
+        }
+
+        [Test]
+        public void ParseJson_TotalNotesMismatch_Throws()
+        {
+            var bad = @"{
+                ""songId"":""x"",""title"":""x"",""composer"":""x"",""bpm"":120,""durationMs"":5000,
+                ""charts"":{""EASY"":{""totalNotes"":99,""notes"":[
+                    {""t"":1000,""lane"":0,""pitch"":60,""type"":""TAP"",""dur"":0}
+                ]}}
+            }";
+            Assert.Throws<ChartValidationException>(() => ChartLoader.ParseJson(bad));
+        }
     }
 }
