@@ -77,6 +77,5 @@ crashlytics-build.properties
 .claude/
 
 # W5 pipeline
-midi_sources/
 tools/midi_to_kfchart/.venv/
 tools/midi_to_kfchart/**/__pycache__/
