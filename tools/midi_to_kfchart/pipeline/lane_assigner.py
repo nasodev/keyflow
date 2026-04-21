@@ -20,7 +20,8 @@ def assign(notes: list[dict]) -> list[dict]:
     for i in range(2, len(out)):
         if out[i]["lane"] == out[i - 1]["lane"] == out[i - 2]["lane"]:
             candidate = (out[i]["lane"] + 1) % LANE_COUNT
-            if i >= 2 and candidate == out[i - 1]["lane"] == out[i - 2]["lane"]:
+            # defensive: unreachable given left-to-right traversal, matches spec §3.4 pseudocode
+            if candidate == out[i - 1]["lane"] == out[i - 2]["lane"]:
                 candidate = (out[i]["lane"] + 2) % LANE_COUNT
             out[i]["lane"] = candidate
 

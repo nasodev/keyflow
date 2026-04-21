@@ -11,7 +11,7 @@ def test_single_pitch_all_lane_0():
     result = assign(notes)
     assert result[0]["lane"] == 0
     assert result[1]["lane"] == 0
-    assert result[2]["lane"] != 0
+    assert result[2]["lane"] == 1  # relief moves 3rd to (0+1)%4 = 1
 
 
 def test_pitch_range_quartiles():
