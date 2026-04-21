@@ -71,6 +71,7 @@ namespace KeyFlow
             ctrl.Initialize(
                 audioSync, n.lane, laneX,
                 n.t,
+                n.pitch,
                 n.type,
                 n.dur,
                 spawnY, judgmentY,

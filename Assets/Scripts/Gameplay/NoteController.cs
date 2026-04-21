@@ -10,6 +10,7 @@ namespace KeyFlow
 
         private AudioSyncManager audioSync;
         private int hitTimeMs;
+        private int pitch;
         private int lane;
         private int durMs;
         private NoteType noteType;
@@ -22,6 +23,7 @@ namespace KeyFlow
         private System.Action<NoteController> onAutoMiss;
 
         public int HitTimeMs => hitTimeMs;
+        public int Pitch => pitch;
         public int Lane => lane;
         public int DurMs => durMs;
         public NoteType Type => noteType;
@@ -31,6 +33,7 @@ namespace KeyFlow
             AudioSyncManager sync,
             int lane, float laneX,
             int hitMs,
+            int pitch,
             NoteType type,
             int durMs,
             float spawnY, float judgmentY,
@@ -42,6 +45,7 @@ namespace KeyFlow
             this.lane = lane;
             this.laneX = laneX;
             this.hitTimeMs = hitMs;
+            this.pitch = pitch;
             this.noteType = type;
             this.durMs = durMs;
             this.spawnY = spawnY;
