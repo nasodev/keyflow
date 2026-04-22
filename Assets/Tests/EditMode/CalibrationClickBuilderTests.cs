@@ -1,4 +1,6 @@
 using NUnit.Framework;
+using UnityEditor;
+using UnityEngine;
 using KeyFlow.Editor;
 
 namespace KeyFlow.Tests.EditMode
@@ -53,6 +55,21 @@ namespace KeyFlow.Tests.EditMode
             // Peak target: 0.501 × 32767 ≈ 16416. Allow small headroom for envelope/filter interaction.
             Assert.LessOrEqual(maxAbs, 16500, $"Peak {maxAbs} exceeds -6 dBFS target (~16416).");
             Assert.Greater(maxAbs, 1000, $"Peak {maxAbs} suspiciously low — signal is basically silent.");
+        }
+
+        [Test]
+        public void Build_ProducesImportableClipWithMonoAndPreload()
+        {
+            CalibrationClickBuilder.Build();
+            AssetDatabase.Refresh();
+
+            var clip = AssetDatabase.LoadAssetAtPath<AudioClip>(CalibrationClickBuilder.AssetPath);
+            Assert.IsNotNull(clip, "AssetDatabase did not produce an AudioClip from the built WAV.");
+
+            var importer = (AudioImporter)AssetImporter.GetAtPath(CalibrationClickBuilder.AssetPath);
+            Assert.IsNotNull(importer, "No AudioImporter bound to the generated asset.");
+            Assert.IsTrue(importer.forceToMono, "AudioImporter.forceToMono should be true.");
+            Assert.IsTrue(importer.defaultSampleSettings.preloadAudioData, "preloadAudioData should be true.");
         }
     }
 }

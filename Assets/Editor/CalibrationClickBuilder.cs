@@ -94,11 +94,44 @@ namespace KeyFlow.Editor
             dst[offset + 1] = (byte)((value >> 8) & 0xFF);
         }
 
+        private static void EnsureFolder(string path)
+        {
+            if (AssetDatabase.IsValidFolder(path)) return;
+            string parent = Path.GetDirectoryName(path).Replace('\\', '/');
+            string leaf = Path.GetFileName(path);
+            AssetDatabase.CreateFolder(parent, leaf);
+        }
+
         [MenuItem("KeyFlow/Build Calibration Click")]
         public static void Build()
         {
-            // Filled in by Task 6.
-            Debug.LogWarning("[KeyFlow] CalibrationClickBuilder.Build not implemented yet.");
+            EnsureFolder("Assets/Audio");
+
+            byte[] bytes = GenerateWavBytes();
+            File.WriteAllBytes(AssetPath, bytes);
+
+            AssetDatabase.ImportAsset(AssetPath, ImportAssetOptions.ForceUpdate);
+
+            var importer = AssetImporter.GetAtPath(AssetPath) as AudioImporter;
+            if (importer == null)
+            {
+                Debug.LogError($"[KeyFlow] No AudioImporter for {AssetPath}.");
+                return;
+            }
+
+            importer.forceToMono = true;
+            var defaults = importer.defaultSampleSettings;
+            defaults.loadType = AudioClipLoadType.DecompressOnLoad;
+            defaults.preloadAudioData = true;
+            defaults.compressionFormat = AudioCompressionFormat.PCM; // short transient; avoid Vorbis smearing
+            defaults.sampleRateSetting = AudioSampleRateSetting.OverrideSampleRate;
+            defaults.sampleRateOverride = (uint)SampleRate;
+            importer.defaultSampleSettings = defaults;
+
+            importer.SaveAndReimport();
+            AssetDatabase.SaveAssets();
+
+            Debug.Log($"[KeyFlow] CalibrationClickBuilder wrote {AssetPath} ({bytes.Length} bytes).");
         }
     }
 }
