@@ -3,6 +3,7 @@
     "rootNamespace": "KeyFlow.Tests",
     "references": [
         "KeyFlow.Runtime",
+        "KeyFlow.Editor",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
         "Unity.Nuget.Newtonsoft.Json"
