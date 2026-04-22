@@ -71,7 +71,7 @@ namespace KeyFlow.Editor
             var camera = BuildMainCamera();
             CreateEventSystem();
 
-            BuildBackgroundCanvas(bgSprite);
+            BuildBackgroundCanvas(bgSprite, camera);
 
             // GameplayRoot groups all gameplay-only objects so ScreenManager
             // can toggle them wholesale.
@@ -476,12 +476,19 @@ namespace KeyFlow.Editor
             return controller;
         }
 
-        private static void BuildBackgroundCanvas(Sprite bgSprite)
+        private static void BuildBackgroundCanvas(Sprite bgSprite, Camera cam)
         {
             var canvasGO = new GameObject("BackgroundCanvas");
             var canvas = canvasGO.AddComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            canvas.sortingOrder = -100; // underneath every other Canvas
+            // ScreenSpaceCamera (not Overlay!) so world-space gameplay objects
+            // (notes, lane dividers, judgment line) render IN FRONT of the bg.
+            // Overlay canvases always paint over world-space regardless of
+            // sortingOrder. Camera mode puts the canvas in 3D space at
+            // planeDistance, which z-sorts naturally behind the gameplay.
+            canvas.renderMode = RenderMode.ScreenSpaceCamera;
+            canvas.worldCamera = cam;
+            canvas.planeDistance = 50f; // far in front of camera but behind nothing gameplay-facing
+            canvas.sortingOrder = -100;
             var scaler = canvasGO.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(720, 1280);
