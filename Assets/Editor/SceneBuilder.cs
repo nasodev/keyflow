@@ -49,6 +49,13 @@ namespace KeyFlow.Editor
                 return;
             }
 
+            var clickClip = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/calibration_click.wav");
+            if (clickClip == null)
+            {
+                Debug.LogError("[KeyFlow] Missing Assets/Audio/calibration_click.wav. Run KeyFlow/Build Calibration Click first. Aborting.");
+                return;
+            }
+
             var notePrefab = BuildNotePrefab(whiteSprite);
 
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
@@ -70,7 +77,7 @@ namespace KeyFlow.Editor
             BuildFeedbackPipeline(judgmentSystem, gameplayRoot.transform);
             var hudPauseButton = BuildHUD(audioSync, tapInput, samplePool, judgmentSystem, whiteSprite, gameplayRoot.transform);
 
-            var calibration = BuildCalibrationOverlay(whiteSprite, pianoClip, audioSync);
+            var calibration = BuildCalibrationOverlay(whiteSprite, clickClip, audioSync);
             var resultsScreen = BuildResultsCanvas(whiteSprite);
             BuildGameplayController(calibration, audioSync, spawner, judgmentSystem, holdTracker, resultsScreen, gameplayRoot.transform);
 
