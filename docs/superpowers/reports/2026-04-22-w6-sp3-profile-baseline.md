@@ -96,8 +96,45 @@ Because it serves as the live score display, it cannot simply be removed from th
   - Number formatting via `StringBuilder.Append(int)` / manual formatting (no `ToString("N0")` boxing)
 - **Task N+1 (re-profile)**: acceptance unchanged — GC.Collect count == 0 during re-captured session.
 
-## Next
+## After — profile with SP3 fixes applied
 
-Proceed to Task 4 (defense-in-depth) then Task 5 (LatencyMeter primary fix).
+**Capture:** `Logs/profile-w6sp3-after.data` (61 MB, local only)
+**Build:** `Builds/keyflow-w6-sp3-profile.apk` rebuilt from HEAD `b03855e` (Task 4 + Task 5 fixes)
+**Session:** Entertainer Normal, ~2 min gameplay, Frame 6357 / 7883 captured
+**Device:** Same Galaxy S22 R5CT21A31QB
 
-Tasks 4 and 5 are independent in terms of files touched (4: Gameplay/*; 5: UI/LatencyMeter.cs + tests) but share the implementation session. Either order works; Task 4 first is convenient because it also exercises the test migration path planned in the spec.
+### Success criterion: **ACHIEVED**
+
+- `GC.Collect` event count across gameplay period: **0** (verified by isolating GarbageCollector track in CPU Usage chart — zero vertical spikes observed)
+- PlayerLoop total GC Alloc per gameplay frame: **0 B** (was 1.1 KB at baseline)
+
+### Hierarchy comparison (representative mid-gameplay frame)
+
+| Callsite | Baseline GC Alloc | After GC Alloc | Delta |
+|---|---|---|---|
+| `PlayerLoop` (total) | 1.1 KB | **0 B** | −1.1 KB (100 %) |
+| `LatencyMeter.Update()` | 1.1 KB | **0 B** | −1.1 KB (100 %) |
+| `HoldTracker.Update()` | 0 B | 0 B | = (no holds in chart) |
+| `HoldStateMachine.Tick()` | 0 B | 0 B | = (not reached) |
+| `ScreenManager.Update()` | 0 B | 0 B | = |
+| `NoteController.Update()` | 0 B | 0 B | = |
+| `NoteSpawner.Update()` | 0 B | 0 B | = |
+| `TapInputHandler.Update()` | 0 B | 0 B | = |
+| `EventSystem.Update()` | 0 B | 0 B | = |
+| `GameplayController.Update()` | 0 B | 0 B | = |
+
+CPU time per frame: ~16.68 ms steady (baseline was ~16.84 ms) — unchanged within noise, expected since the fix removed allocations but did not alter computation.
+
+### Residual allocators
+
+None observed on the selected frame. LatencyMeter's 0.5s-throttled HUD text update (`sb.ToString()` + `Text.text` setter) still allocates ~200-400 B per firing = ~600 B/sec aggregate, but below per-frame Profiler visibility at the sampling resolution and well under Unity's GC trigger threshold. Verified: zero `GC.Collect` events over a 2-min session confirms cumulative residual never reached GC threshold.
+
+### Interpretation
+
+- **Task 5 (LatencyMeter rewrite) single-handedly achieved the GC=0 goal** on Entertainer Normal.
+- **Task 4 (Hold* defense-in-depth)** remains correct as a latent-bug fix for hold-bearing charts (Für Elise) but was not needed to move Entertainer's numbers from baseline.
+- W4 carry-over #1 root cause was misdiagnosed — the suspected Hold*-loop allocations never fired on The Entertainer (no holds), and the actual allocator (`LatencyMeter`) was a W1 PoC debug HUD never flagged in any prior review. Evidence-first profiling caught what grep-first hypothesis missed.
+
+### Next
+
+Proceed to Task N+2 (release APK regression playtest) then Task N+3 (completion report + merge).
