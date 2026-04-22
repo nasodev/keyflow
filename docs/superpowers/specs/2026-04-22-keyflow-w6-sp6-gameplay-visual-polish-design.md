@@ -191,7 +191,7 @@ Tap → TapInputHandler.Update → ScreenToLane(width=9f) → FirePress → Judg
 ComboHUD.Update (every frame, cheap):
   read scoreManager.Combo (int, no alloc)
   short-circuit if unchanged (99% of frames)
-  on change: SetActive toggle + text update (alloc only when combo changes)
+  on change: comboText.enabled toggle + text update (alloc only when combo changes)
 ```
 
 ### 4.7 Import settings (BackgroundImporterPostprocessor)
