@@ -170,6 +170,9 @@ Subagent MUST NOT attempt automated Unity Profiler attach — this is an interac
 ```
 PROFILER CAPTURE (baseline) — user-driven
 
+0. Verify Unity Editor's build target is Android (File → Build Profiles
+   → Active Profile is Android). If it's Windows Standalone, attach
+   won't work — switch first.
 1. Open Unity Editor at this worktree's path.
 2. Window → Analysis → Profiler
 3. Top bar dropdown "Connected Players" → pick the device entry (should
@@ -197,13 +200,16 @@ git add Logs/profile-w6sp3-baseline.data
 git commit -m "chore(w6-sp3): baseline profile capture (Entertainer Normal, 2min)"
 ```
 
-Note: `.data` files are binary; size likely a few MB. If gitignore treats `Logs/` as gitignored, use `git add -f`. Check:
+Note: `.data` files are binary; size likely a few MB. Check gitignore status with `git check-ignore` (it handles case-insensitive and glob patterns correctly — `.gitignore:7` in this repo is `[Ll]ogs/`):
 
 ```bash
-grep -n "^Logs\|^/Logs\|^Logs/" .gitignore 2>&1
+git check-ignore Logs/profile-w6sp3-baseline.data && echo "IS IGNORED" || echo "NOT IGNORED"
 ```
 
-If gitignored, prefer to NOT commit the binary — reference-link it in the baseline report instead, preserving evidence locally but keeping repo lean.
+If the file is ignored (expected outcome — `Logs/` is gitignored per `.gitignore:7`), prefer to NOT commit the binary. Instead:
+- Leave it at `Logs/profile-w6sp3-baseline.data` locally for reference
+- Reference it from the baseline report (Task 3) with absolute path context
+- In the completion report, note that profile captures live in local `Logs/` and are reproducible by rerunning the session
 
 ---
 
@@ -480,12 +486,24 @@ Key changes:
 
 - [ ] **Step 5: Update HoldTracker.Update to supply the buffer**
 
-Modify `Assets/Scripts/Gameplay/HoldTracker.cs`. Current Update method at lines 29-54 — replace with:
+Modify `Assets/Scripts/Gameplay/HoldTracker.cs`. The change has two parts:
+
+**Part A** — Add two new `readonly` fields alongside the existing `stateMachine` and `idToNote` at lines 12-13. **Do NOT replace** those — they remain. After this edit, the fields section (around lines 8-13) should read:
 
 ```csharp
+        [SerializeField] private TapInputHandler tapInput;
+        [SerializeField] private AudioSyncManager audioSync;
+        [SerializeField] private JudgmentSystem judgmentSystem;
+
+        private readonly HoldStateMachine stateMachine = new HoldStateMachine();
+        private readonly Dictionary<int, NoteController> idToNote = new Dictionary<int, NoteController>();
         private readonly HashSet<int> pressed = new HashSet<int>();
         private readonly List<HoldTransition> transitionBuffer = new List<HoldTransition>();
+```
 
+**Part B** — Replace ONLY the `Update()` method body (current lines 29-54) with:
+
+```csharp
         private void Update()
         {
             if (!audioSync.IsPlaying || audioSync.IsPaused) return;
@@ -514,7 +532,7 @@ Modify `Assets/Scripts/Gameplay/HoldTracker.cs`. Current Update method at lines 
         }
 ```
 
-Note the two new `readonly` fields at the top — `pressed` and `transitionBuffer`. They replace the per-Update `new HashSet<int>()` and the `Tick`'s internal `new List<>`. This Task also folds in the Task 5 `HoldTracker.pressed` fix (the two changes share this file).
+Leave `ResetForRetry` and `OnHoldStartTapAccepted` methods untouched. The new `pressed` and `transitionBuffer` fields replace the per-Update `new HashSet<int>()` and the `Tick`'s internal `new List<>`. This Task folds the HoldTracker HashSet fix and the HoldStateMachine signature change into one atomic commit — splitting would leave intermediate states that don't compile.
 
 - [ ] **Step 6: Run EditMode tests, expect GREEN**
 
