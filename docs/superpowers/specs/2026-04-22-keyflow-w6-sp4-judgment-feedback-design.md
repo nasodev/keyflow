@@ -41,7 +41,7 @@ Core gameplay currently gives the player **audio + score-text** feedback on tap.
 | SP4-T8 | `FeedbackDispatcher` MonoBehaviour | Subscribes to `JudgmentSystem.OnJudgmentFeedback`; routes to `HapticService` (gated by `UserPrefs.HapticsEnabled`) + `ParticlePool` (always) |
 | SP4-T9 | Settings screen haptic toggle | `SettingsScreen` UI addition; `UserPrefs.HapticsEnabled` bool (default true) |
 | SP4-T10 | Scene wiring | `SceneBuilder` / gameplay scene prefab hooks up `FeedbackDispatcher` references |
-| SP4-T11 | EditMode tests | `FeedbackDispatcherTests` (5) + `JudgmentSystemTests` extensions (3) |
+| SP4-T11 | EditMode tests | `FeedbackDispatcherTests` (5) + `JudgmentSystemTests` extensions (4) |
 | SP4-T12 | Device playtest | Galaxy S22 checklist (see §6.3) + profiler GC=0 re-verification |
 
 ### 2.2 Out of scope
@@ -63,7 +63,7 @@ Core gameplay currently gives the player **audio + score-text** feedback on tap.
 
 - **GC=0 during 2-min Entertainer Normal session** — carried forward from SP3. Every added code path must be zero-alloc at steady state.
 - **Tap→audio latency path unchanged.** `TapInputHandler.FirePress/FirePressRaw` keeps its existing `samplePool.PlayForPitch` call site and ordering. New feedback hooks attach **downstream** of the existing judgment event — they never sit on the audio-input latency path.
-- **`HandleHoldBreak` signature unchanged.** Hold-break particle position is reconstructed from `(lane, judgment-line-y)` inside `JudgmentSystem` — no new parameter threading into `HoldTracker`.
+- **`HandleHoldBreak` signature changes minimally to accept the broken note.** New signature: `HandleHoldBreak(NoteController brokenNote)`. Only caller is `HoldTracker` (one call site). Worldpos = `brokenNote.transform.position` — directly from the note, no `(lane, y)` reconstruction. No new state threading beyond the parameter itself.
 - **`JudgmentSystem` game logic unchanged.** Miss early-return in `HandleTap` (line 93) is modified to fire the feedback event **then** return — score-keeping behavior identical.
 - **Existing 114 EditMode tests remain green** without modification.
 
@@ -107,6 +107,10 @@ FeedbackDispatcher (MonoBehaviour, subscriber)
 - **Direct coupling** (`JudgmentSystem` calls `hapticService.Fire(...)` / `particlePool.Spawn(...)` inline). Rejected: breaks `JudgmentSystem`'s current EditMode-testable purity and creates 3+ places to mock when testing judgment logic.
 - **Bus / pub-sub framework (e.g., UniRx, MessagePipe).** Rejected: YAGNI, and adds new dependency conflicting with "zero new deps" guardrail.
 - **Components on each `NoteController` that self-fire feedback.** Rejected: fan-in pattern is simpler to reason about and to keep zero-alloc; also, Auto Miss / Hold break fire without a Note reference in some paths.
+- **`HandleHoldBreak` signature alternatives.** Current signature is parameterless (`HandleHoldBreak()`); to fire the feedback event with a worldPos, some context must enter. Three options considered:
+  - **Option I:** `HandleHoldBreak(int lane)` — reconstruct worldPos from `(LaneLayout.LaneToX(lane), GameTime.JudgmentLineY)`. Smaller change, but the reconstructed position is approximate (judgment line, not where the tail actually was).
+  - **Option II — chosen:** `HandleHoldBreak(NoteController brokenNote)` — HoldTracker already has the broken note in hand. WorldPos = `brokenNote.transform.position` is exact and matches the player's visual attention at the moment of break.
+  - **Option III:** Keep parameterless, cache "last broken lane" as state on HoldTracker and have JudgmentSystem read it. Rejected: implicit state threading, worse testability, no benefit.
 
 ---
 
@@ -130,18 +134,11 @@ FeedbackDispatcher (MonoBehaviour, subscriber)
 
 | Path | Change |
 |---|---|
-| `Assets/Scripts/Gameplay/JudgmentSystem.cs` | Add `public event Action<Judgment, Vector3> OnJudgmentFeedback`. Invoke in `HandleTap` (for all 4 outcomes — Miss now fires the event before its early return), `HandleAutoMiss`, `HandleHoldBreak`. Hold-break position computed as `new Vector3(LaneLayout.LaneToX(lane), GameTime.JudgmentLineY, 0)`. |
+| `Assets/Scripts/Gameplay/JudgmentSystem.cs` | Add `public event Action<Judgment, Vector3> OnJudgmentFeedback`. Invoke in `HandleTap` (for all 4 outcomes — Miss now fires the event before its early return), `HandleAutoMiss(NoteController note)` (existing signature, position = `note.transform.position`), and `HandleHoldBreak(NoteController brokenNote)` (signature changes — see §3.3; position = `brokenNote.transform.position`). |
 | `Assets/Scripts/Common/UserPrefs.cs` | Add `HapticsEnabled` property backed by `PlayerPrefs.GetInt("haptics_enabled", 1)` / `SetInt`. |
 | `Assets/Scripts/UI/SettingsScreen.cs` | Add haptic on/off toggle row. Bind `onValueChanged` → `UserPrefs.HapticsEnabled`. |
-| `Assets/Scripts/Gameplay/HoldTracker.cs` | **No code change** — Hold-break position is computed inside `JudgmentSystem.HandleHoldBreak` from lane, not passed in from HoldTracker. `HandleHoldBreak` gets the lane via the transition id → existing pending-note lookup. |
+| `Assets/Scripts/Gameplay/HoldTracker.cs` | Update call site at line 51 to `judgmentSystem.HandleHoldBreak(brokenNote)`, passing the `NoteController` already looked up by transition id. No other changes. |
 | Gameplay scene / `SceneBuilder` | Wire new `FeedbackDispatcher`, `HapticService`, `ParticlePool` MonoBehaviours onto scene root; assign `judgmentSystem` SerializeField refs. |
-
-**Note on `HandleHoldBreak` lane lookup:** current signature is `HandleHoldBreak()` (parameterless). The lane needs to come from somewhere. Options:
-- **Option I:** Change signature to `HandleHoldBreak(int lane)` — minimal, HoldTracker already has the broken note's lane.
-- **Option II:** Change signature to `HandleHoldBreak(NoteController brokenNote)` — gives worldPos directly.
-- **Option III:** Keep signature, store "last broken lane" on HoldTracker.
-
-**Choice:** Option II. Passes the `NoteController` directly, so worldPos = `brokenNote.transform.position` is readily available and more accurate than reconstructing from `(lane, judgment-line-y)`. Signature change is small: one caller (`HoldTracker` line 51) and one callee. Miss particle fires at the note's actual on-screen position at the moment of break, which is closer to where the player's attention is. **§4.2 HoldTracker.cs "no code change" row revises to: call-site update `judgmentSystem.HandleHoldBreak(brokenNote)`**.
 
 ### 4.3 Preset defaults (starting values, tunable in Editor)
 
