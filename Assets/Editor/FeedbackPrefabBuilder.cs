@@ -84,21 +84,21 @@ namespace KeyFlow.Editor
             var main = ps.main;
             main.duration = 0.5f;
             main.loop = false;
-            main.startLifetime = 0.4f;
-            main.startSpeed = -1.5f;  // inward collapse
-            main.startSize = 0.30f;
-            main.startColor = new Color(1f, 0.3f, 0.3f, 1f);
+            main.startLifetime = 0.35f;
+            main.startSpeed = 2.5f;  // outward burst (distinct fast fade vs hit's 0.45s)
+            main.startSize = 0.45f;
+            main.startColor = new Color(1f, 0.25f, 0.25f, 1f);
             main.simulationSpace = ParticleSystemSimulationSpace.World;
             main.maxParticles = 32;
 
             var emission = ps.emission;
             emission.enabled = true;
             emission.rateOverTime = 0;
-            emission.SetBursts(new[] { new ParticleSystem.Burst(0f, 8) });
+            emission.SetBursts(new[] { new ParticleSystem.Burst(0f, 14) });
 
             var shape = ps.shape;
             shape.shapeType = ParticleSystemShapeType.Circle;
-            shape.radius = 0.35f;
+            shape.radius = 0.08f;
 
             var colorOverLife = ps.colorOverLifetime;
             colorOverLife.enabled = true;
