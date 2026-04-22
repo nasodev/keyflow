@@ -74,10 +74,10 @@ Rejected alternatives:
 ### Attach protocol
 
 1. S22 connected via USB, `adb devices` lists `R5CT21A31QB`.
-2. `adb forward tcp:34999 localabstract:Unitycom.nasodev.keyflow` (exact local-abstract name depends on the Unity bundle identifier — implementer will confirm during setup).
-3. Launch the app on device.
-4. Unity Editor → `Window → Analysis → Profiler` → "Connected Players" dropdown → select device entry.
-5. Once "Recording" is visible, proceed.
+2. Launch the app on device.
+3. Unity Editor → `Window → Analysis → Profiler` → "Connected Players" dropdown → select device entry.
+4. If "Connected Players" successfully lists the device, skip the `adb forward` step entirely. Only fall back to manual forwarding (`adb forward tcp:34999 localabstract:Unity<BundleId>`) if auto-detection fails — the exact local-abstract name is derived from the Unity bundle identifier and the implementer will read it from Unity's attach error message.
+5. Once "Recording" is visible in Profiler header, proceed.
 
 ### Capture protocol
 
@@ -108,10 +108,15 @@ Rejected alternatives:
 - `NoteSpawner.liveNotes` — same
 - `TapInputHandler.raycastResults` — `private static readonly List<RaycastResult>`, reused across taps
 
-### Suspected (to be verified by profile)
-- `AudioSamplePool.PlayForPitch` — path hits `src.clip = clip; src.Play()` every tap; should be alloc-free but unconfirmed.
-- `NoteController.Update` — Vector3 / Transform.position assignments. Unity `Vector3` is struct; `Transform.position = x;` involves native call but no managed alloc typically.
-- `GameplayScene` root objects' `Update` order — any `string.Format` / boxing inside UI text updates would show up.
+### Hypotheses (informational only — let profile data drive)
+
+Not "suspected allocators" — these are untested guesses that should be ignored unless the profile shows allocation:
+
+- `AudioSamplePool.PlayForPitch` — assignment + native `src.Play()`; likely clean.
+- `NoteController.Update` — Vector3 / Transform math; likely clean.
+- Any `string.Format` / boxing in UI text updates under gameplay canvas.
+
+These notes exist only as context for the implementer when reading the profile — NOT as candidates to pre-fix. Data is king.
 
 ### Discovery rule
 Every callsite in the profile with `bytes/sec > 0` that is (a) in the gameplay hot loop and (b) under our control (i.e., in `Assets/Scripts/*`, not a Unity internal) is added to the fix list.
@@ -210,28 +215,34 @@ foreach (var t in transitionBuffer) { /* ... */ }
 4. **Pass criterion**: `GC.Collect` count in the captured session == 0 (Unity Profiler "GC Alloc" track shows zero `Collect` events on the timeline during gameplay).
 5. **Secondary**: `GC.Alloc bytes/sec` summed over the gameplay period should be ≥ 95% lower than baseline. If not 100% zero but close, the report explains the residual (typically third-party / Unity internal).
 
-### 7.2 EditMode regression tests (+2)
+### 7.2 EditMode tests — existing migration + 2 new
 
-Validate the reshaped `HoldStateMachine.Tick` signature:
+The `HoldStateMachine.Tick` signature change breaks compile on **10 existing call sites** in `Assets/Tests/EditMode/HoldStateMachineTests.cs` (lines 34, 37, 48, 57, 71, 83, 84, 94, 95, 105). All 10 must be migrated to pass a buffer argument.
 
-**Test 1**: `HoldStateMachineTests.Tick_WritesIntoProvidedBuffer`
-- Register two holds, one currently holding and one broken. Call `Tick` with a provided (non-empty) list.
-- Assert buffer contains exactly the expected transitions (clear-then-write contract).
+**Migration breakdown**:
+- **9 call sites** (lines 34, 37, 48, 57, 71, 83, 84, 94, 95) discard the return value in current code — mechanical migration: add a shared `List<HoldTransition> transitions = new();` at fixture level or per-test local, pass as third arg, continue asserting post-state as before.
+- **1 call site** (line 105, `TickReturnsTransitions_ForObservation`) captures the return value and asserts on it. Must be semantically rewritten to assert against the supplied buffer. Test name should be updated to `Tick_WritesTransitionsIntoProvidedBuffer` for accuracy.
 
-**Test 2**: `HoldStateMachineTests.Tick_ClearsBufferBeforeAdding`
-- Pre-fill the buffer with a sentinel transition. Call `Tick` with a state producing no transitions.
-- Assert buffer is empty on return (caller's previous content was removed, not appended to).
+**+2 new tests** on top of the migration:
 
-Target count: 112 → 114 EditMode tests.
+**Test N+1**: `HoldStateMachineTests.Tick_ClearsBufferBeforeAdding`
+- Pre-fill the buffer with a sentinel `HoldTransition`. Call `Tick` against a state where no transitions will occur.
+- Assert buffer is empty on return (caller's previous content was cleared, not appended to).
+
+**Test N+2**: `HoldStateMachineTests.Tick_PreservesBufferCapacityAcrossCalls`
+- Call `Tick` repeatedly with the same buffer; assert no allocation between calls (buffer capacity stable after first growth). Use `GC.GetTotalAllocatedBytes(true)` diff — a narrow guard, not a general perf test.
+
+**Test count**: 112 → 114 (no tests removed; 10 rewrites + 2 additions, all passing).
 
 ### 7.3 Release-path regression playtest
 
+APK artifact naming for this SP is fixed:
+- **Release APK name: `keyflow-w6-sp2.apk`** — UNCHANGED from SP2. The gameplay-loop fix does not ship new content or features user-facing; the SP2 artifact name stays stable. `ApkBuilder.Build` is not modified in this sub-project.
+- **Profile APK name: `keyflow-w6-sp3-profile.apk`** — new. Produced by a new sibling method `ApkBuilder.BuildProfile` (see §10 C2). This variant has Development Build + Autoconnect Profiler enabled.
+
 After Profile build is validated:
-1. Rebuild `Builds/keyflow-w6-sp2.apk` (release path — the SP2 artifact name; keep this stable).
-
-   NOTE on artifact naming: the current `ApkBuilder.Build` outputs `keyflow-w6-sp2.apk` (unchanged from SP2). This SP adds `ApkBuilder.BuildProfile` → `keyflow-w6-sp2-profile.apk` **OR** renames to `keyflow-w6-sp3.apk` — chosen during implementation. Either works; keep the release/profile split explicit in whichever choice.
-
-2. `adb install -r`, device playtest: Entertainer Normal completes cleanly, no visible hitches. User-reported "드롭 사라짐" OK.
+1. Rebuild the release APK via existing `ApkBuilder.Build` → `Builds/keyflow-w6-sp2.apk`.
+2. `adb install -r Builds/keyflow-w6-sp2.apk`, device playtest: Entertainer Normal completes cleanly, no visible hitches. User-reported "드롭 사라짐" OK.
 
 ### 7.4 Regression safety net
 - 112 pre-existing EditMode tests stay green (any that fail = behavior-changing fix, needs investigation).
