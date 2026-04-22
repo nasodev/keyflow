@@ -925,6 +925,23 @@ namespace KeyFlow.Editor
             SetField(screen, "versionLabel", versionText);
             SetField(screen, "hapticsToggle", hapticsToggle);
             SetField(screen, "calibration", calibration);
+
+            // CC-BY Salamander credit Text, anchored to bottom of SettingsCanvas (W6 SP7: folded in from W6SamplesWireup)
+            var creditsGo = new GameObject("CreditsLabel", typeof(RectTransform), typeof(Text));
+            creditsGo.transform.SetParent(canvasGO.transform, false);
+            var creditsRT = creditsGo.GetComponent<RectTransform>();
+            creditsRT.anchorMin = new Vector2(0.05f, 0.02f);
+            creditsRT.anchorMax = new Vector2(0.95f, 0.08f);
+            creditsRT.offsetMin = Vector2.zero;
+            creditsRT.offsetMax = Vector2.zero;
+            var creditsText = creditsGo.GetComponent<Text>();
+            creditsText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            creditsText.fontSize = 18;
+            creditsText.alignment = TextAnchor.MiddleCenter;
+            creditsText.color = new Color(0.7f, 0.7f, 0.7f, 1f);
+            creditsText.text = UIStrings.CreditsSamples;
+            SetField(screen, "creditsLabel", creditsText);
+
             return screen;
         }
 
