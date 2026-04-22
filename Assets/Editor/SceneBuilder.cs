@@ -208,6 +208,9 @@ namespace KeyFlow.Editor
             samplePoolGO.transform.SetParent(managers.transform);
             samplePool = samplePoolGO.AddComponent<AudioSamplePool>();
             SetField(samplePool, "defaultClip", pianoClip);
+            SetArrayField(samplePool, "pitchSamples", pitchSamples);
+            SetField(samplePool, "baseMidi", 36);
+            SetField(samplePool, "stepSemitones", 3);
 
             var tapInputGO = new GameObject("TapInput");
             tapInputGO.transform.SetParent(managers.transform);
@@ -221,6 +224,7 @@ namespace KeyFlow.Editor
             judgmentGO.transform.SetParent(managers.transform);
             judgmentSystem = judgmentGO.AddComponent<JudgmentSystem>();
             SetField(judgmentSystem, "tapInput", tapInput);
+            SetField(tapInput, "judgmentSystem", judgmentSystem);
 
             var holdTrackerGO = new GameObject("HoldTracker");
             holdTrackerGO.transform.SetParent(managers.transform);
