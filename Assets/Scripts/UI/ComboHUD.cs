@@ -20,7 +20,24 @@ namespace KeyFlow.UI
 
         private void Update()
         {
-            // Filled in by Task 4.
+            if (judgmentSystem == null || comboText == null) return;
+            var score = judgmentSystem.Score;
+            if (score == null) return;
+
+            int current = score.Combo;
+            if (current == lastCombo) return;
+            lastCombo = current;
+
+            if (current == 0)
+            {
+                if (comboText.enabled) comboText.enabled = false;
+            }
+            else
+            {
+                if (!comboText.enabled) comboText.enabled = true;
+                comboText.text = current.ToString();
+                TextAssignmentCount++;
+            }
         }
     }
 }
