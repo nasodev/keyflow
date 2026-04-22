@@ -11,6 +11,8 @@ namespace KeyFlow
 
         private readonly HoldStateMachine stateMachine = new HoldStateMachine();
         private readonly Dictionary<int, NoteController> idToNote = new Dictionary<int, NoteController>();
+        private readonly HashSet<int> pressed = new HashSet<int>();
+        private readonly List<HoldTransition> transitionBuffer = new List<HoldTransition>();
 
         public void ResetForRetry()
         {
@@ -31,12 +33,12 @@ namespace KeyFlow
             if (!audioSync.IsPlaying || audioSync.IsPaused) return;
             if (idToNote.Count == 0) return;
 
-            var pressed = new HashSet<int>();
+            pressed.Clear();
             for (int lane = 0; lane < LaneLayout.LaneCount; lane++)
                 if (tapInput.IsLanePressed(lane)) pressed.Add(lane);
 
-            var transitions = stateMachine.Tick(audioSync.SongTimeMs, pressed);
-            foreach (var t in transitions)
+            stateMachine.Tick(audioSync.SongTimeMs, pressed, transitionBuffer);
+            foreach (var t in transitionBuffer)
             {
                 if (!idToNote.TryGetValue(t.id, out var note)) continue;
 

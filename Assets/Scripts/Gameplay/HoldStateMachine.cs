@@ -50,9 +50,9 @@ namespace KeyFlow
                 e.state = HoldState.Holding;
         }
 
-        public List<HoldTransition> Tick(int songTimeMs, HashSet<int> pressedLanes)
+        public void Tick(int songTimeMs, HashSet<int> pressedLanes, List<HoldTransition> outTransitions)
         {
-            var transitions = new List<HoldTransition>();
+            outTransitions.Clear();
             foreach (var kv in entries)
             {
                 var e = kv.Value;
@@ -61,15 +61,14 @@ namespace KeyFlow
                 if (!pressedLanes.Contains(e.lane))
                 {
                     e.state = HoldState.Broken;
-                    transitions.Add(new HoldTransition { id = kv.Key, newState = HoldState.Broken });
+                    outTransitions.Add(new HoldTransition { id = kv.Key, newState = HoldState.Broken });
                 }
                 else if (songTimeMs >= e.endMs)
                 {
                     e.state = HoldState.Completed;
-                    transitions.Add(new HoldTransition { id = kv.Key, newState = HoldState.Completed });
+                    outTransitions.Add(new HoldTransition { id = kv.Key, newState = HoldState.Completed });
                 }
             }
-            return transitions;
         }
     }
 }

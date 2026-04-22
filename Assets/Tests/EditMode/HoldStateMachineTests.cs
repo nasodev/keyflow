@@ -30,11 +30,12 @@ namespace KeyFlow.Tests.EditMode
             var id = sm.Register(0, 1000, 2000);
             sm.OnStartTapAccepted(id);
             var pressed = new HashSet<int> { 0 };
+            var buffer = new List<HoldTransition>();
 
-            sm.Tick(songTimeMs: 1500, pressedLanes: pressed);
+            sm.Tick(songTimeMs: 1500, pressedLanes: pressed, outTransitions: buffer);
             Assert.AreEqual(HoldState.Holding, sm.GetState(id));
 
-            sm.Tick(songTimeMs: 2000, pressedLanes: pressed);
+            sm.Tick(songTimeMs: 2000, pressedLanes: pressed, outTransitions: buffer);
             Assert.AreEqual(HoldState.Completed, sm.GetState(id));
         }
 
@@ -44,8 +45,9 @@ namespace KeyFlow.Tests.EditMode
             var sm = new HoldStateMachine();
             var id = sm.Register(0, 1000, 2000);
             sm.OnStartTapAccepted(id);
+            var buffer = new List<HoldTransition>();
 
-            sm.Tick(1500, new HashSet<int>());
+            sm.Tick(1500, new HashSet<int>(), buffer);
             Assert.AreEqual(HoldState.Broken, sm.GetState(id));
         }
 
@@ -54,7 +56,7 @@ namespace KeyFlow.Tests.EditMode
         {
             var sm = new HoldStateMachine();
             var id = sm.Register(0, 1000, 2000);
-            sm.Tick(1500, new HashSet<int> { 0 });
+            sm.Tick(1500, new HashSet<int> { 0 }, new List<HoldTransition>());
             Assert.AreEqual(HoldState.Spawned, sm.GetState(id));
         }
 
@@ -68,7 +70,7 @@ namespace KeyFlow.Tests.EditMode
             sm.OnStartTapAccepted(b);
 
             var pressed = new HashSet<int> { 0 };
-            sm.Tick(1500, pressed);
+            sm.Tick(1500, pressed, new List<HoldTransition>());
 
             Assert.AreEqual(HoldState.Holding, sm.GetState(a));
             Assert.AreEqual(HoldState.Broken, sm.GetState(b));
@@ -80,8 +82,9 @@ namespace KeyFlow.Tests.EditMode
             var sm = new HoldStateMachine();
             var id = sm.Register(0, 1000, 2000);
             sm.OnStartTapAccepted(id);
-            sm.Tick(2000, new HashSet<int> { 0 });
-            sm.Tick(2500, new HashSet<int>());
+            var buffer = new List<HoldTransition>();
+            sm.Tick(2000, new HashSet<int> { 0 }, buffer);
+            sm.Tick(2500, new HashSet<int>(), buffer);
             Assert.AreEqual(HoldState.Completed, sm.GetState(id));
         }
 
@@ -91,22 +94,56 @@ namespace KeyFlow.Tests.EditMode
             var sm = new HoldStateMachine();
             var id = sm.Register(0, 1000, 2000);
             sm.OnStartTapAccepted(id);
-            sm.Tick(1500, new HashSet<int>());
-            sm.Tick(1800, new HashSet<int> { 0 });
+            var buffer = new List<HoldTransition>();
+            sm.Tick(1500, new HashSet<int>(), buffer);
+            sm.Tick(1800, new HashSet<int> { 0 }, buffer);
             Assert.AreEqual(HoldState.Broken, sm.GetState(id));
         }
 
         [Test]
-        public void TickReturnsTransitions_ForObservation()
+        public void Tick_WritesTransitionsIntoProvidedBuffer()
         {
             var sm = new HoldStateMachine();
             var id = sm.Register(0, 1000, 2000);
             sm.OnStartTapAccepted(id);
-            var transitions = sm.Tick(2000, new HashSet<int> { 0 });
+            var buffer = new List<HoldTransition>();
 
-            Assert.AreEqual(1, transitions.Count);
-            Assert.AreEqual(id, transitions[0].id);
-            Assert.AreEqual(HoldState.Completed, transitions[0].newState);
+            sm.Tick(2000, new HashSet<int> { 0 }, buffer);
+
+            Assert.AreEqual(1, buffer.Count);
+            Assert.AreEqual(id, buffer[0].id);
+            Assert.AreEqual(HoldState.Completed, buffer[0].newState);
+        }
+
+        [Test]
+        public void Tick_ClearsBufferBeforeAdding()
+        {
+            var sm = new HoldStateMachine();
+            var id = sm.Register(0, 1000, 2000);
+            sm.OnStartTapAccepted(id);
+            var buffer = new List<HoldTransition>
+            {
+                new HoldTransition { id = 999, newState = HoldState.Broken } // sentinel
+            };
+
+            sm.Tick(1500, new HashSet<int> { 0 }, buffer); // no transition this tick
+
+            Assert.AreEqual(0, buffer.Count, "Tick should clear caller's buffer before adding");
+        }
+
+        [Test]
+        public void Tick_PreservesBufferCapacityAcrossCalls()
+        {
+            var sm = new HoldStateMachine();
+            var id = sm.Register(0, 1000, 2000);
+            sm.OnStartTapAccepted(id);
+            var buffer = new List<HoldTransition>(capacity: 8);
+            int initialCapacity = buffer.Capacity;
+
+            for (int i = 0; i < 5; i++)
+                sm.Tick(1500, new HashSet<int> { 0 }, buffer);
+
+            Assert.AreEqual(initialCapacity, buffer.Capacity, "Buffer capacity must not grow across steady-state ticks");
         }
     }
 }
