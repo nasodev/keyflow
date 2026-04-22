@@ -45,21 +45,25 @@ Qualitative success criterion: on Galaxy S22, mid-song Entertainer Normal sessio
 
 **Three bundled visual changes driven by `SceneBuilder.cs` edits + one new runtime component + one user-supplied asset + one TextureImporter postprocessor.**
 
-### 4.1 Full-width tiles (`LaneAreaWidth` 4f → 9f)
+### 4.1 Full-width tiles (`LaneAreaWidth` 4f → 9f) + reference-matching note color
 
-At camera `orthographicSize = 8` and 720×1280 screen aspect (0.5625), half-width in world units ≈ 4.5. Thus `LaneAreaWidth = 9f` fills the visible horizontal area end-to-end with zero margin.
+At camera `orthographicSize = 8` and 720×1280 screen aspect (0.5625), half-width in world units ≈ 4.5. Thus `LaneAreaWidth = 9f` fills the visible horizontal area end-to-end with zero margin. At `LaneLayout.LaneCount = 4`, each lane is 2.25 world units wide.
 
 Changes:
 - `SceneBuilder.LaneAreaWidth` const: `4f` → `9f`.
-- `BuildNotePrefab`: note sprite `localScale.x` was hardcoded `1f`; now `LaneAreaWidth / LaneLayout.LaneCount = 9f / 4 = 2.25f`. This keeps one tile = one lane width.
+- `BuildNotePrefab` in `SceneBuilder.cs:1182` — current value `localScale = new Vector3(0.8f, 0.4f, 1)`. New value: **`localScale = new Vector3(LaneAreaWidth / LaneLayout.LaneCount, 0.4f, 1)` = `(2.25f, 0.4f, 1)`.** X scales up 2.81× (0.8 → 2.25) so tiles exactly fill one lane width edge-to-edge. Y stays at 0.4f (tile height unchanged — reference-image tiles are wider, not taller). Result: tile aspect ratio goes from 2:1 (0.8/0.4) to 5.625:1 (2.25/0.4), matching Magic-Tiles look.
+- `BuildNotePrefab` color at `SceneBuilder.cs:1185` — current `sr.color = new Color(1f, 0.95f, 0.85f, 1)` (cream/warm white) → **new `sr.color = new Color(0.08f, 0.08f, 0.12f, 1)`** (near-black, slight blue tint matching `camera.backgroundColor` for palette consistency). This matches the user-supplied reference (black tiles) and gives strong contrast against the blue gradient background.
 - Downstream: `SetField(tapInput, "laneAreaWidth", LaneAreaWidth)` and `SetField(spawner, "laneAreaWidth", LaneAreaWidth)` calls are already parameterized — value automatically flows through.
 - `LaneLayout.LaneToX`, `LaneLayout.XToLane` are already pure functions taking `width` as argument — no code changes.
 
 ### 4.2 Live combo HUD
 
-New component `Assets/Scripts/UI/ComboHUD.cs`:
+New component `Assets/Scripts/UI/ComboHUD.cs` (uses `UnityEngine.UI.Text` — the Legacy UI Text component, NOT TextMeshPro; matches the rest of this project's UI):
 
 ```csharp
+using UnityEngine;
+using UnityEngine.UI;
+
 namespace KeyFlow.UI
 {
     public class ComboHUD : MonoBehaviour
@@ -68,46 +72,62 @@ namespace KeyFlow.UI
         [SerializeField] private Text comboText;
         private int lastCombo = -1;
 
+        // Exposed for EditMode test: counts how many times we wrote text.text.
+        internal int TextAssignmentCount { get; private set; }
+
         private void Update()
         {
-            if (scoreManager == null) return;
+            if (scoreManager == null || comboText == null) return;
             int current = scoreManager.Combo;
             if (current == lastCombo) return;
             lastCombo = current;
 
             if (current == 0)
             {
-                if (gameObject.activeSelf) gameObject.SetActive(false);
+                if (comboText.enabled) comboText.enabled = false;
             }
             else
             {
-                if (!gameObject.activeSelf) gameObject.SetActive(true);
+                if (!comboText.enabled) comboText.enabled = true;
                 comboText.text = current.ToString();
+                TextAssignmentCount++;
             }
         }
+
+        internal void UpdateForTest() => Update();
     }
 }
 ```
 
 Design notes:
-- **Polling, not event-based.** `ScoreManager` doesn't expose a change event and adding one would touch gameplay runtime. Polling an int is cheap (no alloc) and the Update-gate on `current == lastCombo` short-circuits 99% of frames.
-- **GC-free on unchanged frames** (SP3 baseline preserved). `int.ToString()` allocates on changed frames only (~1× per tap), ~28 bytes × ~200 taps/song = 5.6 KB total — acceptable.
-- **Hides at combo=0.** At song start, Combo=0 → HUD hidden. First Perfect/Great/Good tap → combo=1 → HUD appears. Miss → combo reset to 0 → HUD hidden.
-- **Placement:** top-center, below the existing ProgressBar, above the SP4 FeedbackPipeline particle layer. Large white Text (fontSize ~96 at 720×1280 reference, bold-weight LegacyRuntime font).
+- **Toggle `comboText.enabled`, NOT `gameObject.SetActive`.** Toggling the ComboHUD's own GameObject would stop its `Update` from firing, trapping the HUD in the hidden state forever. Toggling only the `Text` component's `enabled` hides the visual while letting the HUD's Update keep running and re-enable when combo goes non-zero. (The ComboHUD GameObject and the ComboText GameObject may be the same object or parent-child — either works with this approach.)
+- **Polling, not event-based.** `ScoreManager` doesn't expose a change event and adding one would touch gameplay runtime. Polling an int is cheap (no alloc) and the Update-gate on `current == lastCombo` short-circuits all frames where combo didn't change.
+- **GC-free on unchanged frames** (SP3 baseline preserved). `int.ToString()` allocates on changed frames only. Upper bound: Entertainer Normal is ~400-600 notes = up to ~600 combo changes per song × ~28 bytes ≈ 17 KB total over a full session. Well within the ambient heap budget; managed heap stays stable per SP4 profiling.
+- **Hides at combo=0.** At song start, Combo=0 → `comboText.enabled = false`. First Perfect/Great/Good tap → combo=1 → `enabled = true` + `text = "1"`. Miss → combo reset to 0 → `enabled = false`.
+- **Placement:** top-center, below the existing ProgressBar, above the SP4 FeedbackPipeline particle layer. Large white `UnityEngine.UI.Text` (fontSize ~96 at 720×1280 Canvas reference, LegacyRuntime.ttf font).
+- **`TextAssignmentCount` and `UpdateForTest()` are `internal`** — visible to EditMode tests via `InternalsVisibleTo` (or by keeping the test assembly under the same project which sees `internal` members across asmdefs when the test asmdef references the runtime asmdef). Tests assert on this counter instead of mocking `Text.text`, which is impractical because `UnityEngine.UI.Text.text` is a virtual property on a sealed assembly.
 
-Wiring: `SceneBuilder.BuildHUD` instantiates the `ComboText` GameObject under `HUDCanvas`, creates the `ComboHUD` component on a container, and `SetField`s the `scoreManager` (constructed in `BuildManagers`) and `comboText` references.
+Wiring: `SceneBuilder.BuildHUD` adds a `ComboText` child GameObject with a `UnityEngine.UI.Text` to `HUDCanvas`, adds the `ComboHUD` component to the same `ComboText` GameObject (or a parent container — either is fine because we toggle the Text component, not the GameObject), and `SetField`s the `scoreManager` (constructed earlier in `BuildManagers`) and `comboText` references.
 
 ### 4.3 Background image
 
-- **User-supplied asset:** `Assets/Sprites/background_gameplay.png` (941×1672 RGB PNG, 1.02 MB source).
-- **TextureImporter postprocessor** `Assets/Editor/BackgroundImporterPostprocessor.cs` — mirrors `PianoSampleImportPostprocessor` pattern. Forces `textureType = Sprite (2D and UI)`, `mipmapEnabled = false`, `isReadable = false`, platform-specific Android override for ASTC 4×4 compression. This guarantees import settings survive re-imports and fresh clones.
-- **Scene wiring:** `SceneBuilder.BuildBackground` creates a `GameObject "Background"` with `SpriteRenderer`, assigns the loaded sprite, sets `sortingOrder = -10`, scales to camera view (sprite bounds stretched so either height or width reaches camera ortho view size). Z-depth behind all gameplay elements.
-- **Camera backgroundColor** remains dark navy as fallback for areas outside the sprite (portion of screen with aspect ratio differing from the image). Unchanged from current `(0.08, 0.08, 0.12, 1)`.
+- **User-supplied asset:** `Assets/Sprites/background_gameplay.png` (941×1672 RGB PNG, 1.02 MB source) — already committed to the repo; plan Task references it as existing, not created.
+- **TextureImporter postprocessor** `Assets/Editor/BackgroundImporterPostprocessor.cs` — mirrors `PianoSampleImportPostprocessor` pattern. Forces `textureType = Sprite (2D and UI)`, `mipmapEnabled = false`, `isReadable = false`, platform-specific Android override for ASTC 4×4 compression (minSdk 26 guarantees ASTC hardware support on target devices; no fallback needed in practice). This guarantees import settings survive re-imports and fresh clones.
+- **Scene wiring strategy: UI `Image` on a dedicated background Canvas, NOT `SpriteRenderer` in world space.** This removes the scaling-math ambiguity of world-space placement.
+  - New `SceneBuilder.BuildBackgroundCanvas` creates `BackgroundCanvas` GameObject:
+    - `Canvas` component: `renderMode = RenderMode.ScreenSpaceOverlay`, `sortingOrder = -100` (underneath every other Canvas — existing ones use 5, 10).
+    - `CanvasScaler`: `uiScaleMode = ScaleWithScreenSize`, `referenceResolution = (720, 1280)`, `matchWidthOrHeight = 0.5f` (match same convention as existing canvases).
+    - Child `GameObject "BackgroundImage"` with:
+      - `RectTransform`: `anchorMin = (0, 0)`, `anchorMax = (1, 1)`, `offsetMin = Vector2.zero`, `offsetMax = Vector2.zero` — stretch to fill entire screen.
+      - `UnityEngine.UI.Image` component: `sprite = <loaded background_gameplay.png>`, `preserveAspect = false` (fill entire screen without letterboxing; slight horizontal stretch on non-9:16 aspects is acceptable).
+  - On 9:16 aspect (S22, 720×1280 reference): image displays without distortion.
+  - On 9:19.5 aspect (common modern Android): image stretches ~1.2× vertically — acceptable because the image has soft gradient/cloud content that tolerates stretching; no hard lines that would reveal distortion.
+- **Camera backgroundColor** stays at current `(0.08, 0.08, 0.12, 1)` as a defense-in-depth fallback for the rare edge case where the BackgroundCanvas fails to render (e.g., missing sprite). In the normal case the Canvas fully covers the camera view and this color is never visible.
 
 ### 4.4 Judgment line + lane dividers retuning
 
-- **Judgment line (`BuildJudgmentLine`):** alpha reduced from 1.0 to 0.5. Keeps it present as timing reference without visually fighting the new background. Color kept white.
-- **Lane dividers (`BuildLaneDividers`):** alpha reduced from current (~1.0) to 0.3, color shifted to blue-tinted white (e.g., `(0.8, 0.9, 1.0, 0.3)`) to harmonize with blue background. Keeps lane boundaries legible without being harsh.
+- **Judgment line (`BuildJudgmentLine` at `SceneBuilder.cs:158`):** current `sr.color = new Color(0.2f, 0.9f, 1.0f, 1)` (bright cyan, α=1.0) → new `sr.color = new Color(0.9f, 0.95f, 1.0f, 0.5f)` (white with subtle blue tint, α=0.5). `localScale` stays `(LaneAreaWidth, 0.12f, 1)` — automatically scales with the new `LaneAreaWidth = 9f`.
+- **Lane dividers (`BuildLaneDividers` at `SceneBuilder.cs:145`):** current `sr.color = new Color(0.3f, 0.3f, 0.4f, 0.8f)` (dark blue-gray, α=0.8) → new `sr.color = new Color(0.8f, 0.9f, 1.0f, 0.3f)` (blue-tinted white, α=0.3). `localScale` stays `(0.02f, 20f, 1)`. Dividers become thinner-feeling against the new brighter background without being harsh.
 
 ### 4.5 Files
 
@@ -120,11 +140,12 @@ Wiring: `SceneBuilder.BuildHUD` instantiates the `ComboText` GameObject under `H
 
 **Modified:**
 - `Assets/Editor/SceneBuilder.cs`:
-  - `LaneAreaWidth` const 4f → 9f
-  - `BuildNotePrefab`: note sprite localScale.x hardcode 1f → computed from lane width
-  - Load `background_gameplay.png` + null-guard + `BuildBackground(sprite)`
-  - `BuildLaneDividers`: alpha/color tuning
-  - `BuildJudgmentLine`: alpha 1.0 → 0.5
+  - `LaneAreaWidth` const: 4f → 9f
+  - `BuildNotePrefab` (line ~1182): `localScale.x` 0.8f → `LaneAreaWidth / LaneLayout.LaneCount` (= 2.25f); Y unchanged at 0.4f
+  - `BuildNotePrefab` (line ~1185): `sr.color` cream `(1, 0.95, 0.85, 1)` → near-black `(0.08, 0.08, 0.12, 1)`
+  - Load `background_gameplay.png` + null-guard + new `BuildBackgroundCanvas(sprite)` call
+  - `BuildLaneDividers` (line ~145): `sr.color` `(0.3, 0.3, 0.4, 0.8)` → `(0.8, 0.9, 1.0, 0.3)`
+  - `BuildJudgmentLine` (line ~158): `sr.color` `(0.2, 0.9, 1.0, 1)` → `(0.9, 0.95, 1.0, 0.5)`
   - `BuildHUD`: add ComboHUD sub-pipeline (Text GameObject + ComboHUD component + `SetField` for scoreManager/comboText)
 - `Assets/Scenes/GameplayScene.unity` — regenerated by SceneBuilder
 
@@ -234,14 +255,16 @@ public class BackgroundImporterPostprocessor : AssetPostprocessor
 
 ### 6.1 EditMode tests (`ComboHUDTests.cs`, 4 tests)
 
+Test setup: each test creates a GameObject with a `UnityEngine.UI.Text` child, adds a `ComboHUD` component, manually injects `scoreManager` and `comboText` via reflection (`SerializedObject` or `GetField("scoreManager", BindingFlags.NonPublic | BindingFlags.Instance)` pattern already used in `FeedbackDispatcherTests` / `JudgmentSystemTests`), and calls `hud.UpdateForTest()` (internal method) to drive the Update path.
+
 | Test | Asserts |
 |---|---|
-| `HidesWhenComboZero` | ScoreManager starts at Combo=0 → hud.Update() → gameObject.activeSelf == false |
-| `ShowsAndUpdatesTextWhenComboIncreases` | Apply Perfect (Combo=1) → hud.Update() → activeSelf==true, text.text == "1"; Apply Perfect again (Combo=2) → text.text == "2" |
-| `HidesWhenComboResetsToZero` | Drive Combo 0 → 3 (HUD visible) → Miss (Combo=0) → hud.Update() → activeSelf == false |
-| `DoesNotTouchTextWhenComboUnchanged` | Use a recording Text wrapper (or mock with counter); call Update 10 times without changing Combo; assert the text setter was called at most once (the initial sync) |
+| `HidesWhenComboZero` | Fresh ScoreManager (Combo=0) → UpdateForTest() → comboText.enabled == false |
+| `ShowsAndUpdatesTextWhenComboIncreases` | Apply Perfect (Combo=1) → UpdateForTest() → comboText.enabled == true AND comboText.text == "1"; Apply Perfect again (Combo=2) → UpdateForTest() → comboText.text == "2" |
+| `HidesWhenComboResetsToZero` | Drive Combo 0 → 3 (enabled==true) → Apply Miss (Combo=0) → UpdateForTest() → comboText.enabled == false |
+| `DoesNotReassignTextWhenComboUnchanged` | After Combo=5, record `TextAssignmentCount`; call UpdateForTest() 5 more times without changing ScoreManager; assert `TextAssignmentCount` unchanged |
 
-Test fixtures will use `new ScoreManager()` + `Initialize(totalNotes=10)` + `Apply(Judgment.X)` to drive Combo — same pattern as existing `ScoreManagerTests`.
+Test fixtures will use `new ScoreManager()` + `Initialize(totalNotes=10)` + `Apply(Judgment.X)` to drive Combo — same pattern as existing `ScoreManagerTests`. The `TextAssignmentCount` + `UpdateForTest()` hooks on `ComboHUD` are deliberately `internal` to avoid complicating tests with `UnityEngine.UI.Text` mocking.
 
 ### 6.2 Intentionally NOT tested in EditMode
 
