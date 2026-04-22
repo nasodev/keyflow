@@ -799,6 +799,12 @@ namespace KeyFlow.Editor
             var speedValueText = CreateCenteredText(canvasGO.transform, "SpeedValue", "2.0", 26,
                 new Vector2(0.5f, 0.5f), new Vector2(200, 40));
 
+            // Haptics toggle
+            CreateCenteredText(canvasGO.transform, "HapticsLabel", "Haptics", 28,
+                new Vector2(0.35f, 0.45f), new Vector2(300, 50));
+            var hapticsToggle = BuildToggle(canvasGO.transform, whiteSprite,
+                new Vector2(0.65f, 0.45f), new Vector2(60, 60));
+
             // Recalibrate button
             var recalButton = BuildPrimaryButton(canvasGO.transform, whiteSprite,
                 UIStrings.RecalibrateButton, new Vector2(0.5f, 0.35f), new Color(0.2f, 0.55f, 0.75f, 1f));
@@ -826,6 +832,7 @@ namespace KeyFlow.Editor
             SetField(screen, "recalibrateButton", recalButton);
             SetField(screen, "closeButton", closeButton);
             SetField(screen, "versionLabel", versionText);
+            SetField(screen, "hapticsToggle", hapticsToggle);
             SetField(screen, "calibration", calibration);
             return screen;
         }
@@ -896,6 +903,46 @@ namespace KeyFlow.Editor
             slider.handleRect = handleRT;
             slider.direction = Slider.Direction.LeftToRight;
             return slider;
+        }
+
+        private static Toggle BuildToggle(
+            Transform parent, Sprite whiteSprite, Vector2 anchor, Vector2 size)
+        {
+            var go = new GameObject("Toggle");
+            go.transform.SetParent(parent, false);
+            var rt = go.AddComponent<RectTransform>();
+            rt.anchorMin = anchor;
+            rt.anchorMax = anchor;
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.sizeDelta = size;
+
+            var toggle = go.AddComponent<Toggle>();
+
+            var bgGo = new GameObject("Background");
+            bgGo.transform.SetParent(go.transform, false);
+            var bgRT = bgGo.AddComponent<RectTransform>();
+            bgRT.anchorMin = Vector2.zero;
+            bgRT.anchorMax = Vector2.one;
+            bgRT.offsetMin = Vector2.zero;
+            bgRT.offsetMax = Vector2.zero;
+            var bgImg = bgGo.AddComponent<Image>();
+            bgImg.sprite = whiteSprite;
+            bgImg.color = new Color(0.25f, 0.25f, 0.3f, 1f);
+            toggle.targetGraphic = bgImg;
+
+            var checkGo = new GameObject("Checkmark");
+            checkGo.transform.SetParent(bgGo.transform, false);
+            var checkRT = checkGo.AddComponent<RectTransform>();
+            checkRT.anchorMin = new Vector2(0.1f, 0.1f);
+            checkRT.anchorMax = new Vector2(0.9f, 0.9f);
+            checkRT.offsetMin = Vector2.zero;
+            checkRT.offsetMax = Vector2.zero;
+            var checkImg = checkGo.AddComponent<Image>();
+            checkImg.sprite = whiteSprite;
+            checkImg.color = new Color(0.4f, 0.85f, 0.5f, 1f);
+            toggle.graphic = checkImg;
+
+            return toggle;
         }
 
         private static PauseScreen BuildPauseCanvas(Sprite whiteSprite, AudioSyncManager audioSync)

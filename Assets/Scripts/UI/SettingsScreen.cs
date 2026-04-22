@@ -14,6 +14,7 @@ namespace KeyFlow.UI
         [SerializeField] private Button closeButton;
         [SerializeField] private Text versionLabel;
         [SerializeField] private Text creditsLabel;
+        [SerializeField] private Toggle hapticsToggle;
         [SerializeField] private CalibrationController calibration;
 
         private void Awake()
@@ -36,6 +37,8 @@ namespace KeyFlow.UI
                 versionLabel.text = string.Format(UIStrings.VersionLabelFmt, Application.version);
             if (creditsLabel != null)
                 creditsLabel.text = UIStrings.CreditsSamples;
+            if (hapticsToggle != null)
+                hapticsToggle.onValueChanged.AddListener(OnHapticsToggleChanged);
         }
 
         protected override void OnShown()
@@ -44,6 +47,7 @@ namespace KeyFlow.UI
             if (noteSpeedSlider != null) noteSpeedSlider.SetValueWithoutNotify(UserPrefs.NoteSpeed);
             if (noteSpeedValueLabel != null) noteSpeedValueLabel.text = UserPrefs.NoteSpeed.ToString("F1");
             AudioListener.volume = UserPrefs.SfxVolume;
+            if (hapticsToggle != null) hapticsToggle.SetIsOnWithoutNotify(UserPrefs.HapticsEnabled);
         }
 
         private void OnSfxChanged(float v)
@@ -62,6 +66,11 @@ namespace KeyFlow.UI
         {
             Finish();
             if (calibration != null) calibration.Begin(onDone: () => Show());
+        }
+
+        private void OnHapticsToggleChanged(bool v)
+        {
+            UserPrefs.HapticsEnabled = v;
         }
     }
 }
