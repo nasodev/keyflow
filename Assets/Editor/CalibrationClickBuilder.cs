@@ -46,8 +46,31 @@ namespace KeyFlow.Editor
             WriteAscii(result, 36, "data");
             WriteInt32(result, 40, dataSize);
 
-            // Data body: silent for now; Task 4-5 fill it.
-            // result[44..] is already zero-initialized.
+            // Data body: seeded noise → 1-pole HP → attack/decay envelope → peak-scale → int16 LE.
+            var rng = new System.Random(Seed);
+            // 1-pole HP: y[n] = α (y[n-1] + x[n] - x[n-1]); α = RC / (RC + dt)
+            // where RC = 1 / (2π fc), dt = 1 / fs.
+            float rc = 1f / (2f * Mathf.PI * HighPassCutoffHz);
+            float dt = 1f / SampleRate;
+            float alpha = rc / (rc + dt);
+            float prevRaw = 0f;
+            float prevHp  = 0f;
+            for (int i = 0; i < DurationSamples; i++)
+            {
+                float raw = (float)(rng.NextDouble() * 2.0 - 1.0);
+                float hp = alpha * (prevHp + raw - prevRaw);
+                prevHp = hp;
+                prevRaw = raw;
+
+                float attack = i < AttackSamples ? (i + 1) / (float)AttackSamples : 1f;
+                float decay  = Mathf.Exp(-i / DecayTauSamples);
+                float value  = hp * attack * decay * PeakLinear;
+
+                int sample = Mathf.Clamp(Mathf.RoundToInt(value * 32767f), -32768, 32767);
+                int offset = 44 + i * 2;
+                result[offset + 0] = (byte)(sample & 0xFF);
+                result[offset + 1] = (byte)((sample >> 8) & 0xFF);
+            }
 
             return result;
         }

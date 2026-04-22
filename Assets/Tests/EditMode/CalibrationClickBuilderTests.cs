@@ -38,5 +38,21 @@ namespace KeyFlow.Tests.EditMode
             Assert.AreEqual(1920, dataSize, "Data chunk size should be 960 samples × 2 bytes = 1920.");
             Assert.AreEqual(44 + 1920, b.Length, "Total file size = 44-byte header + 1920-byte data.");
         }
+
+        [Test]
+        public void PeakBelowZeroDbfs()
+        {
+            byte[] b = CalibrationClickBuilder.GenerateWavBytes();
+            int maxAbs = 0;
+            for (int i = 44; i < b.Length; i += 2)
+            {
+                short s = (short)(b[i] | (b[i + 1] << 8));
+                int abs = s < 0 ? -s : s;
+                if (abs > maxAbs) maxAbs = abs;
+            }
+            // Peak target: 0.501 × 32767 ≈ 16416. Allow small headroom for envelope/filter interaction.
+            Assert.LessOrEqual(maxAbs, 16500, $"Peak {maxAbs} exceeds -6 dBFS target (~16416).");
+            Assert.Greater(maxAbs, 1000, $"Peak {maxAbs} suspiciously low — signal is basically silent.");
+        }
     }
 }
