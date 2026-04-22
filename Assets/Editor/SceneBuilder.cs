@@ -339,6 +339,29 @@ namespace KeyFlow.Editor
             pauseLabel.alignment = TextAnchor.MiddleCenter;
             pauseLabel.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
 
+            // W6 SP6 combo HUD: large centered-top number, hidden at combo=0
+            var comboGO = new GameObject("ComboText", typeof(RectTransform));
+            comboGO.transform.SetParent(canvasGO.transform, false);
+            var comboRT = comboGO.GetComponent<RectTransform>();
+            comboRT.anchorMin = new Vector2(0.5f, 1f);
+            comboRT.anchorMax = new Vector2(0.5f, 1f);
+            comboRT.pivot = new Vector2(0.5f, 1f);
+            comboRT.anchoredPosition = new Vector2(0, -100); // below the existing progress bar
+            comboRT.sizeDelta = new Vector2(400, 140);
+
+            var comboText = comboGO.AddComponent<Text>();
+            comboText.text = "0";
+            comboText.fontSize = 96;
+            comboText.color = Color.white;
+            comboText.alignment = TextAnchor.MiddleCenter;
+            comboText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            comboText.raycastTarget = false;
+            comboText.enabled = false; // starts hidden; ComboHUD.Update flips on first non-zero combo
+
+            var comboHUD = comboGO.AddComponent<ComboHUD>();
+            SetField(comboHUD, "judgmentSystem", judgmentSystem);
+            SetField(comboHUD, "comboText", comboText);
+
             return pauseBtnGO.AddComponent<HUDPauseButton>();
         }
 
