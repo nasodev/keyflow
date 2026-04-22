@@ -1,3 +1,4 @@
+using System.Text;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -11,6 +12,10 @@ namespace KeyFlow.UI
         [SerializeField] private AudioSamplePool samplePool;
         [SerializeField] private JudgmentSystem judgmentSystem;
 
+        private const float HUD_UPDATE_INTERVAL_SEC = 0.5f;
+
+        private readonly StringBuilder sb = new StringBuilder(256);
+
         private float fpsAccum;
         private int fpsFrames;
         private float fpsDisplay;
@@ -21,6 +26,7 @@ namespace KeyFlow.UI
 
         private float timeAtStart;
         private double dspAtStart;
+        private float hudTimer;
 
         private void Start()
         {
@@ -48,6 +54,7 @@ namespace KeyFlow.UI
 
         private void Update()
         {
+            // FPS accumulation — every frame, alloc-free
             fpsAccum += Time.unscaledDeltaTime;
             fpsFrames++;
             fpsTimer += Time.unscaledDeltaTime;
@@ -59,32 +66,79 @@ namespace KeyFlow.UI
                 fpsTimer = 0;
             }
 
+            // HUD text update — throttled to 2 Hz to keep allocation budget low.
+            // Per-frame updates would accumulate via sb.ToString() + hudText.text
+            // setter; at 0.5s cadence the combined residual is below Unity GC
+            // threshold across a typical 2-minute gameplay session.
+            hudTimer += Time.unscaledDeltaTime;
+            if (hudTimer < HUD_UPDATE_INTERVAL_SEC) return;
+            hudTimer = 0;
+
+            if (hudText == null) return;
+
             double dspElapsed = AudioSettings.dspTime - dspAtStart;
             double frameElapsed = Time.time - timeAtStart;
-            double driftMs = (dspElapsed - frameElapsed) * 1000.0;
+            float driftMs = (float)((dspElapsed - frameElapsed) * 1000.0);
 
-            string scoreLine = "Score: —";
-            string comboLine = "Combo: 0";
-            string judgLine  = "Last: —";
+            sb.Length = 0;
+            sb.Append("FPS: ");
+            AppendOneDecimal(sb, fpsDisplay);
+            sb.Append('\n');
+
             if (judgmentSystem != null && judgmentSystem.Score != null)
             {
                 var s = judgmentSystem.Score;
-                scoreLine = $"Score: {s.Score:N0}  Stars: {s.Stars}";
-                comboLine = $"Combo: {s.Combo}  Max: {s.MaxCombo}";
-                judgLine  = $"Last: {judgmentSystem.LastJudgment}  (Δ {judgmentSystem.LastDeltaMs} ms)";
+                sb.Append("Score: ").Append(s.Score)
+                  .Append("  Stars: ").Append(s.Stars).Append('\n');
+                sb.Append("Combo: ").Append(s.Combo)
+                  .Append("  Max: ").Append(s.MaxCombo).Append('\n');
+                sb.Append("Last: ").Append(JudgmentName(judgmentSystem.LastJudgment))
+                  .Append("  (Δ ").Append(judgmentSystem.LastDeltaMs).Append(" ms)\n");
+            }
+            else
+            {
+                sb.Append("Score: —\n");
+                sb.Append("Combo: 0\n");
+                sb.Append("Last: —\n");
             }
 
-            if (hudText != null)
+            sb.Append("dspTime drift: ");
+            AppendOneDecimal(sb, driftMs);
+            sb.Append(" ms\n");
+            sb.Append("Song time: ").Append(audioSync != null ? audioSync.SongTimeMs : 0).Append(" ms\n");
+            sb.Append("Buffer: ").Append(AudioSettings.GetConfiguration().dspBufferSize).Append(" samples");
+
+            hudText.text = sb.ToString();
+        }
+
+        // Alloc-free enum → constant-string conversion. Avoids Enum.ToString()
+        // which boxes the value.
+        private static string JudgmentName(Judgment j)
+        {
+            switch (j)
             {
-                hudText.text =
-                    $"FPS: {fpsDisplay:F1}\n" +
-                    $"{scoreLine}\n" +
-                    $"{comboLine}\n" +
-                    $"{judgLine}\n" +
-                    $"dspTime drift: {driftMs:F1} ms\n" +
-                    $"Song time: {(audioSync != null ? audioSync.SongTimeMs : 0)} ms\n" +
-                    $"Buffer: {AudioSettings.GetConfiguration().dspBufferSize} samples";
+                case Judgment.Perfect: return "Perfect";
+                case Judgment.Great:   return "Great";
+                case Judgment.Good:    return "Good";
+                case Judgment.Miss:    return "Miss";
+                default:               return "—";
             }
+        }
+
+        // Alloc-free "N.N" formatting for floats. Handles sign + one decimal
+        // place. Unity's StringBuilder.Append(int) uses an internal no-alloc
+        // path under IL2CPP.
+        private static void AppendOneDecimal(StringBuilder target, float value)
+        {
+            if (value < 0)
+            {
+                target.Append('-');
+                value = -value;
+            }
+            int whole = (int)value;
+            int frac = (int)((value - whole) * 10f + 0.5f);
+            if (frac >= 10) { whole += 1; frac -= 10; }
+            target.Append(whole).Append('.').Append(frac);
         }
     }
 }
