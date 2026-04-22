@@ -78,5 +78,23 @@ namespace KeyFlow.Tests.EditMode
             UserPrefs.CalibrationOffsetMs = 0;
             Assert.IsTrue(UserPrefs.HasCalibration);
         }
+
+        [Test] public void HapticsEnabled_DefaultsToTrue_WhenNeverSet()
+        {
+            Assert.IsTrue(UserPrefs.HapticsEnabled);
+        }
+
+        [Test] public void HapticsEnabled_RoundTripsFalse()
+        {
+            UserPrefs.HapticsEnabled = false;
+            Assert.IsFalse(UserPrefs.HapticsEnabled);
+        }
+
+        [Test] public void HapticsEnabled_RoundTripsTrueAfterFalse()
+        {
+            UserPrefs.HapticsEnabled = false;
+            UserPrefs.HapticsEnabled = true;
+            Assert.IsTrue(UserPrefs.HapticsEnabled);
+        }
     }
 }
