@@ -597,7 +597,7 @@ MonoBehaviour:
     m_FontStyle: 0
     m_BestFit: 0
     m_MinSize: 10
-    m_MaxSize: 40
+    m_MaxSize: 42
     m_Alignment: 3
     m_AlignByGeometry: 0
     m_RichText: 1
@@ -1761,7 +1761,7 @@ MonoBehaviour:
   samplePool: {fileID: 1293329287}
   audioSync: {fileID: 1148443131}
   mainCamera: {fileID: 2085860662}
-  judgmentSystem: {fileID: 0}
+  judgmentSystem: {fileID: 1821820581}
   pitchLookupWindowMs: 500
   laneAreaWidth: 4
 --- !u!4 &451573702
@@ -1892,7 +1892,7 @@ MonoBehaviour:
   recalibrateButton: {fileID: 1906837195}
   closeButton: {fileID: 1300746311}
   versionLabel: {fileID: 555954315}
-  creditsLabel: {fileID: 0}
+  creditsLabel: {fileID: 1691311423}
   hapticsToggle: {fileID: 1321045897}
   calibration: {fileID: 391282294}
 --- !u!224 &493323423
@@ -1919,6 +1919,7 @@ RectTransform:
   - {fileID: 1321045898}
   - {fileID: 1906837192}
   - {fileID: 555954313}
+  - {fileID: 1691311421}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -5652,7 +5653,7 @@ MonoBehaviour:
     m_FontStyle: 0
     m_BestFit: 0
     m_MinSize: 10
-    m_MaxSize: 40
+    m_MaxSize: 44
     m_Alignment: 4
     m_AlignByGeometry: 0
     m_RichText: 1
@@ -5736,7 +5737,24 @@ MonoBehaviour:
   m_EditorClassIdentifier: KeyFlow.Runtime::KeyFlow.AudioSamplePool
   channels: 16
   defaultClip: {fileID: 8300000, guid: 5302f1a2201dd2245ab11e34ffbe4d17, type: 3}
-  pitchSamples: []
+  pitchSamples:
+  - {fileID: 8300000, guid: 1cd252d020102b74f976485fc3b7112b, type: 3}
+  - {fileID: 8300000, guid: fc596b37da30d0540931656c676d60fa, type: 3}
+  - {fileID: 8300000, guid: c85c4209351c1e64eb9abe7d2039f9e6, type: 3}
+  - {fileID: 8300000, guid: bba30749fc87afd4b8b2f8d6fcbc360b, type: 3}
+  - {fileID: 8300000, guid: ce8579f156e9c764793c26a7a066432b, type: 3}
+  - {fileID: 8300000, guid: bb7c1b85cc5f9c8498724a707f7edacc, type: 3}
+  - {fileID: 8300000, guid: dcd655d4353b8294ba0fcb32d7e5d622, type: 3}
+  - {fileID: 8300000, guid: f691c242845ecbc42b699eeaeaf3f908, type: 3}
+  - {fileID: 8300000, guid: 99f4aaf35187d1c4e86ceb260a261500, type: 3}
+  - {fileID: 8300000, guid: 938123399acd4ea4e82b4b07d272eed5, type: 3}
+  - {fileID: 8300000, guid: c83aa7dccabcfa548b2af414b95681a7, type: 3}
+  - {fileID: 8300000, guid: f72bbea9bec428f42908d6f3dcae465e, type: 3}
+  - {fileID: 8300000, guid: 8e104dfd97d341148a64e00d180eb6a2, type: 3}
+  - {fileID: 8300000, guid: ad4021a54b4c4ce4da21dfba3fdcd8d2, type: 3}
+  - {fileID: 8300000, guid: ad711a996ca631240b407b9b1b79cc84, type: 3}
+  - {fileID: 8300000, guid: 3e133283cfca3c64a98150c6e97c1597, type: 3}
+  - {fileID: 8300000, guid: a107cc7933876574f862dd5a8b08cc5f, type: 3}
   baseMidi: 36
   stepSemitones: 3
 --- !u!4 &1293329288
@@ -7324,6 +7342,85 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1671445487}
   m_CullTransparentMesh: 1
+--- !u!1 &1691311420
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1691311421}
+  - component: {fileID: 1691311422}
+  - component: {fileID: 1691311423}
+  m_Layer: 0
+  m_Name: CreditsLabel
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &1691311421
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1691311420}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 493323423}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.05, y: 0.02}
+  m_AnchorMax: {x: 0.95, y: 0.08}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!222 &1691311422
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1691311420}
+  m_CullTransparentMesh: 1
+--- !u!114 &1691311423
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1691311420}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5f7201a12d95ffc409449d95f23cf332, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Text
+  m_Material: {fileID: 0}
+  m_Color: {r: 0.7, g: 0.7, b: 0.7, a: 1}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_FontData:
+    m_Font: {fileID: 10102, guid: 0000000000000000e000000000000000, type: 0}
+    m_FontSize: 18
+    m_FontStyle: 0
+    m_BestFit: 0
+    m_MinSize: 10
+    m_MaxSize: 40
+    m_Alignment: 4
+    m_AlignByGeometry: 0
+    m_RichText: 1
+    m_HorizontalOverflow: 0
+    m_VerticalOverflow: 0
+    m_LineSpacing: 1
+  m_Text: 'Piano samples: Salamander Grand Piano V3 by Alexander Holm, CC-BY 3.0'
 --- !u!1 &1692962643
 GameObject:
   m_ObjectHideFlags: 0
@@ -8093,7 +8190,7 @@ MonoBehaviour:
     m_FontStyle: 0
     m_BestFit: 0
     m_MinSize: 10
-    m_MaxSize: 40
+    m_MaxSize: 42
     m_Alignment: 4
     m_AlignByGeometry: 0
     m_RichText: 1
@@ -8399,7 +8496,7 @@ MonoBehaviour:
     m_FontStyle: 0
     m_BestFit: 0
     m_MinSize: 10
-    m_MaxSize: 40
+    m_MaxSize: 56
     m_Alignment: 4
     m_AlignByGeometry: 0
     m_RichText: 1
@@ -8478,7 +8575,7 @@ MonoBehaviour:
     m_FontStyle: 0
     m_BestFit: 0
     m_MinSize: 10
-    m_MaxSize: 40
+    m_MaxSize: 48
     m_Alignment: 4
     m_AlignByGeometry: 0
     m_RichText: 1
@@ -9369,7 +9466,7 @@ MonoBehaviour:
     m_FontStyle: 0
     m_BestFit: 0
     m_MinSize: 10
-    m_MaxSize: 40
+    m_MaxSize: 52
     m_Alignment: 4
     m_AlignByGeometry: 0
     m_RichText: 1
