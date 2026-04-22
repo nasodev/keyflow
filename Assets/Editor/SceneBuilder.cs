@@ -74,6 +74,9 @@ namespace KeyFlow.Editor
                 return;
             }
 
+            var pitchSamples = LoadPitchSamples();
+            if (pitchSamples == null) return;
+
             var notePrefab = BuildNotePrefab(whiteSprite);
 
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
@@ -91,7 +94,7 @@ namespace KeyFlow.Editor
             BuildLaneDividers(whiteSprite, gameplayRoot.transform);
             BuildJudgmentLine(whiteSprite, gameplayRoot.transform);
             BuildManagers(
-                camera, pianoClip, notePrefab, gameplayRoot.transform,
+                camera, pianoClip, pitchSamples, notePrefab, gameplayRoot.transform,
                 out var audioSync, out var samplePool, out var tapInput,
                 out var judgmentSystem, out var spawner, out var holdTracker);
             BuildFeedbackPipeline(judgmentSystem, gameplayRoot.transform);
@@ -183,6 +186,7 @@ namespace KeyFlow.Editor
         private static void BuildManagers(
             Camera camera,
             AudioClip pianoClip,
+            AudioClip[] pitchSamples,
             GameObject notePrefab,
             Transform parent,
             out AudioSyncManager audioSync,
