@@ -9,6 +9,7 @@ using KeyFlow;
 using KeyFlow.UI;
 using KeyFlow.Calibration;
 using KeyFlow.Charts;
+using KeyFlow.Feedback;
 
 namespace KeyFlow.Editor
 {
@@ -66,6 +67,7 @@ namespace KeyFlow.Editor
                 camera, pianoClip, notePrefab, gameplayRoot.transform,
                 out var audioSync, out var samplePool, out var tapInput,
                 out var judgmentSystem, out var spawner, out var holdTracker);
+            BuildFeedbackPipeline(judgmentSystem, gameplayRoot.transform);
             var hudPauseButton = BuildHUD(audioSync, tapInput, samplePool, judgmentSystem, whiteSprite, gameplayRoot.transform);
 
             var calibration = BuildCalibrationOverlay(whiteSprite, pianoClip, audioSync);
@@ -208,6 +210,45 @@ namespace KeyFlow.Editor
             SetField(spawner, "laneAreaWidth", LaneAreaWidth);
             SetField(spawner, "spawnY", SpawnY);
             SetField(spawner, "judgmentY", JudgmentY);
+        }
+
+        private static void BuildFeedbackPipeline(
+            JudgmentSystem judgmentSystem, Transform parent)
+        {
+            var feedbackRoot = new GameObject("FeedbackPipeline");
+            feedbackRoot.transform.SetParent(parent, false);
+
+            var presets = AssetDatabase.LoadAssetAtPath<FeedbackPresets>(
+                "Assets/ScriptableObjects/FeedbackPresets.asset");
+            var hitPrefab = AssetDatabase.LoadAssetAtPath<ParticleSystem>(
+                "Assets/Prefabs/Feedback/hit.prefab");
+            var missPrefab = AssetDatabase.LoadAssetAtPath<ParticleSystem>(
+                "Assets/Prefabs/Feedback/miss.prefab");
+
+            if (presets == null || hitPrefab == null || missPrefab == null)
+            {
+                Debug.LogError("SceneBuilder: Feedback assets missing. Run 'KeyFlow/Build Feedback Assets' first.");
+                return;
+            }
+
+            var hapticsGo = new GameObject("HapticService");
+            hapticsGo.transform.SetParent(feedbackRoot.transform, false);
+            var hapticService = hapticsGo.AddComponent<HapticService>();
+            SetField(hapticService, "presets", presets);
+
+            var particlesGo = new GameObject("ParticlePool");
+            particlesGo.transform.SetParent(feedbackRoot.transform, false);
+            var particlePool = particlesGo.AddComponent<ParticlePool>();
+            SetField(particlePool, "hitPrefab", hitPrefab);
+            SetField(particlePool, "missPrefab", missPrefab);
+            SetField(particlePool, "presets", presets);
+
+            var dispatcherGo = new GameObject("FeedbackDispatcher");
+            dispatcherGo.transform.SetParent(feedbackRoot.transform, false);
+            var dispatcher = dispatcherGo.AddComponent<FeedbackDispatcher>();
+            SetField(dispatcher, "judgmentSystem", judgmentSystem);
+            SetField(dispatcher, "hapticService", hapticService);
+            SetField(dispatcher, "particlePool", particlePool);
         }
 
         private static HUDPauseButton BuildHUD(
