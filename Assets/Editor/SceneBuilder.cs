@@ -151,7 +151,7 @@ namespace KeyFlow.Editor
                 go.transform.localScale = new Vector3(0.02f, 20f, 1);
                 var sr = go.AddComponent<SpriteRenderer>();
                 sr.sprite = sprite;
-                sr.color = new Color(0.3f, 0.3f, 0.4f, 0.8f);
+                sr.color = new Color(0.8f, 0.9f, 1.0f, 0.3f); // W6 SP6: blue-tinted white, low alpha, harmonizes with new background
                 sr.sortingOrder = -1;
             }
         }
@@ -164,7 +164,7 @@ namespace KeyFlow.Editor
             go.transform.localScale = new Vector3(LaneAreaWidth, 0.12f, 1);
             var sr = go.AddComponent<SpriteRenderer>();
             sr.sprite = sprite;
-            sr.color = new Color(0.2f, 0.9f, 1.0f, 1);
+            sr.color = new Color(0.9f, 0.95f, 1.0f, 0.5f); // W6 SP6: subtle white, α=0.5 — visible timing guide without fighting background
             sr.sortingOrder = 0;
             return go;
         }
