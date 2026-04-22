@@ -1,6 +1,9 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using KeyFlow.Charts;
+
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("KeyFlow.Tests.EditMode")]
 
 namespace KeyFlow
 {
@@ -16,6 +19,8 @@ namespace KeyFlow
         public ScoreManager Score => score;
         public Judgment LastJudgment { get; private set; }
         public int LastDeltaMs { get; private set; }
+
+        public event Action<Judgment, Vector3> OnJudgmentFeedback;
 
         public void Initialize(int totalNotes, Difficulty difficulty)
         {
@@ -56,14 +61,16 @@ namespace KeyFlow
             score.RegisterJudgment(Judgment.Miss);
             LastJudgment = Judgment.Miss;
             LastDeltaMs = 0;
+            OnJudgmentFeedback?.Invoke(Judgment.Miss, note.transform.position);
         }
 
-        public void HandleHoldBreak()
+        public void HandleHoldBreak(NoteController brokenNote)
         {
             if (score == null) return;
             score.RegisterJudgment(Judgment.Miss);
             LastJudgment = Judgment.Miss;
             LastDeltaMs = 0;
+            OnJudgmentFeedback?.Invoke(Judgment.Miss, brokenNote.transform.position);
         }
 
         private void HandleTap(int tapTimeMs, int tapLane)
@@ -90,6 +97,12 @@ namespace KeyFlow
 
             int signedDelta = tapTimeMs - closest.HitTimeMs;
             var result = JudgmentEvaluator.Evaluate(signedDelta, difficulty);
+
+            // Fire feedback for EVERY branch that reaches here, including Miss.
+            // Miss still early-returns for score purposes (note stays in pending), but
+            // the player's attempted tap should still produce feedback.
+            OnJudgmentFeedback?.Invoke(result.Judgment, closest.transform.position);
+
             if (result.Judgment == Judgment.Miss) return;
 
             score.RegisterJudgment(result.Judgment);
@@ -128,5 +141,8 @@ namespace KeyFlow
             if (closest == null || closestAbsDelta > windowMs) return -1;
             return closest.Pitch;
         }
+
+        internal void InvokeHandleTapForTest(int tapTimeMs, int tapLane)
+            => HandleTap(tapTimeMs, tapLane);
     }
 }

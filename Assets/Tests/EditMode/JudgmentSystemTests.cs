@@ -1,5 +1,7 @@
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.TestTools;
+using System.Text.RegularExpressions;
 using KeyFlow;
 using KeyFlow.Charts;
 
@@ -92,6 +94,86 @@ namespace KeyFlow.Tests.EditMode
             int result = js.GetClosestPendingPitch(lane: 0, tapTimeMs: 1000, windowMs: 500);
 
             Assert.AreEqual(-1, result);
+            Object.DestroyImmediate(js.gameObject);
+        }
+
+        [Test]
+        public void HandleTap_FiresFeedbackEvent_OnPerfect()
+        {
+            var js = MakeSystem();
+            js.RegisterPendingNote(MakeNote(lane: 0, hitMs: 1000, pitch: 60));
+
+            Judgment capturedJudgment = Judgment.Miss;
+            Vector3 capturedPos = Vector3.zero;
+            int callCount = 0;
+            js.OnJudgmentFeedback += (j, p) => { capturedJudgment = j; capturedPos = p; callCount++; };
+
+            // NoteController.MarkJudged() calls Destroy(gameObject); in EditMode this logs an
+            // error (Destroy-in-edit-mode) that the test runner upgrades to a failure unless
+            // acknowledged via LogAssert.Expect.
+            LogAssert.Expect(LogType.Error, new Regex("Destroy may not be called from edit mode"));
+            js.InvokeHandleTapForTest(tapTimeMs: 1000, tapLane: 0);
+
+            Assert.AreEqual(1, callCount);
+            Assert.AreEqual(Judgment.Perfect, capturedJudgment);
+            Object.DestroyImmediate(js.gameObject);
+        }
+
+        [Test]
+        public void HandleTap_FiresFeedbackEvent_OnMiss()
+        {
+            var js = MakeSystem();
+            js.RegisterPendingNote(MakeNote(lane: 0, hitMs: 1000, pitch: 60));
+
+            Judgment capturedJudgment = Judgment.Perfect;
+            int callCount = 0;
+            js.OnJudgmentFeedback += (j, _) => { capturedJudgment = j; callCount++; };
+
+            // A tap far outside the Good window yields Miss.
+            // Normal Good window is 180 ms (per JudgmentEvaluator); +200ms delta -> Miss.
+            js.InvokeHandleTapForTest(tapTimeMs: 1200, tapLane: 0);
+
+            Assert.AreEqual(1, callCount, "Miss branch must still fire the feedback event (unlike score)");
+            Assert.AreEqual(Judgment.Miss, capturedJudgment);
+            Object.DestroyImmediate(js.gameObject);
+        }
+
+        [Test]
+        public void HandleAutoMiss_FiresFeedbackEvent_WithNotePosition()
+        {
+            var js = MakeSystem();
+            var note = MakeNote(lane: 0, hitMs: 1000, pitch: 60);
+            note.transform.position = new Vector3(1.5f, -3f, 0f);
+            js.RegisterPendingNote(note);
+
+            Vector3 capturedPos = Vector3.zero;
+            int callCount = 0;
+            js.OnJudgmentFeedback += (_, p) => { capturedPos = p; callCount++; };
+
+            js.HandleAutoMiss(note);
+
+            Assert.AreEqual(1, callCount);
+            Assert.AreEqual(new Vector3(1.5f, -3f, 0f), capturedPos);
+            Object.DestroyImmediate(js.gameObject);
+        }
+
+        [Test]
+        public void HandleHoldBreak_FiresFeedbackEvent_WithBrokenNotePosition()
+        {
+            var js = MakeSystem();
+            var note = MakeNote(lane: 2, hitMs: 1000, pitch: 64);
+            note.transform.position = new Vector3(-0.7f, -3f, 0f);
+
+            Judgment capturedJudgment = Judgment.Perfect;
+            Vector3 capturedPos = Vector3.zero;
+            int callCount = 0;
+            js.OnJudgmentFeedback += (j, p) => { capturedJudgment = j; capturedPos = p; callCount++; };
+
+            js.HandleHoldBreak(note);
+
+            Assert.AreEqual(1, callCount);
+            Assert.AreEqual(Judgment.Miss, capturedJudgment);
+            Assert.AreEqual(new Vector3(-0.7f, -3f, 0f), capturedPos);
             Object.DestroyImmediate(js.gameObject);
         }
     }

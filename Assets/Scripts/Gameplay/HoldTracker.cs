@@ -48,7 +48,7 @@ namespace KeyFlow
                 }
                 else if (t.newState == HoldState.Broken)
                 {
-                    judgmentSystem.HandleHoldBreak();
+                    judgmentSystem.HandleHoldBreak(note);
                     note.MarkHoldBroken();
                 }
                 idToNote.Remove(t.id);
