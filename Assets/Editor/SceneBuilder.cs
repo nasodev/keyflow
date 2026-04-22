@@ -56,6 +56,13 @@ namespace KeyFlow.Editor
                 return;
             }
 
+            var bgSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/background_gameplay.png");
+            if (bgSprite == null)
+            {
+                Debug.LogError("[KeyFlow] Missing Assets/Sprites/background_gameplay.png. Aborting.");
+                return;
+            }
+
             var notePrefab = BuildNotePrefab(whiteSprite);
 
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
@@ -63,6 +70,8 @@ namespace KeyFlow.Editor
 
             var camera = BuildMainCamera();
             CreateEventSystem();
+
+            BuildBackgroundCanvas(bgSprite);
 
             // GameplayRoot groups all gameplay-only objects so ScreenManager
             // can toggle them wholesale.
@@ -442,6 +451,32 @@ namespace KeyFlow.Editor
             SetArrayField(controller, "beatIndicators", indicators);
 
             return controller;
+        }
+
+        private static void BuildBackgroundCanvas(Sprite bgSprite)
+        {
+            var canvasGO = new GameObject("BackgroundCanvas");
+            var canvas = canvasGO.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.sortingOrder = -100; // underneath every other Canvas
+            var scaler = canvasGO.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(720, 1280);
+            scaler.matchWidthOrHeight = 0.5f;
+            canvasGO.AddComponent<GraphicRaycaster>(); // present for Canvas completeness; Image's raycastTarget is false below
+
+            var imgGO = new GameObject("BackgroundImage", typeof(RectTransform));
+            imgGO.transform.SetParent(canvasGO.transform, false);
+            var rt = imgGO.GetComponent<RectTransform>();
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+
+            var img = imgGO.AddComponent<Image>();
+            img.sprite = bgSprite;
+            img.preserveAspect = false; // uniform stretch, no letterboxing
+            img.raycastTarget = false;  // don't absorb taps — they go to gameplay
         }
 
         private static GameObject BuildMainCanvas(Sprite whiteSprite)
