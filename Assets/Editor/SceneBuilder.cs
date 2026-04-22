@@ -25,7 +25,7 @@ namespace KeyFlow.Editor
         private const string FurEliseThumbPath = "Assets/StreamingAssets/thumbs/fur_elise.png";
 
         // Portrait layout (camera orthographic size 8 → 9 world-unit-wide viewport at 9:16 aspect)
-        private const float LaneAreaWidth = 4f;       // world units
+        private const float LaneAreaWidth = 9f;       // world units (W6 SP6: full-screen at ortho=8, aspect 9:16)
         private const float SpawnY = 6.5f;
         private const float JudgmentY = -5f;           // ~81% down the viewport (spec §4.3 target: 80%)
 
@@ -1179,10 +1179,11 @@ namespace KeyFlow.Editor
         private static GameObject BuildNotePrefab(Sprite sprite)
         {
             var go = new GameObject("Note");
-            go.transform.localScale = new Vector3(0.8f, 0.4f, 1);
+            go.transform.localScale = new Vector3(LaneAreaWidth / LaneLayout.LaneCount, 0.4f, 1);
+            // = (9f/4, 0.4f, 1) = (2.25f, 0.4f, 1). Tiles fill one lane width edge-to-edge.
             var sr = go.AddComponent<SpriteRenderer>();
             sr.sprite = sprite;
-            sr.color = new Color(1f, 0.95f, 0.85f, 1);
+            sr.color = new Color(0.08f, 0.08f, 0.12f, 1); // W6 SP6: near-black matches reference; palette aligned with camera.backgroundColor
             sr.sortingOrder = 1;
             var noteCtrl = go.AddComponent<NoteController>();
             SetField(noteCtrl, "spriteRenderer", sr);
