@@ -29,6 +29,17 @@ namespace KeyFlow.Editor
         private const float SpawnY = 6.5f;
         private const float JudgmentY = -5f;           // ~81% down the viewport (spec §4.3 target: 80%)
 
+        // W6 SP1 multi-pitch Salamander samples (folded in via SP7 from deleted W6SamplesWireup)
+        private const string PianoFolder = "Assets/Audio/piano";
+        private static readonly string[] SampleNames =
+        {
+            "C2v10", "Ds2v10", "Fs2v10", "A2v10",
+            "C3v10", "Ds3v10", "Fs3v10", "A3v10",
+            "C4v10", "Ds4v10", "Fs4v10", "A4v10",
+            "C5v10", "Ds5v10", "Fs5v10", "A5v10",
+            "C6v10",
+        };
+
         [MenuItem("KeyFlow/Build W4 Scene")]
         public static void Build()
         {
@@ -1410,6 +1421,15 @@ namespace KeyFlow.Editor
             so.ApplyModifiedProperties();
         }
 
+        private static void SetField(Object target, string name, int value)
+        {
+            var so = new SerializedObject(target);
+            var prop = so.FindProperty(name);
+            if (prop == null) { Debug.LogError($"[KeyFlow] Field '{name}' not found on {target.GetType().Name}"); return; }
+            prop.intValue = value;
+            so.ApplyModifiedProperties();
+        }
+
         private static void SetArrayField(Object target, string name, Object[] values)
         {
             var so = new SerializedObject(target);
@@ -1421,6 +1441,23 @@ namespace KeyFlow.Editor
                 prop.GetArrayElementAtIndex(i).objectReferenceValue = values[i];
             }
             so.ApplyModifiedProperties();
+        }
+
+        private static AudioClip[] LoadPitchSamples()
+        {
+            var clips = new AudioClip[SampleNames.Length];
+            for (int i = 0; i < SampleNames.Length; i++)
+            {
+                string path = $"{PianoFolder}/{SampleNames[i]}.wav";
+                var clip = AssetDatabase.LoadAssetAtPath<AudioClip>(path);
+                if (clip == null)
+                {
+                    Debug.LogError($"[KeyFlow] Missing pitch sample: {path}. Aborting.");
+                    return null;
+                }
+                clips[i] = clip;
+            }
+            return clips;
         }
     }
 }
