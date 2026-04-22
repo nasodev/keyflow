@@ -166,7 +166,8 @@ Wiring: `SceneBuilder.BuildHUD` adds a `ComboText` child GameObject with a `Unit
 KeyFlow/Build W4 Scene (SceneBuilder.Build)
   → Load piano_c4.wav, calibration_click.wav, background_gameplay.png
   → Null-guard each; abort on missing
-  → BuildBackground(bgSprite) → GameObject with SpriteRenderer at sortingOrder=-10
+  → BuildBackgroundCanvas(bgSprite) → ScreenSpaceOverlay Canvas (sortingOrder=-100)
+    with full-screen stretch-anchored UI Image child
   → BuildLaneDividers(tuned alpha/color)
   → BuildJudgmentLine(alpha=0.5)
   → BuildNotePrefab(localScale.x = LaneAreaWidth / LaneCount)
@@ -211,7 +212,7 @@ public class BackgroundImporterPostprocessor : AssetPostprocessor
         var androidSettings = importer.GetPlatformTextureSettings("Android");
         androidSettings.overridden = true;
         androidSettings.format = TextureImporterFormat.ASTC_4x4;
-        androidSettings.compressionQuality = (int)UnityEditor.TextureCompressionQuality.Normal;
+        androidSettings.compressionQuality = 50; // Normal (0=Fast, 50=Normal, 100=Best)
         importer.SetPlatformTextureSettings(androidSettings);
     }
 }
@@ -240,10 +241,13 @@ public class BackgroundImporterPostprocessor : AssetPostprocessor
 
 - Galaxy S22 is a flat display (no edge curvature) → full-width touch is safe. If a future device test reveals oversensitive side edges, fallback is `LaneAreaWidth = 8.5f` (minor pullback), config-only change.
 
-**Background sprite aspect mismatch:**
+**Background sprite aspect handling:**
 
-- Source 941×1672 ≈ 9:16 portrait. On a 720×1280 (9:16) or 1080×2340 (9:19.5 edge-to-edge) phone the aspect differs slightly. The `SpriteRenderer` will scale to fit either width or height; areas outside the sprite fall back to `camera.backgroundColor = (0.08, 0.08, 0.12)`. No visual break.
-- On ultrawide (e.g., foldables unfolded) the camera backgroundColor would fill a larger portion. Acceptable for MVP; W7 2nd-device test will surface if problematic.
+- Source 941×1672 ≈ 9:16 portrait. The UI `Image` on BackgroundCanvas uses `preserveAspect = false` and stretch anchors `(0,0)`-`(1,1)`, so the sprite is **uniformly stretched to fill the entire screen** regardless of device aspect. No letterboxing, no `camera.backgroundColor` fallback visible.
+- On 720×1280 / 1080×1920 / 1440×2560 (exact 9:16): no distortion.
+- On 1080×2340 / 1440×3120 (≈ 9:19.5): ~1.2× vertical stretch. Acceptable because the image content is soft gradients + clouds + subtle diagonal geometric shadows — no hard lines or circular elements that would reveal the stretch.
+- On ultrawide / foldable unfolded: further stretch, but still fills the screen. Visual tolerance margin narrows; flagged for W6 #6 2nd-device test.
+- `camera.backgroundColor` remains `(0.08, 0.08, 0.12)` as a defense-in-depth fallback only; in the normal case it is never visible because the BackgroundCanvas fully covers the camera view.
 
 **Intentionally not handled (YAGNI):**
 
@@ -303,9 +307,10 @@ Test fixtures will use `new ScoreManager()` + `Initialize(totalNotes=10)` + `App
 
 **Rollback (per component):**
 
-- Revert SceneBuilder's `LaneAreaWidth` back to 4f + note scale back to 1f → full-width tiles disappear.
-- Revert `BuildBackground` call + `background_gameplay.png` load → revert to camera dark navy.
+- Revert SceneBuilder's `LaneAreaWidth` back to 4f, note prefab `localScale` back to `(0.8f, 0.4f, 1)`, note color back to cream `(1f, 0.95f, 0.85f, 1)` → full-width tiles disappear.
+- Revert `BuildBackgroundCanvas` call + `background_gameplay.png` load → BackgroundCanvas not created; `camera.backgroundColor` fallback becomes the visible background (dark navy).
 - Delete ComboHUD wire-up in SceneBuilder + unused `ComboHUD.cs` stays dormant (no runtime cost if not instantiated).
+- Revert lane divider and judgment line colors to their pre-SP6 values `(0.3, 0.3, 0.4, 0.8)` and `(0.2, 0.9, 1.0, 1)`.
 
 All rollbacks are isolated and do not depend on each other. Background image + postprocessor can stay in repo harmlessly even if SceneBuilder doesn't use them.
 
@@ -319,7 +324,7 @@ All rollbacks are isolated and do not depend on each other. Background image + p
 
 ## 9. Done criteria
 
-- [ ] `SceneBuilder.LaneAreaWidth` is 9f; note prefab scale reflects this.
+- [ ] `SceneBuilder.LaneAreaWidth` is 9f; note prefab `localScale = (2.25f, 0.4f, 1)` and color `(0.08f, 0.08f, 0.12f, 1)`.
 - [ ] `Assets/Sprites/background_gameplay.png` + `.meta` committed; imports as Sprite with Android ASTC.
 - [ ] `BackgroundImporterPostprocessor` enforces settings on re-import.
 - [ ] `ComboHUD` component exists, wired in SceneBuilder, displays live combo with hide-at-zero behavior.
