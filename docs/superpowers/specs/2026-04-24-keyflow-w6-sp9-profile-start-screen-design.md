@@ -57,15 +57,33 @@ StartCanvas (Canvas ScreenSpaceOverlay, sortingOrder 7, CanvasScaler ScaleWithSc
 
 ### 4.2 Hit-box placement
 
-`start.png` has no programmatic metadata for the "시작하기" regions, so hit-boxes are positioned via RectTransform anchors against the CanvasScaler reference resolution (720×1280). Concrete coordinates are authored in `SceneBuilder` as a small `StartLayout` constant block after visual inspection of `start.png`:
+`start.png` has no programmatic metadata for the "시작하기" regions, so hit-boxes are positioned via RectTransform anchors against the CanvasScaler reference resolution (720×1280).
 
-- `NAYOON_ANCHOR = new Vector2(~0.27f, ~0.34f)` (horizontal ~27% from left, vertical ~34% from bottom — left profile card's "시작하기" button)
-- `SOYOON_ANCHOR = new Vector2(~0.73f, ~0.34f)` (right profile card's "시작하기" button)
-- `BUTTON_SIZE = new Vector2(220, 90)` in reference units
+**Concrete measurement procedure** (implementer step, not optional):
 
-Exact numbers are filled in during implementation after measuring `start.png` pixel dimensions; the above is indicative. Hit-box size is deliberately generous (larger than the visible rounded-rect button) to absorb small aspect-ratio drift on non-9:16 devices.
+1. Open `img/start.png` in an image viewer that reports pixel coordinates (Windows Paint, IrfanView, or a Python one-liner `PIL.Image.open('img/start.png').size`).
+2. Record the image's native pixel dimensions as `(W_px, H_px)`.
+3. Identify the center pixel of the 나윤 "시작하기" button's drawn rect — call it `(Nx, Ny)` where Ny is measured from the BOTTOM of the image (Unity UI convention).
+4. Identify the same for 소윤: `(Sx, Sy)`.
+5. Measure the drawn rect's width and height in pixels — `(Bw_px, Bh_px)`. Both buttons share the same size.
+6. Compute normalized anchors (values in [0, 1]):
+   ```
+   NAYOON_ANCHOR = (Nx / W_px, Ny / H_px)
+   SOYOON_ANCHOR = (Sx / W_px, Sy / H_px)
+   ```
+7. Compute reference-unit button size against the 720×1280 CanvasScaler:
+   ```
+   BUTTON_SIZE = (Bw_px * 720 / W_px, Bh_px * 1280 / H_px)
+   ```
+8. Add 20% margin to `BUTTON_SIZE` for thumb-tap forgiveness.
+9. Author the four values as named constants in `SceneBuilder`, with a short comment block showing the source `(Nx, Ny, Sx, Sy, W_px, H_px)` so future maintainers can redo the math if `start.png` changes.
 
-**Aspect-ratio behavior**: `start.png` is authored at an approximately 9:16 ratio (phone portrait). With `matchWidthOrHeight = 0.5`, Unity stretches the sprite to fill while hit-box anchors stay proportional to the canvas. On extreme ratios (tablet 4:3, foldables), the image gets slight horizontal letterbox/pillarbox that matches the hit-box offsets. If S22 playtest reveals that the hit-boxes visibly drift from the drawn buttons, adjustments happen in a single `SceneBuilder` constant block.
+Indicative values (not authoritative — implementer MUST re-measure):
+- `NAYOON_ANCHOR ≈ (0.27, 0.34)`, `SOYOON_ANCHOR ≈ (0.73, 0.34)`, `BUTTON_SIZE ≈ (220, 90)` in reference units with margin.
+
+**Acceptance check** (Play-in-Editor, not device-only): open the regenerated scene, tap the drawn "시작하기" button centers, verify the click lands. Edge-tap on button corners should also register. Misalignment > 20 px in either direction means re-measure.
+
+**Aspect-ratio behavior**: `start.png` is authored at an approximately 9:16 ratio (phone portrait). With `matchWidthOrHeight = 0.5`, Unity stretches the sprite to fill while hit-box anchors stay proportional to the canvas. On extreme ratios (tablet 4:3, foldables), the image gets slight horizontal letterbox/pillarbox that matches the hit-box offsets. If S22 playtest reveals that the hit-boxes visibly drift from the drawn buttons, adjustments happen in the single `SceneBuilder` constant block.
 
 ### 4.3 Profile state
 
@@ -85,7 +103,7 @@ namespace KeyFlow
 
 Rationale for keeping this separate from `SongSession`: `SongSession` carries the song/difficulty pair that drives a single playthrough; `SessionProfile` carries a cross-playthrough identity. One-line classes, single responsibility each — easier to read than a merged bag of static fields.
 
-Default value `Profile.Nayoon` is a safety net for test paths or early boot ticks that read before `StartScreen.Select*` fires. Production always hits the Start screen first.
+Default value `Profile.Nayoon` is a safety net for test paths or early boot ticks that read before `StartScreen.Select*` fires. Production always hits the Start screen first. **Test-author note**: any test that asserts "no profile selected yet" behavior must explicitly reset `SessionProfile.Current = Profile.Nayoon` in `[SetUp]` to avoid state leakage between tests (static field persists across tests in the same AppDomain). NUnit `[SetUp]` is the right place; `[OneTimeSetUp]` is not (isolation between each test matters).
 
 ### 4.4 `StartScreen` MonoBehaviour
 
@@ -154,18 +172,47 @@ namespace KeyFlow.Feedback
 
 ### 4.6 Asset pipeline
 
-Three images from `img/` are imported into `Assets/Sprites/`:
+Two images from `img/` are imported into `Assets/Sprites/` (no existing-file rename — see below for rationale):
 
 - `img/start.png` → `Assets/Sprites/background_start.png`
 - `img/yellow-bg.png` → `Assets/Sprites/background_yellow.png`
-- `img/blue-bg.png` is redundant (byte-identical to existing `Assets/Sprites/background_gameplay.png`). The existing file is renamed to `background_blue.png` for naming symmetry. SceneBuilder's `"Assets/Sprites/background_gameplay.png"` string literal updates to `"Assets/Sprites/background_blue.png"` at the single load site.
 
-Import settings on all three `background_*.png`:
+**`img/blue-bg.png` is intentionally NOT imported.** It is byte-identical to the already-shipped `Assets/Sprites/background_gameplay.png` (SP6 asset). We keep the existing file untouched and treat it as "blue" in the runtime switch. Rationale for not renaming it to `background_blue.png`: `Assets/Editor/BackgroundImporterPostprocessor.cs:10` hardcodes `TargetPath = "Assets/Sprites/background_gameplay.png"` and enforces ASTC compression + no-mipmap import settings. A rename without updating the postprocessor would silently regress those settings; updating the postprocessor to cover both the renamed file and the new yellow file is extra scope for zero user-visible benefit.
+
+**Updates to `BackgroundImporterPostprocessor`** to cover the new yellow file (§4.5 needs it imported with the same settings as blue):
+
+Change from a single `TargetPath` constant to an allowlist of paths that must share import settings:
+
+```csharp
+private static readonly string[] TargetPaths = new[]
+{
+    "Assets/Sprites/background_gameplay.png",
+    "Assets/Sprites/background_yellow.png",
+};
+// Replace `if (assetPath == TargetPath)` with `if (Array.IndexOf(TargetPaths, assetPath) >= 0)`.
+```
+
+`background_start.png` does NOT join the allowlist — the start screen sprite has different needs (sharper presentation for readable text/illustration). Leave it on Unity default import with just a Max Size override via manual TextureImporter setting (or through a separate postprocessor if desired; out of scope).
+
+Import settings on `background_gameplay.png` and `background_yellow.png` (enforced by the updated postprocessor):
 - Texture Type: Sprite (2D and UI)
-- Compression: Default, Android override Max Size 2048 (preserves the full-frame detail at high-DPI devices without inflating APK too much)
-- `raycastTarget` on the resulting Image is off for the start backdrop and gameplay backdrop (taps pass through to buttons / gameplay input).
+- Compression: ASTC 4x4 (existing postprocessor policy)
+- Max Size: per existing policy (verify by reading current postprocessor body)
+- `raycastTarget` on the resulting `Image` is off for the gameplay backdrop so taps pass through to gameplay input.
 
-`img/icon.png` → `Assets/Textures/icon.png` and wired into Player Settings → Icon (Android) as the sole source for all density buckets.
+Import settings on `background_start.png` (manual, not policy-enforced):
+- Texture Type: Sprite (2D and UI)
+- Max Size: Android override 2048 (preserves full-frame detail at high-DPI without inflating APK too much)
+- `raycastTarget` on the resulting `Image` is off; the invisible buttons above it receive taps.
+
+SceneBuilder load paths:
+- `BuildBackgroundCanvas` loads `Assets/Sprites/background_gameplay.png` (blue) — no change from today.
+- Additionally loads `Assets/Sprites/background_yellow.png` and wires both into `BackgroundSwitcher.blueBg` / `yellowBg`.
+- `BuildStartCanvas` (new helper) loads `Assets/Sprites/background_start.png`.
+
+`img/icon.png` → `Assets/Textures/icon.png`. Wired into Player Settings → Icon (Android) as the sole source for all density buckets.
+
+**Docs drift to also update in §5 Modified list:** `README.md:70` currently references `background_gameplay.png` by name; the name stays, but verify the reference still makes sense in context (may need an aside that "gameplay background" is now per-profile).
 
 ### 4.7 Back navigation
 
@@ -194,11 +241,14 @@ APK rebuild picks up the new icon automatically.
 
 **Modified:**
 - `ProjectSettings/ProjectSettings.asset` — Android icon references.
-- `Assets/Editor/SceneBuilder.cs` — `AppScreen.Start` wiring; `BuildStartCanvas` new helper; `BuildBackgroundCanvas` gains BackgroundSwitcher wiring and both-sprites load; background sprite path rename.
-- `Assets/Scripts/UI/ScreenManager.cs` — `AppScreen.Start` enum value; initial `Replace` target; `HandleBack` new Start case; `[SerializeField] BackgroundSwitcher` + `Apply` call in `Replace`.
+- `Assets/Editor/SceneBuilder.cs` — `AppScreen.Start` wiring; `BuildStartCanvas` new helper; `BuildBackgroundCanvas` gains BackgroundSwitcher wiring and both-sprites load.
+- `Assets/Editor/BackgroundImporterPostprocessor.cs` — `TargetPath` string constant replaced with a `TargetPaths[]` allowlist covering both `background_gameplay.png` (existing) and `background_yellow.png` (new). Update the file's leading comment ("Enforces import settings for the single background_gameplay.png asset.") to reflect the two-path coverage.
+- `Assets/Scripts/UI/ScreenManager.cs` — `AppScreen.Start` enum value inserted at the head (reads as logical ordering first→last); initial `Replace` target; `HandleBack` new Start case; `[SerializeField] BackgroundSwitcher` + `Apply` call in `Replace`.
 - `Assets/Scripts/Common/SongSession.cs` — unchanged (profile lives separately).
-- `Assets/Sprites/background_gameplay.png` — renamed to `background_blue.png`; `.meta` GUID preserved via git-aware rename if possible, otherwise regenerated (SceneBuilder is the only referer by path, so GUID churn is safe).
+- `Assets/Sprites/background_gameplay.png` — unchanged (still the blue asset; no rename).
 - `Assets/Scenes/GameplayScene.unity` — regenerated.
+- `ProjectSettings/ProjectSettings.asset` — Android icon. Prior commits touching this file (`git log` shows portrait flip, InputActions preload, Android player config — all manual edits) confirm precedent for manual ProjectSettings-only commits.
+- `README.md` — potential reference update if any build-instructions or screenshot description mentions the blue-only background.
 
 **New:**
 - `Assets/Scripts/Common/Profile.cs` + meta
@@ -251,7 +301,7 @@ Hit-box coordinate tuning happens as part of step 6 — `SceneBuilder` constants
 - Boot → Start screen shows the backdrop.
 - Tap Nayoon's "시작하기" region → MainScreen. Tap a song → blue gameplay bg.
 - Back out to Main → Back again → Start. Tap Soyoon → Main → song → yellow gameplay bg.
-- Back twice from Start → Application.Quit triggers (or logged).
+- Back twice from Start → Application.Quit is a no-op in Editor (Unity limitation) but the code path runs; add a `Debug.Log("[ScreenManager] Quit requested on double-back from Start")` at the quit site so the editor test confirms the branch reaches the call. Real quit only verifiable on device.
 
 **Device playtest (S22, release APK)**:
 1. Launcher icon verified as the new `icon.png`.
@@ -269,7 +319,7 @@ Hit-box coordinate tuning happens as part of step 6 — `SceneBuilder` constants
 | Start sprite byte-bloat (1.9 MB) on APK | Low | Low | Android compression override; combined net delta ≤ +500 KB expected; completion report records actual. |
 | Icon change doesn't survive Unity's Android icon cache / Gradle incremental | Low | Low | Clean-rebuild APK if icon appears stale; verified on install, not on edit. |
 | Back-button behavior on Start (quit flow) breaks ADB `adb shell input keyevent KEYCODE_BACK` automation if we ever add it | Low | Low | Out of scope for this SP; note in carry-overs. |
-| Test scaffolding for StartScreen depends on a `ScreenManager.Instance` in the EditMode host, which may not be wired | Medium | Low | Use test-specific `ScreenManager.SetInstanceForTest` or construct a throwaway instance in `[SetUp]`; extend existing pattern in `ScreenManagerTests`. |
+| Test scaffolding for StartScreen depends on a `ScreenManager.Instance` in the EditMode host | Low | Low | Existing `ScreenManagerTests.cs` pattern already handles this: `sm = mgr.AddComponent<ScreenManager>()` triggers `Awake()` which assigns `Instance = this`. No new seam needed. |
 
 ## 9. Success criteria
 
