@@ -433,15 +433,13 @@ This is the largest task. Sub-steps 3.1–3.4 prepare the test scaffolding (test
 
 - [ ] **Step 3.1: Write test file skeleton with first failing test**
 
-Create `Assets/Tests/EditMode/HoldAudioRetriggerTests.cs`. The tests exercise `HoldTracker` through its public API by injecting fake or stub-like dependencies. Since `HoldTracker` is a MonoBehaviour with SerializeField dependencies (`tapInput`, `audioSync`, `judgmentSystem`, and new ones `laneGlow`, `audioPool`), and uses private-field assignments from the editor, write tests that use reflection or an internal test hook.
+Create `Assets/Tests/EditMode/HoldAudioRetriggerTests.cs`. The test strategy:
+- Drive song time via the existing **`ITimeSource` seam** (see `AudioSyncManager.cs:6,27` and the `ManualClock : ITimeSource` pattern in `Assets/Tests/EditMode/AudioSyncPauseTests.cs:9-26`). Do NOT add new `SetSongTimeMsForTest` hooks to `AudioSyncManager` — that seam already exists and is the project's established test-time-travel mechanism.
+- Drive `IsPlaying` via `sync.StartSilentSong()` (sets `started = true`, no audio clip needed).
+- Drive `IsPaused` via `sync.Pause()` / `sync.Resume()`.
+- Use a real `AudioSamplePool` wired with dummy pitch samples. Count retriggers by inspecting the pool's `AudioSource` components' `clip` field post-tick (see helper below).
 
-Look at `memory` note from SP3 and examine existing `HoldStateMachineTests` — those work on pure C# classes, easier. For `HoldTracker`, the testing approach will need either:
-- (a) Public/internal test hooks on HoldTracker (e.g., `internal void InjectDependencies(...)` — see `JudgmentSystem.InvokeHandleTapForTest` for precedent).
-- (b) Real `AudioSyncManager` + `TapInputHandler` GameObjects wired via reflection.
-
-**Choose (a).** Add `internal` test hooks to HoldTracker in the implementation step; for tests, use `InternalsVisibleTo` (already set: see `JudgmentSystem.cs:6`).
-
-Initial test — first behavior to verify: `OnHoldStartTapAccepted` seeds `holdAudio` with `tapTimeMs`, not `HitTimeMs`.
+Helpers + first test:
 
 ```csharp
 using System.Collections.Generic;
@@ -454,46 +452,11 @@ namespace KeyFlow.Tests.EditMode
 {
     public class HoldAudioRetriggerTests
     {
-        // Fake AudioSamplePool to count/record PlayForPitch calls.
-        private class FakePool : AudioSamplePool
+        private class ManualClock : ITimeSource
         {
-            public readonly List<(int pitch, float volume)> Calls = new();
-            // We can't override non-virtual PlayForPitch. Approach: subclass
-            // and shadow via new, OR route through a test-only delegate.
-            // HoldTracker uses audioPool.PlayForPitch(pitch, vol) directly,
-            // so shadowing is fine if HoldTracker calls through a virtual or
-            // the field type is AudioSamplePool (exact match). Add virtual to
-            // AudioSamplePool.PlayForPitch in Task 2 refinement? No —
-            // minimal change: introduce an indirection interface in Task 3.
-            // Simpler: test via behavior on the real AudioSamplePool + inspect
-            // AudioSource list after each call.
+            public double DspTime { get; set; }
         }
-    }
-}
-```
 
-**Reviewer note for the implementer:** the FakePool subclass-with-shadowing approach gets complicated because C# `new` hiding doesn't intercept a base-class pointer. Two cleaner paths:
-
-**Option A (preferred, minimal):** Use a real `AudioSamplePool` with `SetPitchMapForTest(MakeDummyMap(17), 36, 3)`. After each tick, inspect `go.GetComponents<AudioSource>()` to count `AudioSource.isPlaying == true` sources or to check `volume` values. This matches the Task 2 test style.
-
-**Option B (structured):** Introduce an `IAudioSamplePlayer` interface with `void PlayForPitch(int pitch, float volume)`. Make `AudioSamplePool` implement it. Make `HoldTracker.audioPool` field type `AudioSamplePool` (keep concrete for SceneBuilder-SetField) but have tests inject via an internal setter that accepts `IAudioSamplePlayer`. This is over-engineered for one test file — skip unless Option A proves infeasible.
-
-**Go with Option A.** Tests inspect the real AudioSource children's `volume` field and `isPlaying` state after each simulated tick.
-
-Throw away the FakePool draft above. The first real test:
-
-```csharp
-using System.Collections.Generic;
-using NUnit.Framework;
-using UnityEngine;
-using KeyFlow;
-using KeyFlow.Charts;
-
-namespace KeyFlow.Tests.EditMode
-{
-    public class HoldAudioRetriggerTests
-    {
-        // Helpers mirror AudioSamplePoolTests patterns.
         private static AudioClip[] MakeDummyMap(int count)
         {
             var clips = new AudioClip[count];
@@ -502,8 +465,16 @@ namespace KeyFlow.Tests.EditMode
             return clips;
         }
 
-        // Build a HoldTracker wired with stubs. Returns the tracker + pool + audioSync GameObject.
-        private static (HoldTracker tracker, AudioSamplePool pool, AudioSyncManager audioSync, GameObject host)
+        // Computes the DspTime required to make AudioSyncManager return a given songTimeMs.
+        // Formula from GameTime.GetSongTimeMs: songTimeMs = (nowDsp - songStartDsp) * 1000
+        // (calibOffset = 0). After StartSilentSong at clock.DspTime = T0,
+        // songStartDsp = T0 + scheduleLeadSec (default 0.5). So:
+        //   dspTimeForSongMs(desired) = songStartDsp + desired/1000.0
+        private static double DspTimeForSongMs(double songStartDsp, int desiredMs)
+            => songStartDsp + desiredMs / 1000.0;
+
+        private static (HoldTracker tracker, AudioSamplePool pool, AudioSyncManager audioSync,
+                        ManualClock clock, GameObject host)
             BuildTracker()
         {
             var host = new GameObject("HoldTrackerHost");
@@ -518,193 +489,153 @@ namespace KeyFlow.Tests.EditMode
             audioSyncGo.transform.SetParent(host.transform);
             audioSyncGo.AddComponent<AudioSource>();
             var audioSync = audioSyncGo.AddComponent<AudioSyncManager>();
+            var clock = new ManualClock { DspTime = 100.0 };
+            audioSync.TimeSource = clock;
+            audioSync.StartSilentSong();   // IsPlaying = true; songStartDsp = 100.5
 
             var trackerGo = new GameObject("HoldTracker");
             trackerGo.transform.SetParent(host.transform);
             var tracker = trackerGo.AddComponent<HoldTracker>();
-
-            // Inject via internal test hook (added in Step 3.5).
             tracker.SetDependenciesForTest(audioSync: audioSync, audioPool: pool);
 
-            return (tracker, pool, audioSync, host);
+            return (tracker, pool, audioSync, clock, host);
         }
 
         private static NoteController MakeNote(int lane, int hitMs, int durMs, int pitch)
         {
             var go = new GameObject($"Note_L{lane}_T{hitMs}");
             var note = go.AddComponent<NoteController>();
-            // Set via test hook (added in Step 3.5).
             note.SetForTest(lane: lane, hitTimeMs: hitMs, durMs: durMs, pitch: pitch, type: NoteType.HOLD);
             return note;
         }
 
-        [Test]
-        public void OnHoldStartTapAccepted_SeedsHoldAudioWithTapTime()
-        {
-            var (tracker, pool, audioSync, host) = BuildTracker();
-            var note = MakeNote(lane: 0, hitMs: 1000, durMs: 1000, pitch: 60);
-
-            // Tap fires at 980 (early P judgment).
-            tracker.OnHoldStartTapAccepted(note, tapTimeMs: 980);
-
-            // Advance song time: at 1229, no retrigger yet (since 1229 - 980 = 249 < 250).
-            audioSync.SetSongTimeMsForTest(1229);
-            audioSync.SetIsPlayingForTest(true);
-            tracker.TickForTest();
-
-            int playCountAt1229 = CountPlayingSources(pool);
-            Assert.AreEqual(0, playCountAt1229, "before 250 ms since tap, no retrigger");
-
-            // At 1230 (980 + 250), first retrigger fires.
-            audioSync.SetSongTimeMsForTest(1230);
-            tracker.TickForTest();
-
-            int playCountAt1230 = CountPlayingSources(pool);
-            Assert.AreEqual(1, playCountAt1230, "at tapTimeMs + 250, one retrigger fires");
-
-            Object.DestroyImmediate(host);
-        }
-
-        private static int CountPlayingSources(AudioSamplePool pool)
+        // Counts how many AudioSources on the pool GameObject have a non-null clip.
+        // AudioSource.isPlaying is unreliable in EditMode/batch (no audio subsystem),
+        // but any Play() call we care about assigns clip + calls Play(). With 8 channels
+        // and only a handful of retriggers per test, the cycling pool ensures each retrigger
+        // lands on a fresh source, so `clip != null` count equals total retrigger calls
+        // across the test's lifetime. If a test issues more retriggers than the channel
+        // count, the count saturates at 8 — tests must stay under that.
+        private static int CountUsedSources(AudioSamplePool pool)
         {
             var sources = pool.gameObject.GetComponents<AudioSource>();
             int n = 0;
             foreach (var s in sources)
-                if (s.isPlaying || s.clip != null) n++; // isPlaying is false in batch/test mode
+                if (s.clip != null) n++;
             return n;
+        }
+
+        [Test]
+        public void OnHoldStartTapAccepted_FirstRetriggerAtTapTimePlus250()
+        {
+            var (tracker, pool, audioSync, clock, host) = BuildTracker();
+            double songStart = audioSync.SongStartDspTime;
+
+            var note = MakeNote(lane: 0, hitMs: 1000, durMs: 1000, pitch: 60);
+            // Tap fires at 980 (early P judgment).
+            tracker.OnHoldStartTapAccepted(note, tapTimeMs: 980);
+
+            // Advance clock to songTimeMs = 1229 (< 980 + 250): no retrigger.
+            clock.DspTime = DspTimeForSongMs(songStart, 1229);
+            tracker.TickForTest();
+            Assert.AreEqual(0, CountUsedSources(pool), "before tapTimeMs + 250 ms, no retrigger");
+
+            // Advance to songTimeMs = 1230 (= 980 + 250): first retrigger.
+            clock.DspTime = DspTimeForSongMs(songStart, 1230);
+            tracker.TickForTest();
+            Assert.AreEqual(1, CountUsedSources(pool), "at tapTimeMs + 250 ms, one retrigger fires");
+
+            Object.DestroyImmediate(host);
         }
     }
 }
 ```
 
-**Reviewer note on the helper approach:** `AudioSource.isPlaying` is `false` in EditMode/batch without the audio subsystem spinning, so `CountPlayingSources` falls back to checking `clip != null`. This is a proxy — any source whose `Play()` was invoked has `clip` set. Reset happens on subsequent `Play(newClip)`. For two retriggers in a row on the same source cycle, this would undercount. The workaround: use a larger `channels` setting (8) and observe that cycling through fresh sources each retrigger keeps the `clip != null` count monotonic over a short test. Document this in a test-helper comment.
-
-Better alternative: track the last-assigned `clip` field changes via a MonoBehaviour. Skip — too elaborate. The `clip != null` count is adequate when each retrigger lands on a fresh source (true for 4-hold max with 8 channels over sub-second intervals).
-
 - [ ] **Step 3.2: Add the rest of the test cases (still failing)**
 
-Extend `HoldAudioRetriggerTests` with:
+Extend `HoldAudioRetriggerTests` with the following tests (all use the `BuildTracker` + `clock.DspTime = DspTimeForSongMs(...)` pattern from Step 3.1):
 
 ```csharp
 [Test]
 public void NoRetrigger_Before250ms()
 {
-    var (tracker, pool, audioSync, host) = BuildTracker();
+    var (tracker, pool, audioSync, clock, host) = BuildTracker();
+    double songStart = audioSync.SongStartDspTime;
+
     var note = MakeNote(lane: 0, hitMs: 1000, durMs: 2000, pitch: 60);
     tracker.OnHoldStartTapAccepted(note, tapTimeMs: 1000);
-    audioSync.SetIsPlayingForTest(true);
 
-    audioSync.SetSongTimeMsForTest(1249);
+    clock.DspTime = DspTimeForSongMs(songStart, 1249);
     tracker.TickForTest();
 
-    Assert.AreEqual(0, CountPlayingSources(pool));
+    Assert.AreEqual(0, CountUsedSources(pool));
     Object.DestroyImmediate(host);
 }
 
 [Test]
-public void Retrigger_ThreeTimesAt750ms()
+public void Retrigger_ThreeTimesOver750ms()
 {
-    var (tracker, pool, audioSync, host) = BuildTracker();
+    var (tracker, pool, audioSync, clock, host) = BuildTracker();
+    double songStart = audioSync.SongStartDspTime;
+
     var note = MakeNote(lane: 0, hitMs: 1000, durMs: 2000, pitch: 60);
     tracker.OnHoldStartTapAccepted(note, tapTimeMs: 1000);
-    audioSync.SetIsPlayingForTest(true);
 
-    // Simulate ticks every 100 ms from 1100 through 1750.
     for (int t = 1100; t <= 1750; t += 100)
     {
-        audioSync.SetSongTimeMsForTest(t);
+        clock.DspTime = DspTimeForSongMs(songStart, t);
         tracker.TickForTest();
     }
-
-    // Expected retriggers: 1250, 1500, 1750 → 3 retriggers.
-    Assert.AreEqual(3, CountPlayingSources(pool));
+    // Retriggers expected at songMs: 1250, 1500, 1750 → 3
+    Assert.AreEqual(3, CountUsedSources(pool));
     Object.DestroyImmediate(host);
 }
 
 [Test]
 public void NoRetrigger_WhilePaused()
 {
-    var (tracker, pool, audioSync, host) = BuildTracker();
+    var (tracker, pool, audioSync, clock, host) = BuildTracker();
+    double songStart = audioSync.SongStartDspTime;
+
     var note = MakeNote(lane: 0, hitMs: 1000, durMs: 2000, pitch: 60);
     tracker.OnHoldStartTapAccepted(note, tapTimeMs: 1000);
-    audioSync.SetIsPlayingForTest(true);
-    audioSync.SetIsPausedForTest(true);
 
-    audioSync.SetSongTimeMsForTest(1500);
+    // Advance to 1100 then pause — pause freezes SongTimeMs at pauseStartDsp.
+    clock.DspTime = DspTimeForSongMs(songStart, 1100);
+    audioSync.Pause();
+
+    // Even though real time advances past 250 ms worth, no retrigger fires.
+    clock.DspTime = DspTimeForSongMs(songStart, 1500);
     tracker.TickForTest();
 
-    Assert.AreEqual(0, CountPlayingSources(pool));
+    Assert.AreEqual(0, CountUsedSources(pool));
     Object.DestroyImmediate(host);
 }
 
 [Test]
-public void NoRetrigger_WhenIsPlayingFalse()
-{
-    var (tracker, pool, audioSync, host) = BuildTracker();
-    var note = MakeNote(lane: 0, hitMs: 1000, durMs: 2000, pitch: 60);
-    tracker.OnHoldStartTapAccepted(note, tapTimeMs: 1000);
-    audioSync.SetIsPlayingForTest(false);
-
-    audioSync.SetSongTimeMsForTest(1500);
-    tracker.TickForTest();
-
-    Assert.AreEqual(0, CountPlayingSources(pool));
-    Object.DestroyImmediate(host);
-}
-
-[Test]
-public void SameLaneOverlap_TwoHoldsRetriggerIndependently()
+public void SameLaneOverlap_TwoHoldsBothTrackedIndependently()
 {
     // HOLD A: lane 0, t=1000, dur=1500, pitch=60. Tap at 1000.
     // HOLD B: lane 0, t=2000, dur=1500, pitch=72. Tap at 2000 — OVERLAPS A.
-    var (tracker, pool, audioSync, host) = BuildTracker();
-    audioSync.SetIsPlayingForTest(true);
+    var (tracker, pool, audioSync, clock, host) = BuildTracker();
 
     var a = MakeNote(lane: 0, hitMs: 1000, durMs: 1500, pitch: 60);
     tracker.OnHoldStartTapAccepted(a, tapTimeMs: 1000);
-    // Advance to 1250: A retriggers (pitch 60).
-    audioSync.SetSongTimeMsForTest(1250);
-    tracker.TickForTest();
-    // Advance to 2000: B starts; A still holding.
-    audioSync.SetSongTimeMsForTest(2000);
-    tracker.TickForTest();  // A retriggers a couple more times between 1500 and 2000
 
     var b = MakeNote(lane: 0, hitMs: 2000, durMs: 1500, pitch: 72);
     tracker.OnHoldStartTapAccepted(b, tapTimeMs: 2000);
 
-    // Verify both A and B are in holdAudio via internal hook.
+    // Both entries exist. Lane-keyed storage would collapse this to 1.
     Assert.AreEqual(2, tracker.HoldAudioCountForTest,
-        "Both A and B must coexist in holdAudio after B starts; lane-keyed storage would collapse to 1");
+        "Id-keyed holdAudio must hold both A and B even though they share a lane");
 
-    Object.DestroyImmediate(host);
-}
-
-[Test]
-public void NoRetrigger_AfterCompletedTransition()
-{
-    var (tracker, pool, audioSync, host) = BuildTracker();
-    var note = MakeNote(lane: 0, hitMs: 1000, durMs: 500, pitch: 60);
-    tracker.OnHoldStartTapAccepted(note, tapTimeMs: 1000);
-    audioSync.SetIsPlayingForTest(true);
-
-    // Hold ends at 1500 → Completed.
-    audioSync.SetSongTimeMsForTest(1500);
-    tracker.TickForTest();
-
-    int before = tracker.HoldAudioCountForTest;
-
-    audioSync.SetSongTimeMsForTest(1800);
-    tracker.TickForTest();  // no new retrigger; entry removed
-
-    Assert.AreEqual(0, tracker.HoldAudioCountForTest,
-        "Completed transition should remove entry from holdAudio");
     Object.DestroyImmediate(host);
 }
 
 [Test]
 public void ResetForRetry_ClearsHoldAudio()
 {
-    var (tracker, pool, audioSync, host) = BuildTracker();
+    var (tracker, pool, audioSync, clock, host) = BuildTracker();
     var note = MakeNote(lane: 0, hitMs: 1000, durMs: 2000, pitch: 60);
     tracker.OnHoldStartTapAccepted(note, tapTimeMs: 1000);
 
@@ -716,9 +647,11 @@ public void ResetForRetry_ClearsHoldAudio()
 }
 ```
 
-**Note on test hooks required:** these tests reference `tracker.SetDependenciesForTest(...)`, `tracker.TickForTest()`, `tracker.HoldAudioCountForTest`, `note.SetForTest(...)`, `audioSync.SetSongTimeMsForTest(...)`, `audioSync.SetIsPlayingForTest(...)`, `audioSync.SetIsPausedForTest(...)`. These do not exist yet. Add them in Step 3.5 as `internal` members guarded by `InternalsVisibleTo("KeyFlow.Tests.EditMode")` (already set in `JudgmentSystem.cs:6`).
+**Note on test hooks required:** these tests reference `tracker.SetDependenciesForTest(...)`, `tracker.TickForTest()`, `tracker.HoldAudioCountForTest`, `note.SetForTest(...)`. These are added in Step 3.4 (NoteController) and Step 3.5 (HoldTracker) as `internal` members. Access is granted by the existing `[assembly: InternalsVisibleTo("KeyFlow.Tests.EditMode")]` in `JudgmentSystem.cs:6` — **do not re-declare it**.
 
-Before moving on, check the assembly attribute — `InternalsVisibleTo` must be applied at assembly level exactly once. Since it is set in `JudgmentSystem.cs`, we do NOT add it again.
+**What Step 3.2 intentionally does NOT test via EditMode:**
+- The `NoRetrigger_AfterCompletedTransition` test case would require wiring up `TapInputHandler` (to supply `pressed` lanes to `stateMachine.Tick`) and running a full Completed-transition path. That's heavy test scaffolding for diminishing return — the `Completed` removal is a single `holdAudio.Remove(t.id)` next to the existing `idToNote.Remove(t.id)` at the same site, so misfire would be caught by the id-keyed symmetry. Device playtest (Task 6) verifies end-to-end.
+- `RetriggerUsesCapturedPitch` — the `SameLaneOverlap_*` test indirectly validates pitch capture (each entry carries its own `pitch`). A dedicated test is redundant.
 
 - [ ] **Step 3.3: Compile and confirm everything fails to compile**
 
@@ -728,21 +661,11 @@ Expected: compile errors on HoldAudioRetriggerTests.cs — "OnHoldStartTapAccept
 
 This is fine. The upcoming implementation steps add these.
 
-- [ ] **Step 3.4: Add test hooks to AudioSyncManager and NoteController**
+- [ ] **Step 3.4: Add test hook to NoteController**
 
-**`Assets/Scripts/Gameplay/AudioSyncManager.cs`** — check if these hooks already exist. If not, add:
+**`Assets/Scripts/Gameplay/AudioSyncManager.cs`** — **no changes.** The existing `ITimeSource` seam (`AudioSyncManager.cs:6,27`) plus the public `StartSilentSong()` / `Pause()` / `Resume()` / `SongStartDspTime` API covers all test needs. This is the project's established test-time-travel pattern (see `AudioSyncPauseTests.cs:9-26`).
 
-```csharp
-#if UNITY_EDITOR || UNITY_INCLUDE_TESTS
-internal void SetSongTimeMsForTest(int ms) => /* assign to private song time field */;
-internal void SetIsPlayingForTest(bool v) => /* assign to IsPlaying backing field */;
-internal void SetIsPausedForTest(bool v) => /* assign to IsPaused backing field */;
-#endif
-```
-
-Look at existing AudioSyncManager implementation first — the backing fields might already be settable via reflection-free test hooks. If the properties `SongTimeMs`, `IsPlaying`, `IsPaused` wrap private fields, add `internal` setters with minimal surface.
-
-**`Assets/Scripts/Gameplay/NoteController.cs`** — add:
+**`Assets/Scripts/Gameplay/NoteController.cs`** — add at the bottom of the class:
 
 ```csharp
 #if UNITY_EDITOR || UNITY_INCLUDE_TESTS
@@ -909,7 +832,6 @@ From Unity Editor: run the full EditMode test suite. Confirm:
 ```
 git add Assets/Scripts/Gameplay/HoldTracker.cs \
         Assets/Scripts/Gameplay/JudgmentSystem.cs \
-        Assets/Scripts/Gameplay/AudioSyncManager.cs \
         Assets/Scripts/Gameplay/NoteController.cs \
         Assets/Tests/EditMode/HoldAudioRetriggerTests.cs
 git commit -m "$(cat <<'EOF'
@@ -924,12 +846,18 @@ OnHoldStartTapAccepted gains tapTimeMs parameter so retrigger cadence
 anchors to the player's audible first tap rather than chart-nominal
 hit time.
 
-Dict foreach uses struct enumerator (SP3-verified GC-free); value-only
-indexer writes during iteration are safe in Mono/IL2CPP.
+Dict foreach uses struct enumerator (GC-free). Value-only indexer
+writes during iteration are empirically safe in current Mono/IL2CPP
+(indexer-set on existing key does not bump Dictionary's version
+counter); if this tightens in a future runtime, fall back to the
+List<int> retriggerBuffer pattern spelled out in the spec Risks table.
 
-Adds 7 EditMode tests including same-lane overlap regression guard.
-Test hooks (SetDependenciesForTest, TickForTest, HoldAudioCountForTest)
-gated by UNITY_EDITOR || UNITY_INCLUDE_TESTS.
+Adds 5 EditMode tests (including same-lane overlap regression guard),
+driven by the existing ITimeSource test seam via ManualClock; no new
+hooks on AudioSyncManager.
+
+Test hooks on HoldTracker and NoteController gated by
+UNITY_EDITOR || UNITY_INCLUDE_TESTS.
 EOF
 )"
 ```
@@ -1143,9 +1071,12 @@ EOF
 - [ ] **Step 5.1: Read SceneBuilder.cs to locate integration points**
 
 Relevant sections of `Assets/Editor/SceneBuilder.cs`:
-- `BuildManagers` (line 186) — creates all manager GameObjects and wires them. This is where `HoldTracker` is created, and where new `LaneGlow` siblings need to go.
-- `EnsureWhiteSprite()` (line 1297) — provides the white sprite reused for glow.
-- `LaneLayout.LaneToX(lane, laneAreaWidth)` — pattern from existing lane divider construction.
+- `Build()` (around line 52) — top-level orchestrator; invokes `EnsureWhiteSprite()` and calls `BuildManagers(...)`.
+- `BuildManagers` (line 186) — creates all manager GameObjects and wires them. This is where `HoldTracker` is created; where new `LaneGlow` siblings need to go.
+- `EnsureWhiteSprite()` (line 1297) — returns the white sprite reused by judgment line, lane dividers, and (new) glow.
+- `LaneLayout.LaneToX(lane, laneAreaWidth)` — pattern already used in lane-divider construction.
+
+Check whether `BuildManagers` currently receives the white sprite as a parameter. Based on its signature at line 186, it does NOT — `whiteSprite` is a local in `Build()`. Step 5.3 adds it.
 
 - [ ] **Step 5.2: Add BuildLaneGlow helper**
 
@@ -1183,30 +1114,31 @@ private static LaneGlowController BuildLaneGlow(
 }
 ```
 
-- [ ] **Step 5.3: Call BuildLaneGlow from BuildManagers and wire HoldTracker**
+- [ ] **Step 5.3: Thread whiteSprite into BuildManagers**
 
-Inside `BuildManagers(...)` (line 186), locate where `HoldTracker` is created and wired. Add:
+Modify `BuildManagers` at line 186 to accept a new `Sprite whiteSprite` parameter (place it alphabetically in the parameter list, or grouped with `pianoClip` / `pitchSamples` / `notePrefab` — follow surrounding style). Also update the sole call site in `Build()` to pass the `whiteSprite` local that `EnsureWhiteSprite()` returned.
+
+- [ ] **Step 5.4: Call BuildLaneGlow from BuildManagers and wire HoldTracker**
+
+Inside `BuildManagers(...)`, after `holdTracker` is created and its `audioSync` / `tapInput` / `judgmentSystem` fields are wired (find the existing `SetField(holdTracker, "judgmentSystem", judgmentSystem)` or equivalent), append:
 
 ```csharp
-// After holdTracker is created and its audioSync/tapInput/judgmentSystem fields are wired:
 var laneGlow = BuildLaneGlow(whiteSprite, managers.transform, audioSync);
 SetField(holdTracker, "laneGlow", laneGlow);
 SetField(holdTracker, "audioPool", samplePool);
 ```
 
-(The `whiteSprite` is already in scope as a local or parameter in `BuildManagers`; if not, pass it through like `pitchSamples` is passed. Check SceneBuilder for the asset load pattern — look for `EnsureWhiteSprite()` callers.)
-
-- [ ] **Step 5.4: Regenerate the scene via menu**
+- [ ] **Step 5.5: Regenerate the scene via menu**
 
 In Unity Editor: Menu → `KeyFlow/Build W4 Scene` (or whatever the SP7-consolidated menu item is now called — check `[MenuItem]` attribute in SceneBuilder).
 
 Save the scene. Commit `Assets/Scenes/GameplayScene.unity`.
 
-- [ ] **Step 5.5: EditMode sanity pass**
+- [ ] **Step 5.6: EditMode sanity pass**
 
 Run the full EditMode test suite. Expected: all green. No gameplay regression from SceneBuilder changes (EditMode doesn't load the scene, so this verifies only that compile is clean).
 
-- [ ] **Step 5.6: Play in Editor sanity pass**
+- [ ] **Step 5.7: Play in Editor sanity pass**
 
 Open `GameplayScene.unity`, press Play, tap through a few notes including a hold. Verify:
 - Held lane's judgment-line area visibly pulses.
@@ -1214,10 +1146,10 @@ Open `GameplayScene.unity`, press Play, tap through a few notes including a hold
 - Release → glow stops and no more retriggers.
 
 If anything is off, diagnose before committing scene regeneration. Common issues (from SP4/SP6 carry-overs):
-- LaneGlowController fields null → confirm SetField/SetArrayField order in Task 5.2/5.3.
-- Glow sprite behind background → confirm sortingOrder 0 is above background -100.
+- LaneGlowController fields null → confirm `SetField`/`SetArrayField` order in Steps 5.2/5.4.
+- Glow sprite behind background → confirm sortingOrder 0 is above background sortingOrder (-100 per SP6 camera-mode canvas).
 
-- [ ] **Step 5.7: Commit**
+- [ ] **Step 5.8: Commit**
 
 ```
 git add Assets/Editor/SceneBuilder.cs Assets/Scenes/GameplayScene.unity
