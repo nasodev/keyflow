@@ -36,7 +36,7 @@ Qualitative success criteria (spec §9) split cleanly by category:
 ## 3. Files touched
 
 **Modified:**
-- `Assets/Editor/BackgroundImporterPostprocessor.cs` — `TargetPath` → `TargetPaths[]` allowlist covering both `background_gameplay.png` and `background_yellow.png`.
+- `Assets/Editor/BackgroundImporterPostprocessor.cs` — `TargetPath` → `TargetPaths[]` allowlist covering all three full-screen backgrounds: `background_gameplay.png`, `background_yellow.png`, `background_start.png`. (Spec §4.6 originally excluded `background_start.png` as a compression-quality judgment call. Final holistic code review flagged the exclusion as a hidden-coupling footgun — if a contributor deletes `background_start.png.meta`, ASTC 4x4 enforcement reverts to default compression. Trade-off decided in favor of consistency: add to allowlist; accept ASTC 4x4 on the illustration; revisit if device playtest shows visible compression artifacts on `start.png`.)
 - `Assets/Editor/SceneBuilder.cs` — new `BuildStartCanvas` + `BuildInvisibleButton` helpers; `BuildBackgroundCanvas` signature changed to `(Sprite blueBg, Sprite yellowBg, Camera cam) → BackgroundSwitcher`; `Build()` loads 3 sprites; ScreenManager wiring adds `startRoot` + `backgroundSwitcher`.
 - `Assets/Scripts/UI/ScreenManager.cs` — `AppScreen` gains `Start` at enum head; `startRoot` + `backgroundSwitcher` SerializeFields; `Replace` fires `BackgroundSwitcher.Apply` on Gameplay; `HandleBack` Main→Start, Start→double-back quit with `Debug.Log`.
 - `Assets/Scripts/Feedback/BackgroundSwitcher.cs` — one-line retroactive change in Task 4+5: `public void Apply` → `public virtual void Apply`.
