@@ -141,5 +141,44 @@ namespace KeyFlow.Tests.EditMode
 
             Object.DestroyImmediate(go);
         }
+
+        [Test]
+        public void PlayForPitch_NoVolumeArg_UsesVolumeOne()
+        {
+            var go = new GameObject("pool");
+            var pool = go.AddComponent<AudioSamplePool>();
+            pool.InitializeForTest(channels: 4);
+            pool.SetPitchMapForTest(MakeDummyMap(17), baseMidiValue: 36, stepSemitonesValue: 3);
+
+            // Pre-set volume away from 1 so the test verifies PlayForPitch ACTUALLY assigns volume,
+            // not that AudioSource defaulted to 1.
+            var sources = go.GetComponents<AudioSource>();
+            sources[0].volume = 0.5f;
+
+            pool.PlayForPitch(60);
+
+            Assert.AreEqual(1f, sources[0].volume, "default PlayForPitch should use volume = 1");
+            Object.DestroyImmediate(go);
+        }
+
+        [Test]
+        public void PlayForPitch_WithVolumeArg_PassesToSource()
+        {
+            var go = new GameObject("pool");
+            var pool = go.AddComponent<AudioSamplePool>();
+            pool.InitializeForTest(channels: 4);
+            pool.SetPitchMapForTest(MakeDummyMap(17), baseMidiValue: 36, stepSemitonesValue: 3);
+
+            // Pre-set volume away from 0.7 so the test verifies PlayForPitch ACTUALLY assigns
+            // the passed volume, not that AudioSource happened to hold it.
+            var sources = go.GetComponents<AudioSource>();
+            sources[0].volume = 0.5f;
+
+            pool.PlayForPitch(60, volume: 0.7f);
+
+            Assert.AreEqual(0.7f, sources[0].volume, 1e-5f);
+
+            Object.DestroyImmediate(go);
+        }
     }
 }

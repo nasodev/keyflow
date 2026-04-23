@@ -52,24 +52,26 @@ namespace KeyFlow
             return src;
         }
 
-        public void PlayOneShot(AudioClip clip = null)
+        public void PlayOneShot(AudioClip clip = null, float volume = 1f)
         {
             var src = NextSource();
             src.pitch = 1f;
+            src.volume = volume;
             src.PlayOneShot(clip ?? defaultClip);
         }
 
-        public void PlayForPitch(int midiPitch)
+        public void PlayForPitch(int midiPitch, float volume = 1f)
         {
             var (clip, ratio) = ResolveSample(midiPitch, pitchSamples, baseMidi, stepSemitones);
             if (clip == null)
             {
-                PlayOneShot();
+                PlayOneShot(volume: volume);
                 return;
             }
             var src = NextSource();
             src.pitch = ratio;
             src.clip = clip;
+            src.volume = volume;
             src.Play();
         }
 
