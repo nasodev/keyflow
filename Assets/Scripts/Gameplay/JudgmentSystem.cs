@@ -113,7 +113,7 @@ namespace KeyFlow
             if (closest.Type == NoteType.HOLD && holdTracker != null)
             {
                 closest.MarkAcceptedAsHold();
-                holdTracker.OnHoldStartTapAccepted(closest);
+                holdTracker.OnHoldStartTapAccepted(closest, tapTimeMs);
             }
             else
             {

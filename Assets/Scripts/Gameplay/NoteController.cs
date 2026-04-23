@@ -116,5 +116,17 @@ namespace KeyFlow
                 Destroy(gameObject);
             }
         }
+
+#if UNITY_EDITOR || UNITY_INCLUDE_TESTS
+        internal void SetForTest(int lane, int hitTimeMs, int durMs, int pitch, NoteType type)
+        {
+            this.lane = lane;
+            this.hitTimeMs = hitTimeMs;
+            this.durMs = durMs;
+            this.pitch = pitch;
+            this.noteType = type;
+            // Do NOT flip `initialized` — Update guards on it, but the tests don't call Update.
+        }
+#endif
     }
 }
