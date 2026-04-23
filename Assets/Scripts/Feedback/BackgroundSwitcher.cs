@@ -9,7 +9,7 @@ namespace KeyFlow.Feedback
         [SerializeField] private Sprite blueBg;
         [SerializeField] private Sprite yellowBg;
 
-        public void Apply(Profile p)
+        public virtual void Apply(Profile p)
         {
             if (backgroundImage == null) return;
             backgroundImage.sprite = (p == Profile.Soyoon) ? yellowBg : blueBg;

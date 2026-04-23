@@ -1,15 +1,18 @@
 using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using KeyFlow;
+using KeyFlow.Feedback;
 
 namespace KeyFlow.UI
 {
-    public enum AppScreen { Main, Gameplay, Results }
+    public enum AppScreen { Start, Main, Gameplay, Results }
 
     public class ScreenManager : MonoBehaviour
     {
         public static ScreenManager Instance { get; private set; }
 
+        [SerializeField] private GameObject startRoot;
         [SerializeField] private GameObject mainRoot;
         [SerializeField] private GameObject gameplayRoot;
         [SerializeField] private GameObject resultsCanvas;
@@ -18,11 +21,13 @@ namespace KeyFlow.UI
         [SerializeField] private OverlayBase pauseOverlay;
         [SerializeField] private OverlayBase calibrationOverlay;
 
+        [SerializeField] private BackgroundSwitcher backgroundSwitcher;
+
         public AppScreen Current { get; private set; }
 
         public event Action<AppScreen> OnReplaced;
 
-        private float lastBackOnMain = -10f;
+        private float lastBackOnStart = -10f;
         private const float DoubleBackWindow = 2.0f;
 
         public OverlayBase SettingsOverlay => settingsOverlay;
@@ -32,10 +37,15 @@ namespace KeyFlow.UI
         public void Replace(AppScreen target)
         {
             HideAllOverlays();
-            if (mainRoot) mainRoot.SetActive(target == AppScreen.Main);
-            if (gameplayRoot) gameplayRoot.SetActive(target == AppScreen.Gameplay);
+            if (startRoot)     startRoot.SetActive(target == AppScreen.Start);
+            if (mainRoot)      mainRoot.SetActive(target == AppScreen.Main);
+            if (gameplayRoot)  gameplayRoot.SetActive(target == AppScreen.Gameplay);
             if (resultsCanvas) resultsCanvas.SetActive(target == AppScreen.Results);
             Current = target;
+
+            if (target == AppScreen.Gameplay && backgroundSwitcher != null)
+                backgroundSwitcher.Apply(SessionProfile.Current);
+
             OnReplaced?.Invoke(target);
         }
 
@@ -69,20 +79,25 @@ namespace KeyFlow.UI
                     Replace(AppScreen.Main);
                     break;
                 case AppScreen.Main:
-                    if (Time.unscaledTime - lastBackOnMain < DoubleBackWindow)
+                    Replace(AppScreen.Start);
+                    break;
+                case AppScreen.Start:
+                    if (Time.unscaledTime - lastBackOnStart < DoubleBackWindow)
+                    {
+                        Debug.Log("[ScreenManager] Quit requested on double-back from Start");
                         Application.Quit();
+                    }
                     else
-                        lastBackOnMain = Time.unscaledTime;
+                    {
+                        lastBackOnStart = Time.unscaledTime;
+                    }
                     break;
             }
         }
 
         private void Awake() { Instance = this; }
 
-        // Start runs after all SerializeField refs are wired — safe to flip
-        // roots via Replace. Not in Awake because EditMode tests inject
-        // refs via reflection after AddComponent + Awake have already run.
-        private void Start() { Replace(AppScreen.Main); }
+        private void Start() { Replace(AppScreen.Start); }
 
         private void Update()
         {
