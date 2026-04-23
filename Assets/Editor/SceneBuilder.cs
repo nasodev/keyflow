@@ -67,10 +67,24 @@ namespace KeyFlow.Editor
                 return;
             }
 
-            var bgSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/background_gameplay.png");
-            if (bgSprite == null)
+            var blueBg = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/background_gameplay.png");
+            if (blueBg == null)
             {
                 Debug.LogError("[KeyFlow] Missing Assets/Sprites/background_gameplay.png. Aborting.");
+                return;
+            }
+
+            var yellowBg = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/background_yellow.png");
+            if (yellowBg == null)
+            {
+                Debug.LogError("[KeyFlow] Missing Assets/Sprites/background_yellow.png. Aborting.");
+                return;
+            }
+
+            var startBg = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/background_start.png");
+            if (startBg == null)
+            {
+                Debug.LogError("[KeyFlow] Missing Assets/Sprites/background_start.png. Aborting.");
                 return;
             }
 
@@ -85,7 +99,7 @@ namespace KeyFlow.Editor
             var camera = BuildMainCamera();
             CreateEventSystem();
 
-            BuildBackgroundCanvas(bgSprite, camera);
+            var backgroundSwitcher = BuildBackgroundCanvas(blueBg, yellowBg, camera);
 
             // GameplayRoot groups all gameplay-only objects so ScreenManager
             // can toggle them wholesale.
@@ -108,6 +122,7 @@ namespace KeyFlow.Editor
             var mainScreen = mainCanvas.GetComponent<MainScreen>();
             var pauseScreen = BuildPauseCanvas(whiteSprite, audioSync);
             var settingsScreen = BuildSettingsCanvas(whiteSprite, calibration);
+            var startCanvas = BuildStartCanvas(startBg, out var startScreen);
 
             // Wire HUD pause button -> PauseScreen, MainScreen -> Settings overlay
             SetField(hudPauseButton, "pauseOverlay", pauseScreen);
@@ -115,12 +130,14 @@ namespace KeyFlow.Editor
 
             var screenManagerGO = new GameObject("ScreenManager");
             var screenMgr = screenManagerGO.AddComponent<ScreenManager>();
+            SetField(screenMgr, "startRoot", startCanvas);
             SetField(screenMgr, "mainRoot", mainCanvas);
             SetField(screenMgr, "gameplayRoot", gameplayRoot);
             SetField(screenMgr, "resultsCanvas", resultsScreen.gameObject);
             SetField(screenMgr, "calibrationOverlay", calibration);
             SetField(screenMgr, "pauseOverlay", pauseScreen);
             SetField(screenMgr, "settingsOverlay", settingsScreen);
+            SetField(screenMgr, "backgroundSwitcher", backgroundSwitcher);
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene, ScenePath);
@@ -495,7 +512,7 @@ namespace KeyFlow.Editor
             return controller;
         }
 
-        private static void BuildBackgroundCanvas(Sprite bgSprite, Camera cam)
+        private static BackgroundSwitcher BuildBackgroundCanvas(Sprite blueBg, Sprite yellowBg, Camera cam)
         {
             var canvasGO = new GameObject("BackgroundCanvas");
             var canvas = canvasGO.AddComponent<Canvas>();
@@ -523,9 +540,87 @@ namespace KeyFlow.Editor
             rt.offsetMax = Vector2.zero;
 
             var img = imgGO.AddComponent<Image>();
-            img.sprite = bgSprite;
+            img.sprite = blueBg;
             img.preserveAspect = false; // uniform stretch, no letterboxing
             img.raycastTarget = false;  // don't absorb taps — they go to gameplay
+
+            var switcher = canvasGO.AddComponent<BackgroundSwitcher>();
+            SetField(switcher, "backgroundImage", img);
+            SetField(switcher, "blueBg", blueBg);
+            SetField(switcher, "yellowBg", yellowBg);
+            return switcher;
+        }
+
+        // -- Start screen hit-box coordinates -------------------------------
+        // Authored from img/start.png (source 853 × 1844 px).
+        // Nayoon "시작하기" button body measured by color segmentation:
+        //   bounding box ≈ (41, 1069) .. (411, 1142), center = (226, 1106).
+        // Soyoon "시작하기" button body:
+        //   bounding box ≈ (452, 1069) .. (799, 1142), center = (626, 1106).
+        // Visible body size ≈ 370 × 73 px (source), ≈ 312 × 51 units at
+        // 720 × 1280 reference — so a 280 × 120 hitbox is well inside the
+        // visible rectangle horizontally (57 ref-unit gap between hitboxes)
+        // and generously padded vertically for thumb-tap forgiveness.
+        //
+        // Unity UI is bottom-origin: anchor.y = 1 - (y_px / 1844).
+        //   Nayoon: (226 / 853, 1 - 1106 / 1844) ≈ (0.265, 0.400)
+        //   Soyoon: (626 / 853, 1 - 1106 / 1844) ≈ (0.734, 0.400)
+        // (Measured y-center is ≈40% from bottom, NOT ≈49% as initially
+        //  estimated. Verified visually with overlay rectangles — measurement
+        //  lands dead-center on the button body, see commit evidence.)
+        private static readonly Vector2 NAYOON_ANCHOR = new Vector2(0.265f, 0.400f);
+        private static readonly Vector2 SOYOON_ANCHOR = new Vector2(0.734f, 0.400f);
+        private static readonly Vector2 BUTTON_SIZE   = new Vector2(280f, 120f);
+
+        private static GameObject BuildStartCanvas(Sprite startBg, out StartScreen startScreen)
+        {
+            var canvasGO = new GameObject("StartCanvas");
+            var canvas = canvasGO.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.sortingOrder = 7;
+            var scaler = canvasGO.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(720, 1280);
+            scaler.matchWidthOrHeight = 0.5f;
+            canvasGO.AddComponent<GraphicRaycaster>();
+
+            // Full-screen backdrop painting the start.png art.
+            var bgGO = new GameObject("Background", typeof(RectTransform));
+            bgGO.transform.SetParent(canvasGO.transform, false);
+            var bgRT = bgGO.GetComponent<RectTransform>();
+            bgRT.anchorMin = Vector2.zero;
+            bgRT.anchorMax = Vector2.one;
+            bgRT.offsetMin = Vector2.zero;
+            bgRT.offsetMax = Vector2.zero;
+            var bgImg = bgGO.AddComponent<Image>();
+            bgImg.sprite = startBg;
+            bgImg.preserveAspect = false;
+            bgImg.raycastTarget = false;
+
+            var nayoonBtn = BuildInvisibleButton(canvasGO.transform, "NayoonButton", NAYOON_ANCHOR, BUTTON_SIZE);
+            var soyoonBtn = BuildInvisibleButton(canvasGO.transform, "SoyoonButton", SOYOON_ANCHOR, BUTTON_SIZE);
+
+            startScreen = canvasGO.AddComponent<StartScreen>();
+            SetField(startScreen, "nayoonButton", nayoonBtn);
+            SetField(startScreen, "soyoonButton", soyoonBtn);
+
+            return canvasGO;
+        }
+
+        private static Button BuildInvisibleButton(Transform parent, string name, Vector2 anchorXY, Vector2 size)
+        {
+            var go = new GameObject(name, typeof(RectTransform));
+            go.transform.SetParent(parent, false);
+            var rt = go.GetComponent<RectTransform>();
+            rt.anchorMin = anchorXY;
+            rt.anchorMax = anchorXY;
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.anchoredPosition = Vector2.zero;
+            rt.sizeDelta = size;
+
+            var img = go.AddComponent<Image>();
+            img.color = new Color(1f, 1f, 1f, 0f); // invisible; raycastTarget stays true by default
+            return go.AddComponent<Button>();
         }
 
         private static GameObject BuildMainCanvas(Sprite whiteSprite)
