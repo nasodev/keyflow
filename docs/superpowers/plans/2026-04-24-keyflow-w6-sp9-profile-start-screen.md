@@ -142,6 +142,8 @@ If Unity is not open for the subagent, the import will happen at the next batch-
 
 After Unity imports it, confirm via the Inspector that `background_start.png` is Sprite type. If it's Texture2D, toggle to Sprite (2D and UI). Save.
 
+The resulting `.meta` file captures this choice. `background_start.png` deliberately stays OUT of the `BackgroundImporterPostprocessor` allowlist — its settings live in the .meta committed here (Step 1.6), not enforced by code. This keeps the postprocessor focused on the two gameplay-bg files that share ASTC 4x4 compression; start-screen art may want different compression (higher quality for crisp illustration), tuned later if needed.
+
 - [ ] **Step 1.6: Commit**
 
 ```
@@ -843,9 +845,25 @@ Expected: the full EditMode suite green. Counts:
 - Task 5 (ScreenManagerTests): +4 new cases appended
 - Total: 148 + 15 = 163 green
 
-If `ScreenManagerTests.Replace_Main_ActivatesOnlyMainRoot` (existing test) fails because of the `startRoot.SetActive(false)` new line — update it to also assert `startCanvas.activeSelf == false`. Similarly any existing test that checks "3 roots" now needs to cover 4.
+**Explicit audit of existing `ScreenManagerTests.cs` changes** (not "3-5 tests" — exactly these edits):
 
-Actually audit and update the existing `ScreenManagerTests` cases that enumerate roots. This is a small fix (3-5 tests likely touch it).
+1. In `[SetUp]` (line 17), declare `private GameObject startCanvas;` at the class top, add to construction block:
+   ```csharp
+   startCanvas = new GameObject("start");
+   SetPrivate(sm, "startRoot", startCanvas);
+   ```
+2. In `[TearDown]` (line 37), add `startCanvas` to the cleanup array:
+   ```csharp
+   foreach (var go in new[] { mgr, mainRoot, gameplayRoot, results, settingsGO, pauseGO, calibGO, startCanvas })
+   ```
+3. In `Replace_Main_ActivatesOnlyMainRoot` (line 43), after the existing `Assert.IsFalse(results.activeSelf);`, add:
+   ```csharp
+   Assert.IsFalse(startCanvas.activeSelf);
+   ```
+
+No other existing test enumerates all roots — they each assert a single root's state. So only these 3 edits are strictly required for the existing tests to continue passing.
+
+Then the 4 new tests land (appended per Step 5.1). Total ScreenManagerTests count: 4 existing + 4 new = 8.
 
 - [ ] **Step 5.6: Commit Tasks 4 + 5 together**
 
