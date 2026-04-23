@@ -26,7 +26,7 @@ Bonus: discovered and documented that the empirical "indexer-set during foreach"
 
 Qualitative success criteria (spec §9): **OBJECTIVE criteria all met** (tests, code review). **SUBJECTIVE criteria pending device playtest** (§6).
 
-## 2. Commits (7 on branch vs main baseline `9e3eac1`)
+## 2. Commits (8 on branch vs main baseline `9e3eac1`)
 
 ### Implementation (6)
 - `6eb17b1` feat(w6-sp8): raise HOLD threshold 300 → 500 ms + regenerate 4 charts
@@ -35,6 +35,9 @@ Qualitative success criteria (spec §9): **OBJECTIVE criteria all met** (tests, 
 - `7c710dc` feat(w6-sp8): LaneGlowController real implementation
 - `c0b0774` chore(w6-sp8): wire LaneGlow and HoldTracker audio pool in SceneBuilder (amended from initial `52971bc` per code-quality review to add `whiteSprite` null-guard consistent with existing SceneBuilder helpers)
 - `036639d` chore(w6-sp8): add missed LaneGlowControllerTests.cs.meta
+
+### Documentation (1)
+- `b0aed27` docs(w6-sp8): completion report (this file, device playtest deferred)
 
 ## 3. Files touched
 
@@ -46,7 +49,7 @@ Qualitative success criteria (spec §9): **OBJECTIVE criteria all met** (tests, 
 - `Assets/StreamingAssets/charts/beethoven_ode_to_joy.kfchart` — pipeline regeneration
 - `Assets/StreamingAssets/charts/debussy_clair_de_lune.kfchart` — pipeline regeneration
 - `Assets/StreamingAssets/charts/joplin_the_entertainer.kfchart` — pipeline regeneration
-- `Assets/Scripts/Gameplay/AudioSamplePool.cs` — `PlayForPitch(int, float volume = 1f)` overload; `PlayOneShot(AudioClip, float volume = 1f)` overload for fallback-path volume routing
+- `Assets/Scripts/Gameplay/AudioSamplePool.cs` — `PlayForPitch(int, float volume = 1f)` overload; `PlayOneShot(AudioClip, float volume = 1f)` overload added to thread volume through the `pitchSamples == null` fallback path (public surface expansion beyond spec §4.3; adopted in `266ebbe` after code-quality review caught that the original patch would silently drop volume when the pitch fallback fired — minor scope widening vs. a real-bug fix, accepted)
 - `Assets/Scripts/Gameplay/HoldTracker.cs` — id-keyed `holdAudio` dict, `OnHoldStartTapAccepted(NoteController, int tapTimeMs)` signature, `[SerializeField] audioPool` + `laneGlow` fields, retrigger loop using two-phase `retriggerBuffer` pattern (spec Risks row 2 fallback), `ResetForRetry` clears new state, internal test hooks
 - `Assets/Scripts/Gameplay/JudgmentSystem.cs` — one-line caller update at `:116` to pass `tapTimeMs`
 - `Assets/Scripts/Gameplay/NoteController.cs` — `internal SetForTest(...)` method under test-gate
@@ -143,6 +146,8 @@ Full EditMode suite runs in ~0.7 s; full pytest in ~1.7 s.
 5. **`tapInput != null` guard in HoldTracker.Update** — cosmetic: the guard is a test-only code path (production always wires tapInput via SerializeField). Per code-quality review recommendation, could be gated by `#if UNITY_EDITOR || UNITY_INCLUDE_TESTS` or removed once a production TapInputHandler is always guaranteed. Non-blocking; defer to a cleanup SP.
 6. **Pause-branch unit test for LaneGlowController** — code-quality review recommended but marked non-blocking. Would tighten coverage if LaneGlow pause behavior is ever modified.
 7. **Hold-retrigger Settings exposure** — spec §3 non-goal. If user wants to tune retrigger interval / volume / glow intensity in-game, a follow-up SP adds them to SettingsScreen.
+8. **HoldTracker + LaneGlowController integration test** — final-review flagged gap: no EditMode test wires both via `SetDependenciesForTest(laneGlow: ...)` to verify On at tap-accept, Off at Completed/Broken, Clear at retry. Each class is tested in isolation; the integration path is covered only by device playtest. Non-blocking; a one-test addition would close the gap cheaply.
+9. **`retriggerBuffer` pre-size at LaneCount * 2** — fine for current charts (max observed same-lane overlap is 2 from SP8 discovery), but 3+ simultaneous holds per lane would realloc. Revisit if polyphony grows.
 
 ## 10. Stale worktree directories (Windows MAX_PATH)
 
