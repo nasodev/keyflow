@@ -55,7 +55,7 @@ Qualitative success criterion (Galaxy S22 R5CT21A31QB device playtest, release A
 
 Net: most mid-tempo quarter notes convert from HOLD to TAP; long sustained voices (half notes and above) remain HOLD. Short ornaments and grace notes in Für Elise already classify as TAP at 300 ms, so they are unaffected.
 
-**Chart regeneration**: all 3 songs × 3 difficulties = 9 JSON files under `Assets/StreamingAssets/charts/` regenerated via the existing `midi_to_kfchart` pipeline. SP2's `truncate_charts.py` workaround for the `density.thin()` truncation bug is reapplied if needed (per `memory/project_w6_sp2_complete.md`).
+**Chart regeneration**: all 4 songs × 3 difficulties = 12 `.kfchart` files under `Assets/StreamingAssets/charts/` regenerated via the existing `midi_to_kfchart` pipeline (`beethoven_fur_elise`, `beethoven_ode_to_joy`, `debussy_clair_de_lune`, `joplin_the_entertainer`). SP2's `truncate_charts.py` workaround for the `density.thin()` truncation bug is reapplied if needed (per `memory/project_w6_sp2_complete.md`).
 
 ### 4.2 Issue #2 — Lane glow while holding
 
@@ -80,13 +80,14 @@ Pulse formula: `alpha = 0.3f + 0.2f * Mathf.Sin(Time.time * 6f)` — oscillates 
 - On transition to `Completed` or `Broken` → `laneGlow.Off(lane)` at the same site that removes `idToNote`.
 - On `ResetForRetry()` → `laneGlow.Clear()`.
 
-**Sprite construction (SceneBuilder)**: for each of 4 lanes, create a child GameObject under a `LaneGlowRoot` parent with:
-- `SpriteRenderer` using a 1×1 white sprite (or a stock UI rounded-rect), scaled to lane-width × small height (e.g., 0.3 units tall).
-- Positioned at `(LaneLayout.LaneToX(lane, laneAreaWidth), judgmentY, 0)`.
-- Sorting order behind note tiles but above the lane background.
-- Initial `color = new Color(1, 1, 1, 0)` (invisible).
+**Sprite construction (SceneBuilder)**: a new `LaneGlow` GameObject is added as a child of the existing `Managers` GameObject (sibling to `AudioSync`, `SamplePool`, `TapInput`, etc.). The `LaneGlowController` component lives on `LaneGlow`. For each of 4 lanes, create a child GameObject under `LaneGlow` with:
+- `SpriteRenderer` using the existing `EnsureWhiteSprite()` asset (same sprite the judgment line uses).
+- Transform scaled to `(LaneAreaWidth / LaneLayout.LaneCount, 0.3f, 1)` — matches note tile lane width, 0.3 units tall.
+- Positioned at `(LaneLayout.LaneToX(lane), JudgmentY, 0)`.
+- `sortingOrder = 0` — same layer as `JudgmentLine`, below note tiles (`sortingOrder = 1`), above lane dividers (`-1`).
+- Initial `color = new Color(1, 1, 1, 0)` (invisible until `On(lane)` is called).
 
-`LaneGlowController` is added as a component; `glowSprites[lane]` is wired via `SetField` in the SceneBuilder style (SerializeField + SerializedObject batch-set).
+`LaneGlowController.glowSprites[lane]` is wired via `SetArrayField` (matching the existing `SetArrayField(samplePool, "pitchSamples", ...)` pattern on line 211).
 
 **GC invariants**:
 - `Update()` walks lane indices 0..3 by `for` loop — no enumerator.
@@ -104,27 +105,41 @@ private const float HOLD_RETRIGGER_VOLUME      = 0.7f;
 **State (in HoldTracker)**:
 ```csharp
 private struct HoldAudioState { public int pitch; public int lastRetriggerMs; }
-private readonly Dictionary<int, HoldAudioState> laneAudio
-    = new Dictionary<int, HoldAudioState>(LaneLayout.LaneCount);
+private readonly Dictionary<int, HoldAudioState> holdAudio
+    = new Dictionary<int, HoldAudioState>(LaneLayout.LaneCount * 2);
+
+[SerializeField] private AudioSamplePool audioPool;
 ```
 
-Key is lane index (0..3), not register id. Charts never schedule overlapping HOLDs on the same lane, so lane-keyed is safe and enables for-loop iteration (no enumerator box).
+**Key is `HoldStateMachine` register id, NOT lane index.** Real charts do have same-lane HOLD-HOLD overlap: scanning the currently shipped `.kfchart` files (at simulated 500 ms threshold), `debussy_clair_de_lune` NORMAL has 12 same-lane HOLD overlaps and `beethoven_fur_elise` NORMAL has 1. Lane-keying would overwrite the first hold's pitch when the second starts, and prematurely drop the second's entry when the first completes. Id-keying sidesteps both failure modes with no content-pipeline change.
+
+Iteration uses `foreach (var kv in holdAudio)` — `Dictionary<int, HoldAudioState>.Enumerator` is a `struct`, so `foreach` on a concrete Dictionary type does not allocate (verified in SP3 via the identical pattern at `HoldStateMachine.Tick`: `foreach (var kv in entries)` on `Dictionary<int, Entry>`, proven GC-free in profiler attach).
 
 **Flow**:
-1. On `OnHoldStartTapAccepted(note)` (called from `JudgmentSystem.HandleTap` after a HOLD's start tap is judged P/G/G) → `laneAudio[note.Lane] = { pitch = note.Pitch, lastRetriggerMs = note.HitTimeMs }`. The first audible note is already produced by the existing `TapInputHandler.FirePress → PlayTapSound`.
-2. In `HoldTracker.Update()`, after existing `idToNote.Count == 0` guard but also entered when `laneAudio.Count > 0`, iterate lanes:
+1. `HoldTracker.OnHoldStartTapAccepted` signature gains one parameter: `public void OnHoldStartTapAccepted(NoteController note, int tapTimeMs)`. `JudgmentSystem.HandleTap` passes its local `tapTimeMs` (the player's actual tap time, which is what fires the first audible tap via `TapInputHandler.FirePress`). Inside `OnHoldStartTapAccepted`, after the existing `stateMachine.Register` + `stateMachine.OnStartTapAccepted` lines, add:
+   ```csharp
+   holdAudio[id] = new HoldAudioState { pitch = note.Pitch, lastRetriggerMs = tapTimeMs };
+   ```
+   Seeding with the actual tap time (not nominal `note.HitTimeMs`) keeps retrigger cadence anchored to the player's audible first note, regardless of early/late judgment delta. The first audible note is already produced by the existing `TapInputHandler.FirePress → PlayTapSound` path; no change there.
+2. In `HoldTracker.Update()`, extend the early-return guards so audio retrigger runs whenever holdAudio has entries, but **without bypassing the existing IsPlaying / IsPaused guards**:
+   ```csharp
+   if (!audioSync.IsPlaying || audioSync.IsPaused) return;   // unchanged — gates EVERYTHING below
+   if (idToNote.Count == 0 && holdAudio.Count == 0) return;  // expanded from `idToNote.Count == 0`
+   ```
+   Then, after the existing state-machine tick and transition-handling block, add the retrigger loop:
    ```csharp
    int songMs = audioSync.SongTimeMs;
-   for (int lane = 0; lane < LaneLayout.LaneCount; lane++)
+   foreach (var kv in holdAudio)
    {
-       if (!laneAudio.TryGetValue(lane, out var st)) continue;
+       var st = kv.Value;
        if (songMs - st.lastRetriggerMs < HOLD_RETRIGGER_INTERVAL_MS) continue;
        audioPool.PlayForPitch(st.pitch, HOLD_RETRIGGER_VOLUME);
        st.lastRetriggerMs = songMs;
-       laneAudio[lane] = st;
+       holdAudio[kv.Key] = st;   // struct write-back; mutating during iteration of SAME dict is unsafe, see note below
    }
    ```
-3. On Completed / Broken transition in the existing foreach → `laneAudio.Remove(note.Lane)`.
+   **Safe-mutation note**: mutating a Dictionary's keyset during iteration invalidates the struct enumerator. We're only updating a value for an existing key (not adding/removing), which `Dictionary<K,V>` permits with its internal version counter untouched for value-only writes via indexer. Verified behavior, matching the write-during-iteration pattern shipped in `HoldStateMachine.Tick` (where `e.state = ...` mutates entries' value fields mid-foreach). If this proves fragile in a future .NET runtime upgrade, a tiny `List<int> retriggerBuffer` field can collect pending writes and flush after the loop — no API change required.
+3. In the existing `foreach (var t in transitionBuffer)` block where `Completed` / `Broken` are handled, add `holdAudio.Remove(t.id);` after the existing `idToNote.Remove(t.id);` (id is already in scope as `t.id`). No lane lookup needed.
 
 **AudioSamplePool API addition**:
 ```csharp
@@ -142,23 +157,21 @@ public void PlayForPitch(int midiPitch, float volume = 1f)
 
 Default parameter preserves existing call sites — `TapInputHandler.PlayTapSound` behavior is byte-identical.
 
-**Update-loop gating**: existing `audioSync.IsPlaying` / `!audioSync.IsPaused` guards at the top of `HoldTracker.Update()` already freeze retrigger during pause. `ResetForRetry()` clears `laneAudio`.
+**Update-loop gating**: the `audioSync.IsPlaying` / `!audioSync.IsPaused` guard stays the single topmost early-return and governs both glow and retrigger. During pause, `audioSync.SongTimeMs` freezes, so delta math on resume would otherwise be correct — but we early-return anyway, and `lastRetriggerMs` remains at its pre-pause value, so resume re-enters a correct cadence. `ResetForRetry()` clears `holdAudio` alongside `stateMachine` and `idToNote`.
 
 **GC invariants**:
-- Dictionary access by key (`TryGetValue`, indexer set) — no allocation after warm-up.
-- `HoldAudioState` is a struct; re-assignment `laneAudio[lane] = st` copies in place.
-- `for` loop over int range — no enumerator.
+- Dictionary access by key (`TryGetValue`, indexer set) — no allocation after warm-up; initial capacity `LaneCount * 2 = 8` exceeds maximum-realistic concurrent-hold count on any shipped chart.
+- `HoldAudioState` is a struct; value write-back copies in place.
+- `foreach` on `Dictionary<int, HoldAudioState>` uses struct enumerator (matches HoldStateMachine pattern, SP3-verified GC-free).
 
 ### 4.4 SceneBuilder integration
 
 `Assets/Editor/SceneBuilder.cs` gains:
-- Lane-glow sprite construction (4 GameObjects under a `LaneGlowRoot` parent).
-- `LaneGlowController` component added to a manager GameObject (reusing an existing manager GameObject or a new one — TBD during implementation, whichever matches SceneBuilder's pattern).
-- `HoldTracker.laneGlow` wired via SetField to the `LaneGlowController`.
+- A new `BuildLaneGlow(Sprite white, Transform managersParent, out LaneGlowController)` private static helper called from `BuildManagers` (after `holdTracker` is created, before field wiring of `holdTracker.laneGlow`). The helper constructs the `LaneGlow` parent GameObject under `Managers`, adds 4 child lane-glow sprite GameObjects, adds the `LaneGlowController` component, and wires the `glowSprites[]` array via `SetArrayField`.
+- `HoldTracker.laneGlow` wired via `SetField` to the returned `LaneGlowController` (right after the existing `SetField(holdTracker, "tapInput", tapInput)` line).
+- `HoldTracker.audioPool` wired via `SetField` to the existing `samplePool` local (same wiring block).
 
 Per the SP7 consolidation principle, no separate Wireup step is introduced; everything lives inside `SceneBuilder.Build()`.
-
-Audio changes require no SceneBuilder work — `HoldTracker` already has the `audioSync` and `tapInput` wirings; `AudioSamplePool` reference is added as a new `[SerializeField]` and wired in SceneBuilder next to existing `HoldTracker` field wiring.
 
 ## 5. Files
 
@@ -166,8 +179,9 @@ Audio changes require no SceneBuilder work — `HoldTracker` already has the `au
 - `tools/midi_to_kfchart/pipeline/hold_detector.py` — threshold constant.
 - `tools/midi_to_kfchart/tests/test_hold_detector.py` — boundary cases at 500 ms.
 - `tools/midi_to_kfchart/tests/test_w6_sp2_charts.py` — update expected HOLD counts / totals per regenerated chart.
-- `Assets/StreamingAssets/charts/*.json` — 9 regenerated files.
-- `Assets/Scripts/Gameplay/HoldTracker.cs` — glow + retrigger fields, logic, ResetForRetry.
+- `Assets/StreamingAssets/charts/*.kfchart` — 4 shipped songs × 3 difficulties = 12 regenerated files (`beethoven_fur_elise`, `beethoven_ode_to_joy`, `debussy_clair_de_lune`, `joplin_the_entertainer`).
+- `Assets/Scripts/Gameplay/HoldTracker.cs` — glow + retrigger fields, logic, ResetForRetry, `OnHoldStartTapAccepted(NoteController, int)` signature.
+- `Assets/Scripts/Gameplay/JudgmentSystem.cs` — single-line update at `HandleTap` to pass `tapTimeMs` through.
 - `Assets/Scripts/Gameplay/AudioSamplePool.cs` — `PlayForPitch(int, float)` overload with default.
 - `Assets/Editor/SceneBuilder.cs` — lane glow sprite construction, HoldTracker field wiring.
 - `Assets/Scenes/GameplayScene.unity` — regenerated by SceneBuilder.
@@ -206,12 +220,13 @@ Commit-level ordering (refined further in writing-plans):
   - `On_Idempotent` — calling `On(0)` twice then `Off(0)` leaves alpha 0.
   - `Clear_ResetsAllLanes` — after `On(0..3)` then `Clear()`, all sprite alphas 0.
 - `HoldAudioRetriggerTests` (injects fake `AudioSamplePool` + `AudioSyncManager`):
-  - `NoRetrigger_Before250ms` — 0 extra play calls within 249 ms.
-  - `Retrigger_At250ms` — exactly 1 extra play call at 250 ms.
-  - `Retrigger_Three_At750ms` — exactly 3 extra play calls at 750 ms.
-  - `NoRetrigger_AfterCompleted` — after `MarkHoldCompleted` transition, no further retrigger.
-  - `NoRetrigger_AfterBroken` — after `Broken` transition, no further retrigger.
-  - `RetriggerUsesCapturedPitch` — last play call uses the pitch captured at hold start, not any newer note's pitch.
+  - `NoRetrigger_Before250ms` — 0 extra play calls within 249 ms of the seed `tapTimeMs`.
+  - `Retrigger_At250ms` — exactly 1 extra play call at `tapTimeMs + 250`.
+  - `Retrigger_Three_At750ms` — exactly 3 extra play calls across a 750 ms hold.
+  - `NoRetrigger_AfterCompleted` — after `Completed` transition fires for the hold, no further retrigger (verifies `holdAudio.Remove(t.id)`).
+  - `NoRetrigger_AfterBroken` — after `Broken` transition fires, no further retrigger.
+  - `SameLaneOverlap_TwoHoldsRetriggerIndependently` — two HOLDs on lane 0 with overlapping time windows: first HOLD's retriggers use its own pitch through its entire duration; second HOLD's retriggers use its own pitch; completing the first does NOT cancel the second. Guards against the lane-keyed regression.
+  - `RetriggerUsesTapTimeNotHitTime` — `OnHoldStartTapAccepted` called with `tapTimeMs = note.HitTimeMs - 20` (early P judgment): first retrigger fires at `tapTimeMs + 250`, not `HitTimeMs + 250`.
   - `NoRetrigger_WhilePaused` — verifies `audioSync.IsPaused` gate.
 - `AudioSamplePoolTests` (extend):
   - `PlayForPitch_VolumeDefault_IsOne` — regression.
@@ -227,7 +242,9 @@ Commit-level ordering (refined further in writing-plans):
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|------------|--------|------------|
-| Dictionary enumerator GC allocation (hold audio) | Medium | Medium (SP3 GC baseline regression) | Enforce for-loop + TryGetValue pattern; EditMode unit test exercises path; profiler attach step in sequence (6). |
+| Dictionary enumerator GC allocation (hold audio) | Low | Medium (SP3 GC baseline regression) | `foreach` on `Dictionary<int, HoldAudioState>` uses struct enumerator, proven GC-free via the existing `HoldStateMachine.Tick` pattern on `Dictionary<int, Entry>`. Profiler attach in sequence step (6) re-verifies. |
+| Struct-value write during Dictionary iteration triggers version-check exception | Low | Medium (runtime exception under load) | Value-only writes (indexer set on an existing key) do not bump Dictionary's version counter in Mono/IL2CPP — matches `HoldStateMachine.Tick`'s `e.state = ...` pattern. If a future runtime tightens this, fall back to a `List<int> retriggerBuffer` field that collects pending keys and flushes after the loop (no API change). |
+| `OnHoldStartTapAccepted` signature change misses a caller | Low | High (compile break, hold audio silently disabled) | One caller in repo (`JudgmentSystem.HandleTap` line 116); compile-time checked. EditMode test suite exercises this path. |
 | `density.thin()` truncation needed after regeneration | Medium | Low | SP2's `truncate_charts.py` workaround is available per `memory/project_w6_sp2_complete.md`. |
 | Glow sprite renders in front of note tiles or behind background | Low | Medium | Set `sortingOrder` explicitly between background and notes; SP6 learned the ScreenSpaceOverlay lesson — this is world-space sprites, so a 2D sorting-order assignment suffices. |
 | AudioSource channel exhaustion (16 channels) | Low | Low | Worst-case = 4 lane retriggers + 1 concurrent TAP = 5 ≪ 16. |
