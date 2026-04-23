@@ -55,7 +55,18 @@ Qualitative success criterion (Galaxy S22 R5CT21A31QB device playtest, release A
 
 Net: most mid-tempo quarter notes convert from HOLD to TAP; long sustained voices (half notes and above) remain HOLD. Short ornaments and grace notes in Für Elise already classify as TAP at 300 ms, so they are unaffected.
 
-**Chart regeneration**: all 4 songs × 3 difficulties = 12 `.kfchart` files under `Assets/StreamingAssets/charts/` regenerated via the existing `midi_to_kfchart` pipeline (`beethoven_fur_elise`, `beethoven_ode_to_joy`, `debussy_clair_de_lune`, `joplin_the_entertainer`). SP2's `truncate_charts.py` workaround for the `density.thin()` truncation bug is reapplied if needed (per `memory/project_w6_sp2_complete.md`).
+**Chart regeneration**: all 4 `.kfchart` files under `Assets/StreamingAssets/charts/` regenerated via the existing `midi_to_kfchart` pipeline (`beethoven_fur_elise`, `beethoven_ode_to_joy`, `debussy_clair_de_lune`, `joplin_the_entertainer`). Each file contains both EASY and NORMAL difficulty sections; the pipeline's `--merge-into` mode writes one file per difficulty pass. SP2's `truncate_charts.py` workaround for the `density.thin()` truncation bug is reapplied if needed (per `memory/project_w6_sp2_complete.md`).
+
+Current HOLD density (pre-threshold-change, for reference):
+
+| Song | EASY total / HOLD % | NORMAL total / HOLD % |
+|------|---------------------|------------------------|
+| beethoven_fur_elise | 73 / 2.7% | 589 / 11.9% |
+| beethoven_ode_to_joy | 46 / 100.0% | 68 / 100.0% |
+| debussy_clair_de_lune | 107 / 94.4% | 160 / 93.8% |
+| joplin_the_entertainer | 321 / 41.4% | 481 / 41.2% |
+
+Ode to Joy (BPM 100) and Clair de Lune (BPM 60) have nearly every note classified as HOLD under the 300 ms threshold because quarter notes at those tempos already exceed 600 ms. Raising to 500 ms reduces Entertainer/Für Elise HOLD density but will only partially relieve Ode to Joy and Clair de Lune. Per Non-Goals §3, per-song threshold tuning is out of scope; if Ode to Joy and Clair de Lune still feel hold-dominant after playtest, follow-up SP considers per-song threshold or higher uniform threshold.
 
 ### 4.2 Issue #2 — Lane glow while holding
 
@@ -179,7 +190,8 @@ Per the SP7 consolidation principle, no separate Wireup step is introduced; ever
 - `tools/midi_to_kfchart/pipeline/hold_detector.py` — threshold constant.
 - `tools/midi_to_kfchart/tests/test_hold_detector.py` — boundary cases at 500 ms.
 - `tools/midi_to_kfchart/tests/test_w6_sp2_charts.py` — update expected HOLD counts / totals per regenerated chart.
-- `Assets/StreamingAssets/charts/*.kfchart` — 4 shipped songs × 3 difficulties = 12 regenerated files (`beethoven_fur_elise`, `beethoven_ode_to_joy`, `debussy_clair_de_lune`, `joplin_the_entertainer`).
+- `Assets/StreamingAssets/charts/*.kfchart` — 4 regenerated files (each contains EASY + NORMAL difficulty sections): `beethoven_fur_elise`, `beethoven_ode_to_joy`, `debussy_clair_de_lune`, `joplin_the_entertainer`.
+- `tools/midi_to_kfchart/batch_w6_sp2.yaml` → replaced by (or renamed to) `batch_w6_sp8.yaml` that includes all 4 songs' EASY+NORMAL, including `beethoven_fur_elise` (currently missing from `batch_w6_sp2.yaml` despite having EASY+NORMAL charts).
 - `Assets/Scripts/Gameplay/HoldTracker.cs` — glow + retrigger fields, logic, ResetForRetry, `OnHoldStartTapAccepted(NoteController, int)` signature.
 - `Assets/Scripts/Gameplay/JudgmentSystem.cs` — single-line update at `HandleTap` to pass `tapTimeMs` through.
 - `Assets/Scripts/Gameplay/AudioSamplePool.cs` — `PlayForPitch(int, float)` overload with default.
