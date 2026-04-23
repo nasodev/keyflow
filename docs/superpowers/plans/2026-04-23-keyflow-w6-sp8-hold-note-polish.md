@@ -823,9 +823,9 @@ Expected: matches in `HoldTracker.cs` (def), `JudgmentSystem.cs:116` (caller —
 - [ ] **Step 3.8: Run EditMode tests**
 
 From Unity Editor: run the full EditMode test suite. Confirm:
-- All `HoldAudioRetriggerTests` pass.
+- All `HoldAudioRetriggerTests` pass (6 tests: the one in Step 3.1 + the five in Step 3.2).
 - All pre-existing tests still pass (`HoldStateMachineTests`, `AudioSamplePoolTests`, `JudgmentSystemTests`, etc.).
-- Total count = prior count + 7 new tests (or however many you wrote).
+- Total count = prior count + 6 new tests from this task.
 
 - [ ] **Step 3.9: Commit**
 
@@ -852,7 +852,7 @@ writes during iteration are empirically safe in current Mono/IL2CPP
 counter); if this tightens in a future runtime, fall back to the
 List<int> retriggerBuffer pattern spelled out in the spec Risks table.
 
-Adds 5 EditMode tests (including same-lane overlap regression guard),
+Adds 6 EditMode tests (including same-lane overlap regression guard),
 driven by the existing ITimeSource test seam via ManualClock; no new
 hooks on AudioSyncManager.
 
@@ -1266,7 +1266,7 @@ git commit -m "memory(w6-sp8): record sub-project completion"
 Before considering SP8 done:
 
 - [ ] Python: `pytest -q` green in `tools/midi_to_kfchart/`
-- [ ] Unity EditMode: full suite green, count = prior + 12
+- [ ] Unity EditMode: full suite green, count = prior + 13 (Task 2: 2 new AudioSamplePool tests + Task 3: 6 HoldAudioRetriggerTests + Task 4: 5 LaneGlowControllerTests)
 - [ ] Device (S22) release APK: user confirms all three issues ("#1 덜 나온다 / #2 화면 살아있다 / #3 소리 이어진다")
 - [ ] Profiler: GC.Collect = 0 during Entertainer Normal
 - [ ] APK size delta ≤ +100 KB vs. SP3 baseline (33.70 MB → ≤ 33.80 MB)
