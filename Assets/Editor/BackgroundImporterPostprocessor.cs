@@ -1,17 +1,22 @@
+using System;
 using UnityEditor;
 
 namespace KeyFlow.Editor
 {
-    // Enforces import settings for the single background_gameplay.png asset.
+    // Enforces import settings for gameplay background sprites.
     // Mirrors PianoSampleImportPostprocessor so settings stick across
     // re-imports and fresh worktree checkouts.
     public class BackgroundImporterPostprocessor : AssetPostprocessor
     {
-        private const string TargetPath = "Assets/Sprites/background_gameplay.png";
+        private static readonly string[] TargetPaths = new[]
+        {
+            "Assets/Sprites/background_gameplay.png",
+            "Assets/Sprites/background_yellow.png",
+        };
 
         private void OnPreprocessTexture()
         {
-            if (assetPath != TargetPath) return;
+            if (Array.IndexOf(TargetPaths, assetPath) < 0) return;
 
             var importer = (TextureImporter)assetImporter;
             importer.textureType = TextureImporterType.Sprite;
