@@ -111,7 +111,7 @@ namespace KeyFlow.Editor
                 camera, pianoClip, pitchSamples, whiteSprite, notePrefab, gameplayRoot.transform,
                 out var audioSync, out var samplePool, out var tapInput,
                 out var judgmentSystem, out var spawner, out var holdTracker);
-            BuildFeedbackPipeline(judgmentSystem, gameplayRoot.transform);
+            BuildFeedbackPipeline(camera, judgmentSystem, gameplayRoot.transform);
             var hudPauseButton = BuildHUD(audioSync, tapInput, samplePool, judgmentSystem, whiteSprite, gameplayRoot.transform);
 
             var calibration = BuildCalibrationOverlay(whiteSprite, clickClip, audioSync);
@@ -316,7 +316,7 @@ namespace KeyFlow.Editor
         }
 
         private static void BuildFeedbackPipeline(
-            JudgmentSystem judgmentSystem, Transform parent)
+            Camera camera, JudgmentSystem judgmentSystem, Transform parent)
         {
             var feedbackRoot = new GameObject("FeedbackPipeline");
             feedbackRoot.transform.SetParent(parent, false);
@@ -346,12 +346,35 @@ namespace KeyFlow.Editor
             SetField(particlePool, "missPrefab", missPrefab);
             SetField(particlePool, "presets", presets);
 
+            // Text popup pool (SP10) — world-space canvas sits at the judgment line,
+            // pool cycles 12 Text slots. Each spawn sets text + color + x=worldPos.x
+            // and animates via JudgmentTextPopup.
+            var textCanvasGo = new GameObject("JudgmentTextCanvas");
+            textCanvasGo.transform.SetParent(feedbackRoot.transform, false);
+            textCanvasGo.transform.position = new Vector3(0f, JudgmentY, 0f);
+            textCanvasGo.transform.localScale = Vector3.one * 0.01f;
+            var textCanvasRt = textCanvasGo.AddComponent<RectTransform>();
+            textCanvasRt.sizeDelta = new Vector2(1000f, 400f);
+            var textCanvas = textCanvasGo.AddComponent<Canvas>();
+            textCanvas.renderMode = RenderMode.WorldSpace;
+            textCanvas.worldCamera = camera;
+            textCanvas.sortingOrder = 10;   // above particles and gameplay BG
+
+            var textPool = textCanvasGo.AddComponent<JudgmentTextPool>();
+            SetField(textPool, "presets", presets);
+            SetField(textPool, "poolSize", 12);
+            SetField(textPool, "lifetimeSec", 0.45f);
+            SetField(textPool, "yRiseUnits", 0.36f);
+            SetField(textPool, "fontSize", 48);
+            SetField(textPool, "worldCanvasScale", 0.01f);
+
             var dispatcherGo = new GameObject("FeedbackDispatcher");
             dispatcherGo.transform.SetParent(feedbackRoot.transform, false);
             var dispatcher = dispatcherGo.AddComponent<FeedbackDispatcher>();
             SetField(dispatcher, "judgmentSystem", judgmentSystem);
             SetField(dispatcher, "hapticService", hapticService);
             SetField(dispatcher, "particlePool", particlePool);
+            SetField(dispatcher, "textPool", textPool);    // NEW (SP10)
         }
 
         private static HUDPauseButton BuildHUD(

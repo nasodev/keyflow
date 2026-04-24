@@ -89,7 +89,7 @@ namespace KeyFlow.Feedback
             // Canvas sits at (0, judgmentY, 0) in world; canvas-local y=0 is the
             // judgment line. We use worldPos.x as canvas-local x (world units),
             // and fix y at 0 regardless of the worldPos.y the caller provided.
-            rects[idx].anchoredPosition = new Vector2(worldPos.x, 0f);
+            rects[idx].anchoredPosition = new Vector2(worldPos.x / worldCanvasScale, 0f);
 
             popups[idx].Activate(Time.time, lifetimeSec, yRiseUnits, color);
         }

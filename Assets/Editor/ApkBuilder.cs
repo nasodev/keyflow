@@ -11,7 +11,7 @@ namespace KeyFlow.Editor
         {
             string dir = "Builds";
             Directory.CreateDirectory(dir);
-            string apk = Path.Combine(dir, "keyflow-w6-sp2.apk");
+            string apk = Path.Combine(dir, "keyflow-w6-sp10.apk");
 
             var opts = new BuildPlayerOptions
             {
@@ -32,7 +32,7 @@ namespace KeyFlow.Editor
         {
             string dir = "Builds";
             Directory.CreateDirectory(dir);
-            string apk = Path.Combine(dir, "keyflow-w6-sp3-profile.apk");
+            string apk = Path.Combine(dir, "keyflow-w6-sp10-profile.apk");
 
             var opts = new BuildPlayerOptions
             {
