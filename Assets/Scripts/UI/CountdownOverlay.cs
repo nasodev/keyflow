@@ -21,7 +21,11 @@ namespace KeyFlow.UI
         private IClickPlayer clickPlayer;
         private Action onComplete;
         private float startTime;
-        private int lastStepFired = -1;   // -1=Idle, 0=Step3, 1=Step2, 2=Step1, 3=StepGo, 4=Complete
+        // lastStepFired values: -1 = pre-init / reset (Update early-returns),
+        // 0=Step3, 1=Step2, 2=Step1, 3=StepGo, 4=Complete. -1 is transient —
+        // BeginCountdown resets it then immediately calls EnterStep(0), so the
+        // value is never observed as a steady state after BeginCountdown returns.
+        private int lastStepFired = -1;
 
         public void BeginCountdown(Action onComplete)
         {
@@ -31,8 +35,10 @@ namespace KeyFlow.UI
             this.onComplete = onComplete;
             this.startTime = Time.time;
             this.lastStepFired = -1;
-            EnterStep(0, Time.time);
+            // Hide pause button BEFORE firing Step3 so "hide then start" ordering
+            // is explicit, not dependent on same-frame Unity batching.
             if (pauseButtonRoot != null) pauseButtonRoot.SetActive(false);
+            EnterStep(0, Time.time);
         }
 
         private void Update()
