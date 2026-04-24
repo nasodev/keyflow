@@ -358,12 +358,14 @@ namespace KeyFlow.Editor
             SetField(particlePool, "missPrefab", missPrefab);
             SetField(particlePool, "presets", presets);
 
-            // Text popup pool (SP10) — world-space canvas sits at the judgment line,
-            // pool cycles 12 Text slots. Each spawn sets text + color + x=worldPos.x
-            // and animates via JudgmentTextPopup.
+            // Text popup pool (SP10) — world-space canvas sits at a fixed
+            // top-center position of the gameplay area (Magic-Piano convention);
+            // pool cycles 12 Text slots. Each spawn sets text + color at
+            // canvas origin (ignores worldPos.x for a centered popup) and
+            // animates via JudgmentTextPopup.
             var textCanvasGo = new GameObject("JudgmentTextCanvas");
             textCanvasGo.transform.SetParent(feedbackRoot.transform, false);
-            textCanvasGo.transform.position = new Vector3(0f, JudgmentY, 0f);
+            textCanvasGo.transform.position = new Vector3(0f, 3f, 0f);
             textCanvasGo.transform.localScale = Vector3.one * 0.01f;
             var textCanvasRt = textCanvasGo.AddComponent<RectTransform>();
             textCanvasRt.sizeDelta = new Vector2(1000f, 400f);

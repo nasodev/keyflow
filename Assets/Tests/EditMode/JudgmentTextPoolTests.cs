@@ -83,23 +83,29 @@ namespace KeyFlow.Tests.EditMode
         }
 
         [Test]
-        public void Spawn_PlacesXAtWorldPosX_YAtJudgmentLineLocalZero()
+        public void Spawn_AlwaysPlacesAtCanvasOrigin_IgnoresWorldPos()
         {
+            // Popups render at canvas origin (top-center of gameplay, set by
+            // SceneBuilder). worldPos is intentionally ignored so the player
+            // sees one centered popup regardless of which lane fired the tap.
             var (root, pool, presets) = BuildPool();
             pool.Spawn(Judgment.Perfect, new Vector3(2.5f, 99f, 0f));
             var rt = pool.GetSlotForTest(0).GetComponent<RectTransform>();
-            Assert.AreEqual(2.5f, rt.anchoredPosition.x, 0.0001f);
-            Assert.AreEqual(0f, rt.anchoredPosition.y, 0.0001f, "y is judgment-line-local, independent of worldPos.y");
+            Assert.AreEqual(0f, rt.anchoredPosition.x, 0.0001f, "x is canvas origin, independent of worldPos.x");
+            Assert.AreEqual(0f, rt.anchoredPosition.y, 0.0001f, "y is canvas origin, independent of worldPos.y");
             Object.DestroyImmediate(root); Object.DestroyImmediate(presets);
         }
 
         [Test]
-        public void Spawn_Miss_UsesJudgmentLineY_NotWorldPosY()
+        public void Spawn_Miss_AlsoAtCanvasOrigin_IgnoresWorldPos()
         {
+            // Miss can fire with worldPos above or below judgment line (note
+            // expired past line, or hold broke mid-tile). Centered position
+            // policy applies identically to Miss.
             var (root, pool, presets) = BuildPool();
             pool.Spawn(Judgment.Miss, new Vector3(-1.5f, 50f, 0f));
             var rt = pool.GetSlotForTest(0).GetComponent<RectTransform>();
-            Assert.AreEqual(-1.5f, rt.anchoredPosition.x, 0.0001f);
+            Assert.AreEqual(0f, rt.anchoredPosition.x, 0.0001f);
             Assert.AreEqual(0f, rt.anchoredPosition.y, 0.0001f);
             Object.DestroyImmediate(root); Object.DestroyImmediate(presets);
         }

@@ -86,10 +86,11 @@ namespace KeyFlow.Feedback
                 ? presets.GetTextColor(judgment)
                 : Color.white;
 
-            // Canvas sits at (0, judgmentY, 0) in world; canvas-local y=0 is the
-            // judgment line. We use worldPos.x as canvas-local x (world units),
-            // and fix y at 0 regardless of the worldPos.y the caller provided.
-            rects[idx].anchoredPosition = new Vector2(worldPos.x / worldCanvasScale, 0f);
+            // Canvas sits at a fixed top-center world position (set by
+            // SceneBuilder). All popups render at canvas origin — worldPos is
+            // intentionally ignored so the player sees one centered popup per
+            // judgment regardless of which lane fired it (Magic-Piano style).
+            rects[idx].anchoredPosition = Vector2.zero;
 
             popups[idx].Activate(Time.time, lifetimeSec, yRiseUnits, color);
         }
