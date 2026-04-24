@@ -14,7 +14,7 @@ namespace KeyFlow.Feedback
         [SerializeField] private int poolSize = 12;
         [SerializeField] private float lifetimeSec = 0.45f;
         [SerializeField] private float yRiseUnits = 0.36f;
-        [SerializeField] private int fontSize = 48;
+        [SerializeField] private int fontSize = 72;
         [SerializeField] private float worldCanvasScale = 0.01f;
 
         private GameObject[] slots;
@@ -60,6 +60,13 @@ namespace KeyFlow.Feedback
                 t.verticalOverflow = VerticalWrapMode.Overflow;
                 t.raycastTarget = false;
                 t.fontStyle = FontStyle.Bold;
+
+                // Dark outline thickens strokes for on-device readability.
+                // LegacyRuntime.ttf's synthesized Bold alone is too thin
+                // against the blue/yellow gameplay backgrounds on Galaxy S22.
+                var outline = go.AddComponent<UnityEngine.UI.Outline>();
+                outline.effectColor = new Color(0f, 0f, 0f, 0.75f);
+                outline.effectDistance = new Vector2(3f, -3f);
 
                 var popup = go.AddComponent<JudgmentTextPopup>();
 

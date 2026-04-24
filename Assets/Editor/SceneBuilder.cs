@@ -379,7 +379,7 @@ namespace KeyFlow.Editor
             SetField(textPool, "poolSize", 12);
             SetField(textPool, "lifetimeSec", 0.45f);
             SetField(textPool, "yRiseUnits", 0.36f);
-            SetField(textPool, "fontSize", 48);
+            SetField(textPool, "fontSize", 72);
             SetField(textPool, "worldCanvasScale", 0.01f);
 
             var dispatcherGo = new GameObject("FeedbackDispatcher");
