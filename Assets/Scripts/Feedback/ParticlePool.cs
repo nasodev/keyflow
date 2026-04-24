@@ -44,6 +44,38 @@ namespace KeyFlow.Feedback
             ready = true;
         }
 
+        // Called automatically every time GameplayRoot reactivates (after Results
+        // screen → 2nd play). Without this, any ParticleSystem that was mid-emission
+        // when the root deactivated resumes on reactivation — producing ghost
+        // particle bursts during the SP11 countdown window. Unity pauses
+        // ParticleSystem simulation on GameObject deactivation but does NOT clear
+        // the simulation state; ps.Clear(true) is required to purge live particles.
+        private void OnEnable()
+        {
+            if (!ready) return;  // pool not yet initialized (Awake runs before OnEnable on first load)
+            ClearPoolState();
+        }
+
+        private void ClearPoolState()
+        {
+            for (int i = 0; i < hitPool.Length; i++)
+            {
+                var ps = hitPool[i];
+                if (ps == null) continue;
+                ps.Clear(true);
+                if (ps.gameObject.activeSelf) ps.gameObject.SetActive(false);
+            }
+            for (int i = 0; i < missPool.Length; i++)
+            {
+                var ps = missPool[i];
+                if (ps == null) continue;
+                ps.Clear(true);
+                if (ps.gameObject.activeSelf) ps.gameObject.SetActive(false);
+            }
+            hitNextIndex = 0;
+            missNextIndex = 0;
+        }
+
         public void Spawn(Judgment judgment, Vector3 worldPos)
         {
             if (!ready) return;
