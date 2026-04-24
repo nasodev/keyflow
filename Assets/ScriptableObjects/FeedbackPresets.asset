@@ -36,3 +36,7 @@ MonoBehaviour:
     tintColor: {r: 0.8, g: 1, b: 0.8, a: 1}
     startSize: 0.22
     burstCount: 6
+  perfectTextColor: {r: 1, g: 0.84, b: 0, a: 1}
+  greatTextColor: {r: 0.31, g: 0.76, b: 1, a: 1}
+  goodTextColor: {r: 0.5, g: 0.87, b: 0.5, a: 1}
+  missTextColor: {r: 1, g: 0.25, b: 0.25, a: 1}

@@ -111,7 +111,7 @@ namespace KeyFlow.Editor
                 camera, pianoClip, pitchSamples, whiteSprite, notePrefab, gameplayRoot.transform,
                 out var audioSync, out var samplePool, out var tapInput,
                 out var judgmentSystem, out var spawner, out var holdTracker);
-            BuildFeedbackPipeline(judgmentSystem, gameplayRoot.transform);
+            BuildFeedbackPipeline(camera, judgmentSystem, gameplayRoot.transform);
             var hudPauseButton = BuildHUD(audioSync, tapInput, samplePool, judgmentSystem, whiteSprite, gameplayRoot.transform);
 
             var calibration = BuildCalibrationOverlay(whiteSprite, clickClip, audioSync);
@@ -138,6 +138,18 @@ namespace KeyFlow.Editor
             SetField(screenMgr, "pauseOverlay", pauseScreen);
             SetField(screenMgr, "settingsOverlay", settingsScreen);
             SetField(screenMgr, "backgroundSwitcher", backgroundSwitcher);
+
+            // Only StartCanvas starts active. ScreenManager.Start() eventually
+            // calls Replace(AppScreen.Start) to enforce this state at runtime,
+            // but that fires AFTER other MBs' Start() coroutines. If a coroutine
+            // on a non-Start screen (e.g. MainScreen's SongCatalog load) yields
+            // before Replace runs, the subsequent SetActive(false) halts it via
+            // OnDisable and Unity never re-fires Start. Deactivating at save
+            // time makes the initial state deterministic so Start only fires
+            // when the user first navigates to a screen.
+            mainCanvas.SetActive(false);
+            gameplayRoot.SetActive(false);
+            resultsScreen.gameObject.SetActive(false);
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene, ScenePath);
@@ -316,7 +328,7 @@ namespace KeyFlow.Editor
         }
 
         private static void BuildFeedbackPipeline(
-            JudgmentSystem judgmentSystem, Transform parent)
+            Camera camera, JudgmentSystem judgmentSystem, Transform parent)
         {
             var feedbackRoot = new GameObject("FeedbackPipeline");
             feedbackRoot.transform.SetParent(parent, false);
@@ -346,12 +358,37 @@ namespace KeyFlow.Editor
             SetField(particlePool, "missPrefab", missPrefab);
             SetField(particlePool, "presets", presets);
 
+            // Text popup pool (SP10) — world-space canvas sits at a fixed
+            // top-center position of the gameplay area (Magic-Piano convention);
+            // pool cycles 12 Text slots. Each spawn sets text + color at
+            // canvas origin (ignores worldPos.x for a centered popup) and
+            // animates via JudgmentTextPopup.
+            var textCanvasGo = new GameObject("JudgmentTextCanvas");
+            textCanvasGo.transform.SetParent(feedbackRoot.transform, false);
+            textCanvasGo.transform.position = new Vector3(0f, 3f, 0f);
+            textCanvasGo.transform.localScale = Vector3.one * 0.01f;
+            var textCanvasRt = textCanvasGo.AddComponent<RectTransform>();
+            textCanvasRt.sizeDelta = new Vector2(1000f, 400f);
+            var textCanvas = textCanvasGo.AddComponent<Canvas>();
+            textCanvas.renderMode = RenderMode.WorldSpace;
+            textCanvas.worldCamera = camera;
+            textCanvas.sortingOrder = 10;   // above particles and gameplay BG
+
+            var textPool = textCanvasGo.AddComponent<JudgmentTextPool>();
+            SetField(textPool, "presets", presets);
+            SetField(textPool, "poolSize", 12);
+            SetField(textPool, "lifetimeSec", 0.45f);
+            SetField(textPool, "yRiseUnits", 0.36f);
+            SetField(textPool, "fontSize", 72);
+            SetField(textPool, "worldCanvasScale", 0.01f);
+
             var dispatcherGo = new GameObject("FeedbackDispatcher");
             dispatcherGo.transform.SetParent(feedbackRoot.transform, false);
             var dispatcher = dispatcherGo.AddComponent<FeedbackDispatcher>();
             SetField(dispatcher, "judgmentSystem", judgmentSystem);
             SetField(dispatcher, "hapticService", hapticService);
             SetField(dispatcher, "particlePool", particlePool);
+            SetField(dispatcher, "textPool", textPool);    // NEW (SP10)
         }
 
         private static HUDPauseButton BuildHUD(

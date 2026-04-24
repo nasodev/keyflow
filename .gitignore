@@ -79,3 +79,10 @@ crashlytics-build.properties
 # W5 pipeline
 tools/midi_to_kfchart/.venv/
 tools/midi_to_kfchart/**/__pycache__/
+
+# Test runner + profiler outputs
+TestResults-*.xml
+/.test-results/
+/test-results/
+/ProfilerCaptures/
+/img/
