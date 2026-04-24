@@ -12,6 +12,8 @@ namespace KeyFlow
         [SerializeField] private NoteSpawner spawner;
         [SerializeField] private JudgmentSystem judgmentSystem;
         [SerializeField] private ResultsScreen resultsScreen;
+        [SerializeField] private CountdownOverlay countdown;
+        private ICountdownOverlay countdownOverride;
 
         [SerializeField] private HoldTracker holdTracker;
 
@@ -53,6 +55,14 @@ namespace KeyFlow
             playing = false;
             completed = false;
 
+            // Stop prior-session audio IMMEDIATELY — before the chart-load coroutine
+            // yields. Without this, surviving NoteControllers from the previous
+            // session continue running their Update (they gate on audioSync.IsPlaying)
+            // during the yield window and fire ghost auto-miss callbacks → particle
+            // bursts during the subsequent countdown. ResetForRetry in
+            // ContinueAfterChartLoaded destroys them, but that's too late.
+            audioSync.Stop();
+
             StartCoroutine(ChartLoader.LoadFromStreamingAssetsCo(
                 songId,
                 loaded => { chart = loaded; ContinueAfterChartLoaded(); },
@@ -79,10 +89,35 @@ namespace KeyFlow
         private void BeginGameplay()
         {
             var chartDiff = chart.charts[difficulty];
+            // Reset prior-session audio state BEFORE Initialize so NoteSpawner (which
+            // gates on audioSync.IsPlaying) stays dormant through the countdown window.
+            // Without this, a retry / 2nd-song scenario floods the screen with notes.
+            audioSync.Stop();
             spawner.Initialize(chartDiff, difficulty);
-            audioSync.StartSilentSong();
-            playing = true;
+            StartCountdownAndDeferAudio();
         }
+
+        private void StartCountdownAndDeferAudio()
+        {
+            ICountdownOverlay cd = countdownOverride ?? (ICountdownOverlay)countdown;
+            cd.BeginCountdown(() =>
+            {
+                audioSync.StartSilentSong();
+                playing = true;
+            });
+        }
+
+#if UNITY_EDITOR || UNITY_INCLUDE_TESTS
+        internal void SetCountdownForTest(ICountdownOverlay c) => countdownOverride = c;
+        // Mirrors BeginGameplay's tail: reset prior audio state, then start countdown.
+        // Skips the chart/spawner setup that requires full scene state.
+        internal void InvokeStartCountdownForTest()
+        {
+            audioSync.Stop();
+            StartCountdownAndDeferAudio();
+        }
+        internal bool PlayingForTest => playing;
+#endif
 
         private void Update()
         {

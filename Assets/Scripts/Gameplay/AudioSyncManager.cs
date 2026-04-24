@@ -63,6 +63,18 @@ namespace KeyFlow
             paused = false;
         }
 
+        // Reset between gameplay sessions. SP11 countdown defers StartSilentSong
+        // behind a 3-second gap; without Stop(), a retry scenario leaves `started`
+        // true from the prior session — NoteSpawner then sees IsPlaying=true with a
+        // stale songStartDsp, reports huge SongTimeMs, and spawns every upcoming
+        // note at once during the countdown window.
+        public void Stop()
+        {
+            if (paused) AudioListener.pause = false;
+            started = false;
+            paused = false;
+        }
+
         public void Pause()
         {
             if (paused || !started) return;
