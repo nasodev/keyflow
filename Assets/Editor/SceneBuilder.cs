@@ -123,7 +123,8 @@ namespace KeyFlow.Editor
             var mainScreen = mainCanvas.GetComponent<MainScreen>();
             var pauseScreen = BuildPauseCanvas(whiteSprite, audioSync);
             var settingsScreen = BuildSettingsCanvas(whiteSprite, calibration);
-            var startCanvas = BuildStartCanvas(startBg, out var startScreen);
+            var bgmClip = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/bgm/piano_play_start.mp3");
+            var startCanvas = BuildStartCanvas(startBg, bgmClip, out var startScreen);
 
             // Wire HUD pause button -> PauseScreen, MainScreen -> Settings overlay
             SetField(hudPauseButton, "pauseOverlay", pauseScreen);
@@ -717,7 +718,7 @@ namespace KeyFlow.Editor
         private static readonly Vector2 SOYOON_ANCHOR = new Vector2(0.734f, 0.400f);
         private static readonly Vector2 BUTTON_SIZE   = new Vector2(280f, 120f);
 
-        private static GameObject BuildStartCanvas(Sprite startBg, out StartScreen startScreen)
+        private static GameObject BuildStartCanvas(Sprite startBg, AudioClip bgmClip, out StartScreen startScreen)
         {
             var canvasGO = new GameObject("StartCanvas");
             var canvas = canvasGO.AddComponent<Canvas>();
@@ -745,9 +746,23 @@ namespace KeyFlow.Editor
             var nayoonBtn = BuildInvisibleButton(canvasGO.transform, "NayoonButton", NAYOON_ANCHOR, BUTTON_SIZE);
             var soyoonBtn = BuildInvisibleButton(canvasGO.transform, "SoyoonButton", SOYOON_ANCHOR, BUTTON_SIZE);
 
+            // BGM AudioSource child (SP12)
+            var bgmGO = new GameObject("BgmAudioSource");
+            bgmGO.transform.SetParent(canvasGO.transform, false);
+            var bgmSource = bgmGO.AddComponent<AudioSource>();
+            bgmSource.clip = bgmClip;
+            bgmSource.loop = true;
+            bgmSource.playOnAwake = false;
+            bgmSource.volume = 0.6f;
+            bgmSource.spatialBlend = 0f;
+            if (bgmClip == null)
+                Debug.LogWarning("[SceneBuilder] BGM clip is null — StartScreen will have no music. " +
+                                 "Verify Assets/Audio/bgm/piano_play_start.mp3 exists and is imported as an AudioClip.");
+
             startScreen = canvasGO.AddComponent<StartScreen>();
             SetField(startScreen, "nayoonButton", nayoonBtn);
             SetField(startScreen, "soyoonButton", soyoonBtn);
+            SetField(startScreen, "bgmSource", bgmSource);
 
             return canvasGO;
         }
