@@ -201,20 +201,25 @@ namespace KeyFlow.Editor
             var sprites = new SpriteRenderer[LaneLayout.LaneCount];
             float tileWidth = LaneAreaWidth / LaneLayout.LaneCount;
 
+            // Glow sits in the TAP ZONE below the judgment line — the empty lane
+            // area between the judgment line and the camera bottom. Placing it
+            // below-and-separate from the note tiles (instead of at JudgmentY where
+            // the tiles live) means it's never visually buried.
+            // JudgmentY = -3, camera bottom ≈ -5 → tap zone 2 units tall, midpoint -4.
+            const float TapZoneMidY = -4f;
+            const float TapZoneHeight = 2.0f;
             for (int i = 0; i < LaneLayout.LaneCount; i++)
             {
                 var go = new GameObject($"Glow_{i}");
                 go.transform.SetParent(root.transform, worldPositionStays: false);
-                go.transform.position = new Vector3(LaneLayout.LaneToX(i, LaneAreaWidth), JudgmentY, 0);
-                // 0.8 units tall (2.67x prior) so the halo is visible as a chunky
-                // band at the judgment line, not a thin line buried in the tile.
-                go.transform.localScale = new Vector3(tileWidth, 0.8f, 1);
+                go.transform.position = new Vector3(LaneLayout.LaneToX(i, LaneAreaWidth), TapZoneMidY, 0);
+                go.transform.localScale = new Vector3(tileWidth, TapZoneHeight, 1);
                 var sr = go.AddComponent<SpriteRenderer>();
                 sr.sprite = whiteSprite;
                 sr.color = new Color(1f, 1f, 1f, 0f);
-                // Above note tiles (sortingOrder 1) so the halo actually shows over
-                // the dark hold-note body. Device playtest on 2026-04-24 confirmed
-                // sortingOrder 0 was invisible because held tiles covered it.
+                // sortingOrder = 2 so the glow still wins against incidental overlap;
+                // but by design the glow is in the tap zone (y < -3) while tiles
+                // scroll through y ≥ -3 only up to their bottom-at-judgment position.
                 sr.sortingOrder = 2;
                 sprites[i] = sr;
             }
