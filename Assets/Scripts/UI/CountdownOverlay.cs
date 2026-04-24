@@ -35,10 +35,17 @@ namespace KeyFlow.UI
         {
             if (clickPlayer == null && audioSource != null && clickSample != null)
                 clickPlayer = new AudioSourceClickPlayer(audioSource, clickSample);
+            // Don't log here: in EditMode tests, Awake fires at AddComponent time
+            // BEFORE SetDependenciesForTest runs, and Unity's LogAssert fails tests
+            // on any Debug.LogError. We check in BeginCountdown instead — by then,
+            // tests have injected a fake clickPlayer, and production has either
+            // constructed it above or truly has a wiring bug worth logging.
         }
 
         public void BeginCountdown(Action onComplete)
         {
+            if (clickPlayer == null)
+                Debug.LogError("[CountdownOverlay] clickPlayer is null on BeginCountdown — countdown ticks will be silent. Check SceneBuilder.BuildCountdownOverlay audio wiring.");
             // CountdownCanvas is saved SetActive(false) to avoid SP10 ScreenManager.Start
             // race (see spec §2.3 guardrail). Reactivate on demand.
             if (!gameObject.activeSelf) gameObject.SetActive(true);
