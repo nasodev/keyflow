@@ -52,7 +52,7 @@ namespace KeyFlow.Tests.EditMode
         public void Dispatches_ToHaptics_WhenHapticsEnabled()
         {
             UserPrefs.HapticsEnabled = true;
-            var (js, d, h, p, t) = Build();
+            var (js, d, h, _, _) = Build();
 
             js.HandleAutoMiss(MakeNoteAt(Vector3.zero));
 
@@ -67,7 +67,7 @@ namespace KeyFlow.Tests.EditMode
         public void Skips_Haptics_WhenHapticsDisabled()
         {
             UserPrefs.HapticsEnabled = false;
-            var (js, d, h, p, t) = Build();
+            var (js, d, h, _, _) = Build();
 
             js.HandleAutoMiss(MakeNoteAt(Vector3.zero));
 
@@ -81,7 +81,7 @@ namespace KeyFlow.Tests.EditMode
         public void AlwaysDispatches_ToParticlePool_RegardlessOfHapticsToggle()
         {
             UserPrefs.HapticsEnabled = false;
-            var (js, d, h, p, t) = Build();
+            var (js, d, _, p, _) = Build();
 
             js.HandleAutoMiss(MakeNoteAt(new Vector3(2f, 0f, 0f)));
 
@@ -96,7 +96,7 @@ namespace KeyFlow.Tests.EditMode
         public void WorldPosition_ForwardedUnchanged()
         {
             UserPrefs.HapticsEnabled = true;
-            var (js, d, h, p, t) = Build();
+            var (js, d, _, p, _) = Build();
             var note = MakeNoteAt(new Vector3(-1.23f, 4.56f, 0f));
 
             js.HandleAutoMiss(note);
@@ -114,7 +114,7 @@ namespace KeyFlow.Tests.EditMode
             // (HandleTap_FiresFeedbackEvent_OnPerfect). Here we assert the dispatcher
             // forwards Miss specifically — the kind easy to produce deterministically in EditMode.
             UserPrefs.HapticsEnabled = true;
-            var (js, d, h, p, t) = Build();
+            var (js, d, _, p, _) = Build();
 
             js.HandleAutoMiss(MakeNoteAt(Vector3.zero));
 
