@@ -44,11 +44,16 @@ namespace KeyFlow.UI
 
         public void BeginCountdown(Action onComplete)
         {
+            // CountdownCanvas is saved SetActive(false) to avoid SP10 ScreenManager.Start
+            // race (see spec §2.3 guardrail). Reactivate on demand — THIS ALSO TRIGGERS
+            // Awake's lazy clickPlayer construction if it hasn't happened yet (scene was
+            // loaded inactive so Awake hasn't run until now).
+            if (!gameObject.activeSelf) gameObject.SetActive(true);
+            // Null check must come AFTER the SetActive above: Awake lazy-constructs the
+            // production clickPlayer when SerializeFields are wired. Logging before
+            // reactivation would false-positive on every well-wired countdown.
             if (clickPlayer == null)
                 Debug.LogError("[CountdownOverlay] clickPlayer is null on BeginCountdown — countdown ticks will be silent. Check SceneBuilder.BuildCountdownOverlay audio wiring.");
-            // CountdownCanvas is saved SetActive(false) to avoid SP10 ScreenManager.Start
-            // race (see spec §2.3 guardrail). Reactivate on demand.
-            if (!gameObject.activeSelf) gameObject.SetActive(true);
             this.onComplete = onComplete;
             this.startTime = Time.time;
             this.lastStepFired = -1;

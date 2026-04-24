@@ -67,6 +67,10 @@ namespace KeyFlow.UI
         }
 
 #if UNITY_EDITOR || UNITY_INCLUDE_TESTS
+        // Parameter is ABSOLUTE time (same reference frame as `Activate`'s startTime).
+        // This differs from CountdownOverlay.TickForTest(simulatedElapsed) which takes
+        // elapsed-since-BeginCountdown. Both test files pass startTime=0 so the values
+        // happen to match, but the semantics differ by design.
         internal void TickForTest(float simulatedTime) => Tick(simulatedTime);
 #endif
     }
