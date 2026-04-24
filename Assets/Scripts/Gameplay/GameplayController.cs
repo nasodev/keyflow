@@ -55,6 +55,14 @@ namespace KeyFlow
             playing = false;
             completed = false;
 
+            // Stop prior-session audio IMMEDIATELY — before the chart-load coroutine
+            // yields. Without this, surviving NoteControllers from the previous
+            // session continue running their Update (they gate on audioSync.IsPlaying)
+            // during the yield window and fire ghost auto-miss callbacks → particle
+            // bursts during the subsequent countdown. ResetForRetry in
+            // ContinueAfterChartLoaded destroys them, but that's too late.
+            audioSync.Stop();
+
             StartCoroutine(ChartLoader.LoadFromStreamingAssetsCo(
                 songId,
                 loaded => { chart = loaded; ContinueAfterChartLoaded(); },
