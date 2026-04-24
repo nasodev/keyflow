@@ -1,11 +1,11 @@
 # KeyFlow W6 Sub-Project 9 Completion Report — Profile Start Screen + Per-Profile Background
 
-**Date:** 2026-04-24
+**Date:** 2026-04-24 (merged to main 2026-04-24 as merge commit `ca8c648`)
 **Branch:** `claude/w6-sp9-profile-start-screen` (worktree at `.claude/worktrees/w6-sp9-profile-start-screen`)
 **Spec:** `docs/superpowers/specs/2026-04-24-keyflow-w6-sp9-profile-start-screen-design.md`
 **Plan:** `docs/superpowers/plans/2026-04-24-keyflow-w6-sp9-profile-start-screen.md`
-**Device:** Galaxy S22 (R5CT21A31QB) — PLAYTEST DEFERRED (see §6)
-**Release APK:** `Builds/keyflow-w6-sp2.apk` — NOT YET REBUILT (see §6)
+**Device:** Galaxy S22 (R5CT21A31QB) — PLAYTEST PASSED 2026-04-24 (see §6)
+**Release APK:** `Builds/keyflow-w6-sp2.apk` — 39.67 MB (SP9-only); 39.89 MB merged with SP8 on main
 **Unity version:** 6000.3.13f1
 
 ---
@@ -85,9 +85,24 @@ Converted to normalized anchors (Unity bottom-origin, `y = (H_px - Cy_top) / H_p
 
 All 150 EditMode tests pass in ~1.0 s. EditMode test count now 15 tests higher than SP8 main (which has 135 — SP8's +13 tests live on its own un-merged branch).
 
-## 6. Device playtest — DEFERRED
+## 6. Device playtest — PASSED (2026-04-24)
 
-User deferred device playtest pending completion of this SP. Remaining checklist:
+Playtest executed on Galaxy S22 (R5CT21A31QB). All 7 SP9-specific checks passed on first install:
+1. **Launcher icon**: new icon confirmed on Android home screen / app drawer.
+2. **Start screen**: `start.png` backdrop renders fullscreen at S22 aspect ratio.
+3. **Nayoon flow**: tap 나윤's 시작하기 → MainScreen → song select → **BLUE** gameplay background.
+4. **Soyoon flow**: Android back → Main → back → Start → tap 소윤's 시작하기 → MainScreen → song select → **YELLOW** gameplay background.
+5. **Hit-box edges**: both 시작하기 button corners respond (Y = 0.400 measurement was correct; no drift observed).
+6. **Decorative elements**: 4 bottom menu items (연주하기/배우기/챌린지/마이룸) + 2 top-bar icons (설정/보호자) visibly present, non-interactive — as intended per spec §3 non-goal.
+7. **Double-back quit**: Start screen + 2 back presses within 2 s → app exits cleanly.
+
+User report: "정상동작함" (working correctly).
+
+Final merged APK (SP8+SP9 on main) smoke-tested: profile selection drives correct background; SP8 hold behaviors (bottom-pivot scroll, tap-zone glow, missed-HOLD grey) all present alongside SP9 profile flow. User report: "잘된다".
+
+**Profiler attach:** DEFERRED (see SP8 report §6 for shared carry-over). Start screen and profile transitions only fire on screen replace (not per frame), so GC risk is zero; the carry-over is about SP8's runtime-hot path.
+
+Historical checklist (executed in order):
 
 1. Close any interactive Unity Editor on this project (IL2CPP link fails otherwise per `memory/feedback_unity_batch_mode.md`).
 2. Release APK build:

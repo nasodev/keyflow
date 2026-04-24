@@ -1,11 +1,11 @@
 # KeyFlow W6 Sub-Project 8 Completion Report — Hold-Note Polish Pass
 
-**Date:** 2026-04-24
+**Date:** 2026-04-24 (merged to main 2026-04-24 as merge commit `5c58aed`)
 **Branch:** `claude/w6-sp8-hold-note-polish` (worktree at `.claude/worktrees/w6-sp8-hold-note-polish`)
 **Spec:** `docs/superpowers/specs/2026-04-23-keyflow-w6-sp8-hold-note-polish-design.md`
 **Plan:** `docs/superpowers/plans/2026-04-23-keyflow-w6-sp8-hold-note-polish.md`
-**Device:** Galaxy S22 (R5CT21A31QB) — PLAYTEST DEFERRED (see §6)
-**Release APK:** `Builds/keyflow-w6-sp2.apk` — NOT YET REBUILT (see §6)
+**Device:** Galaxy S22 (R5CT21A31QB) — PLAYTEST PASSED 2026-04-24 (see §6)
+**Release APK:** `Builds/keyflow-w6-sp2.apk` — 37.14 MB (SP8-only); 39.89 MB post SP9 merge on main
 **Unity version:** 6000.3.13f1
 
 ---
@@ -101,9 +101,39 @@ Old charts were severely under-dense (Clair de Lune NORMAL at 18% of target). Ne
 
 Subjective implication for playtest: Clair de Lune NORMAL went from 160 sparse-but-held-dominant notes to 759 denser-with-half-holds notes. Noticeably different song to play. Ode to Joy remains essentially "hold all the things" at both difficulties (small number of notes, all long at BPM 100). Per spec §3 non-goals, per-song threshold tuning stays out of scope — any follow-up polish for Ode to Joy / Clair de Lune should be a separate SP.
 
-## 6. Device playtest — DEFERRED
+## 6. Device playtest — PASSED (2026-04-24)
 
-Plan Task 6 requires Galaxy S22 (R5CT21A31QB) release APK playtest for subjective acceptance of all three SP8 user complaints, plus profiler attach to verify SP3 GC-free baseline is preserved. **Not yet executed at report-draft time.** This section to be filled in before merge-to-main.
+Playtest executed on Galaxy S22 (R5CT21A31QB) across 5 APK iterations during the same session, each driven by in-the-moment findings. Subjective pain points + follow-ups:
+
+**Initial playtest (after APK from commit `0821694`-era) — 3 findings reported:**
+- #1 "홀드 노트가 너무 많이 나온다 / 너무 긴 게 있고 둘로 나뉘어진 것 같은 게 구분이 없어서 누르고 있으면 미스가 뜬다"
+- #2 "홀드 누르고 있을 때 화면 임팩트 없다"
+- #3 "Clair de Lune은 홀드 중 소리 이어지지 않는 것도 있고 이어지는 것도 있다"
+
+**Iteration 1 (glow v1 = alpha 0.4-0.9, sortingOrder 2):**
+- Glow still not visible on device (sortingOrder change theoretically correct, but tile body covered the halo).
+
+**Iteration 2 (chart-merge pipeline + glow v2 = alpha 0.5-1.0, 0.8 u tall):**
+- Chart merge eliminated same-lane adjacent HOLD pairs from 184 (Clair de Lune NORMAL) to 0. User no longer "holds through and misses".
+- Glow v2 still reported as "no impact".
+- New finding: "긴 홀드가 내려오다 중간에 사라지듯 끊긴다" + "아주 긴 건 위에서부터 안 내려오고 갑자기 중간부터 내려온다".
+  - Root cause: NoteController lerp moved tile CENTER to judgmentY at hit time; for tall HOLDs (up to 14 world units after SP8 merge enabled 4s holds), the tile's bottom was already below judgment line at spawn and its top never appeared from camera top.
+
+**Iteration 3 (NoteController bottom-pivot + LaneGlow in tap zone below judgment line):**
+- Tile BOTTOM now reaches judgmentY at hit time; tile keeps scrolling through judgment line until top reaches it at hold end.
+- Glow moved to y=-4 (tap zone below judgment, 2 u tall, spanning y=-5..-3). Tile never covers it by design.
+- User reported: long holds now scroll from top naturally; glow visible in tap zone.
+
+**Iteration 4 (missed-HOLD grey + scroll-through):**
+- User reported: "긴 홀드를 처음에 놓치면 없어져 버린다" — missed holds Destroy'd ~100 ms after window close, jarring for 4s tall tiles.
+- Fix: HOLD auto-miss greys tile and schedules Destroy at `hitTimeMs + durMs`; tile keeps scrolling via the normal lerp path. TAP unchanged (immediate Destroy).
+- User confirmation: "잘된다".
+
+**Merged APK smoke test (post SP8+SP9 merge):**
+- All 5 SP8 iteration features still working alongside SP9 profile flow.
+- Owner's 2 children tested nayoon→blue-bg and soyoon→yellow-bg with assorted songs including Clair de Lune long holds.
+
+**Profiler attach:** DEFERRED (not executed in this session). Remains a carry-over to confirm SP3 GC-free baseline under the 5-iteration feature surface. Low risk: no new `Update`-hot-path allocations introduced in iterations 3-4 (scroll math is still stack-only; `Destroy(gameObject, delay)` schedules via Unity scheduler, not per-frame allocation).
 
 Remaining checklist for the playtest pass:
 1. Close any interactive Unity Editor on this project (IL2CPP link fails otherwise).
