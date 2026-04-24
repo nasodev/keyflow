@@ -206,7 +206,9 @@ namespace KeyFlow.Editor
                 var go = new GameObject($"Glow_{i}");
                 go.transform.SetParent(root.transform, worldPositionStays: false);
                 go.transform.position = new Vector3(LaneLayout.LaneToX(i, LaneAreaWidth), JudgmentY, 0);
-                go.transform.localScale = new Vector3(tileWidth, 0.3f, 1);
+                // 0.8 units tall (2.67x prior) so the halo is visible as a chunky
+                // band at the judgment line, not a thin line buried in the tile.
+                go.transform.localScale = new Vector3(tileWidth, 0.8f, 1);
                 var sr = go.AddComponent<SpriteRenderer>();
                 sr.sprite = whiteSprite;
                 sr.color = new Color(1f, 1f, 1f, 0f);

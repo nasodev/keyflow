@@ -30,11 +30,13 @@ namespace KeyFlow.Feedback
         {
             if (audioSync != null && audioSync.IsPaused) return;
 
-            // Brighter pulse range so the halo reads clearly over both the blue
-            // and yellow backgrounds AND on top of the dark hold tile when the
-            // glow sprite sortingOrder=2 draws above the tile (set in SceneBuilder).
-            // Range 0.4..0.9; ~1 Hz visible.
-            float pulse = 0.65f + 0.25f * Mathf.Sin(Time.time * 6f);
+            // Full-brightness pulse range so the halo reads loud on both blue
+            // and yellow backgrounds AND over the dark hold tile (sortingOrder=2
+            // renders above tile sortingOrder=1 per SceneBuilder). Device playtest
+            // on 2026-04-24 reported "no impact" even at 0.4-0.9; bumped to
+            // 0.5-1.0 with a wider size (see SceneBuilder scale Y=0.8) to make
+            // the halo unmissable.
+            float pulse = 0.75f + 0.25f * Mathf.Sin(Time.time * 6f);
             for (int i = 0; i < glowSprites.Length; i++)
             {
                 if (glowSprites[i] == null) continue;
