@@ -108,6 +108,16 @@ namespace KeyFlow.Feedback
             FeedbackPresets presets, int poolSize, float lifetimeSec,
             float yRiseUnits, int fontSize, float worldCanvasScale)
         {
+            // Awake may have fired already (AddComponent on an active
+            // GameObject invokes Awake immediately), leaving a default-sized
+            // pool wired up. Tear those slots down before rebuilding with
+            // the test config to avoid leaking orphaned child GameObjects.
+            if (slots != null)
+            {
+                for (int i = 0; i < slots.Length; i++)
+                    if (slots[i] != null) DestroyImmediate(slots[i]);
+            }
+
             this.presets = presets;
             this.poolSize = poolSize;
             this.lifetimeSec = lifetimeSec;
