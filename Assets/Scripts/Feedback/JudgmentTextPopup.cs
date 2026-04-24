@@ -88,9 +88,12 @@ namespace KeyFlow.Feedback
             text.color = c;
         }
 
+#if UNITY_EDITOR || UNITY_INCLUDE_TESTS
         // Test hook. Drives the same Tick path that Update calls in play mode,
         // but with a caller-supplied simulated time so EditMode tests don't
-        // depend on Time.time progression.
+        // depend on Time.time progression. Guarded to strip from IL2CPP
+        // release builds, matching LaneGlowController's test-hook convention.
         internal void TickForTest(float simulatedTime) => Tick(simulatedTime);
+#endif
     }
 }
