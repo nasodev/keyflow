@@ -89,6 +89,7 @@ docs/superpowers/  — design specs, implementation plans, completion reports
 - **MIDI arrangements**: [Mutopia Project](https://www.mutopiaproject.org/) — Public Domain. Source attribution: `tools/midi_to_kfchart/midi_sources/SOURCES.md`.
 - **Für Elise chart**: hand-authored (not MIDI-sourced); composition PD.
 - **Background image + thumbnails + UI sprites**: self-authored.
+- **StartScreen BGM + profile portraits**: self-generated using AI tools (image + music generation). Released under this project's MIT license for free reuse.
 - **Engine**: [Unity 6](https://unity.com/) (version 6000.3.13f1). Built-in resources (e.g., `LegacyRuntime.ttf` font) bundled under Unity's standard terms.
 
 ## License
