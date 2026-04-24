@@ -18,7 +18,7 @@ Shipped user-authored looping piano BGM on the StartScreen. Music starts on cold
 
 ## 2. Delivered
 
-### 2.1 Commits (8 total, post-rebase onto SP11)
+### 2.1 Commits (9 total, post-rebase onto SP11)
 
 | SHA | Subject |
 |---|---|
@@ -30,6 +30,7 @@ Shipped user-authored looping piano BGM on the StartScreen. Music starts on cold
 | `bf43253` | feat(w6-sp12): SceneBuilder constructs BgmAudioSource child on StartCanvas |
 | `1e86382` | chore(w6-sp12): regenerate GameplayScene with BgmAudioSource child (post-rebase) |
 | `a31595c` | chore(w6-sp12): bump APK output names to sp12 |
+| `a37e488` | docs(w6-sp12): completion report (this file) |
 
 ### 2.2 Files changed
 
@@ -154,6 +155,8 @@ Detailed per-item playtest items (loop-seam inspection at 30s, rapid toggle, pho
 4. **Playtest rigor:** Device playtest was a general "works" confirmation, not a per-item §6.3 checklist walkthrough. If a future SP introduces subtle BGM/audio regression, re-auditing against the checklist (loop seams, rapid toggle, phone-call interruption, home-button) is the fast path to isolate SP12 vs. later work.
 
 5. **SP11 memory entry:** SP11 merged into main mid-SP12 (`aa36692`). Update `memory/MEMORY.md` to mark SP11 as merged alongside the other `project_w6_spN_complete.md` entries (similar to SP10's existing entry).
+
+6. **Scratch source file disposition:** `C:\dev\unity-music\sound\Piano-Play-Start.mp3` (outside repo) was the authoring location. Spec §10 listed it as "Deleted (optional)". User's call whether to keep the scratch folder for future audio authoring or clean it up; SP12 does not require deletion.
 
 ---
 
