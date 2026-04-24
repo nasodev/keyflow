@@ -665,6 +665,9 @@ Replace `BeginCountdown` body in `CountdownOverlay.cs`:
 ```csharp
         public void BeginCountdown(Action onComplete)
         {
+            // CountdownCanvas is saved SetActive(false) to avoid SP10 ScreenManager.Start
+            // race (see spec §2.3 guardrail). Reactivate on demand.
+            if (!gameObject.activeSelf) gameObject.SetActive(true);
             this.onComplete = onComplete;
             this.startTime = Time.time;
             this.lastStepFired = -1;
@@ -1173,29 +1176,25 @@ Confirm how `BuildFeedbackPipeline` creates the `JudgmentTextCanvas` — specifi
 
 - [ ] **Step 5.2: Add `BuildCountdownOverlay` method**
 
-Add after `BuildFeedbackPipeline` in `SceneBuilder.cs`. The concrete code depends on Step 5.1 findings; template:
+Add after `BuildFeedbackPipeline` in `SceneBuilder.cs`. Mirror the existing `JudgmentTextCanvas` pattern at `SceneBuilder.cs:366-375` exactly — **no CanvasScaler, no GraphicRaycaster** (world-space canvas doesn't need them for display-only, non-interactive text):
 
 ```csharp
         private static CountdownOverlay BuildCountdownOverlay(
             Camera camera,
             AudioClip clickSample,
             GameObject pauseButtonRoot,
-            Transform gameplayRoot,
-            int baseSortingOrder)
+            Transform gameplayRoot)
         {
             var canvasGO = new GameObject("CountdownCanvas");
             canvasGO.transform.SetParent(gameplayRoot, false);
+            canvasGO.transform.position = new Vector3(0f, 0f, 0f);  // screen center
+            canvasGO.transform.localScale = Vector3.one * 0.01f;
+            var rt = canvasGO.AddComponent<RectTransform>();
+            rt.sizeDelta = new Vector2(1000f, 400f);
             var canvas = canvasGO.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.WorldSpace;
             canvas.worldCamera = camera;
-            canvas.sortingOrder = baseSortingOrder + 1;  // above JudgmentTextCanvas
-            var scaler = canvasGO.AddComponent<CanvasScaler>();
-            scaler.dynamicPixelsPerUnit = 10f;
-            canvasGO.AddComponent<GraphicRaycaster>().enabled = false;
-            canvasGO.transform.position = new Vector3(0f, 0f, 0f);
-            canvasGO.transform.localScale = Vector3.one * 0.01f;
-            var rt = canvasGO.GetComponent<RectTransform>();
-            rt.sizeDelta = new Vector2(800, 200);
+            canvas.sortingOrder = 11;  // JudgmentTextCanvas is 10; +1 to sit above it
 
             // Popup child
             var popupGO = new GameObject("CountdownNumber");
@@ -1272,12 +1271,12 @@ Production: SceneBuilder wires `audioSource` + `clickSample` before scene save. 
 
 After the `var hudPauseButton = BuildHUD(...)` line (around line 115), and after `BuildFeedbackPipeline` returns its canvas (assume it returns `int sortingOrderUsed` or we just use a known baseline like 10):
 
-Find the `BuildFeedbackPipeline` call site. Verify whether it returns a sortingOrder or if the method sets a known constant. If hardcoded (e.g., `canvas.sortingOrder = 10`), use `10` as `baseSortingOrder`. Otherwise adjust.
+Verified: `BuildFeedbackPipeline` at line 330 sets `JudgmentTextCanvas.sortingOrder = 10` (SceneBuilder.cs:375). `BuildCountdownOverlay` hardcodes 11 (1 above), matching the spec's "+1 above judgment" requirement without needing a parameter.
 
-Add the call:
+Add the call after line 115 (immediately after `hudPauseButton = BuildHUD(...)`):
 
 ```csharp
-            var countdown = BuildCountdownOverlay(camera, clickClip, hudPauseButton.gameObject, gameplayRoot.transform, /*baseSortingOrder=*/10);
+            var countdown = BuildCountdownOverlay(camera, clickClip, hudPauseButton.gameObject, gameplayRoot.transform);
 ```
 
 Then wire into `GameplayController`:
@@ -1414,15 +1413,32 @@ Expected: `suspicious-hodgkin-52399d` gone from `ls`. `git worktree list` unchan
 
 **Goal:** Produce signed APK, install on Galaxy S22 R5CT21A31QB, walk the manual checklist from spec §6.5.
 
-- [ ] **Step 8.1: Build APK**
+- [ ] **Step 8.1: Update APK output filename and build**
 
-```bash
-"/c/Program Files/Unity/Hub/Editor/6000.3.13f1/Editor/Unity.exe" -batchmode -nographics -projectPath "$PWD" -buildTarget Android -executeMethod KeyFlow.Editor.AndroidBuilder.BuildApk -quit -logFile "$PWD/test-results/task8-apk.log"
+`Assets/Editor/ApkBuilder.cs:14` hardcodes `keyflow-w6-sp10.apk`. Edit to SP11:
+
+```csharp
+string apk = Path.Combine(dir, "keyflow-w6-sp11.apk");
 ```
 
-(Replace `AndroidBuilder.BuildApk` with the actual build entry point — check `Assets/Editor/` for the method used in recent SP APK builds. Likely `KeyFlow.Editor.BuildRunner` or similar from SP10 log files.)
+(And `ApkBuilder.cs:35` for the Profile variant: `keyflow-w6-sp11-profile.apk`.)
 
-Expected: `Builds/keyflow-w6-sp11.apk` created, size ≤ 38.10 MB.
+Commit this edit separately:
+
+```bash
+git add Assets/Editor/ApkBuilder.cs
+git commit -m "chore(w6-sp11): bump APK output filename to keyflow-w6-sp11.apk
+
+Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
+```
+
+Then build:
+
+```bash
+"/c/Program Files/Unity/Hub/Editor/6000.3.13f1/Editor/Unity.exe" -batchmode -nographics -projectPath "$PWD" -buildTarget Android -executeMethod KeyFlow.Editor.ApkBuilder.Build -quit -logFile "$PWD/test-results/task8-apk.log"
+```
+
+Expected: `Builds/keyflow-w6-sp11.apk` created, size ≤ 38.10 MB. Log ends with `[KeyFlow] APK built at Builds/keyflow-w6-sp11.apk, size XX MB`.
 
 - [ ] **Step 8.2: Install APK on device**
 
