@@ -12,6 +12,8 @@ namespace KeyFlow
         [SerializeField] private NoteSpawner spawner;
         [SerializeField] private JudgmentSystem judgmentSystem;
         [SerializeField] private ResultsScreen resultsScreen;
+        [SerializeField] private CountdownOverlay countdown;
+        private ICountdownOverlay countdownOverride;
 
         [SerializeField] private HoldTracker holdTracker;
 
@@ -80,9 +82,24 @@ namespace KeyFlow
         {
             var chartDiff = chart.charts[difficulty];
             spawner.Initialize(chartDiff, difficulty);
-            audioSync.StartSilentSong();
-            playing = true;
+            StartCountdownAndDeferAudio();
         }
+
+        private void StartCountdownAndDeferAudio()
+        {
+            ICountdownOverlay cd = countdownOverride ?? (ICountdownOverlay)countdown;
+            cd.BeginCountdown(() =>
+            {
+                audioSync.StartSilentSong();
+                playing = true;
+            });
+        }
+
+#if UNITY_EDITOR || UNITY_INCLUDE_TESTS
+        internal void SetCountdownForTest(ICountdownOverlay c) => countdownOverride = c;
+        internal void InvokeStartCountdownForTest() => StartCountdownAndDeferAudio();
+        internal bool PlayingForTest => playing;
+#endif
 
         private void Update()
         {
