@@ -6,7 +6,7 @@ from pathlib import Path
 # Ensure sibling pipeline/ importable when run as script.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from pipeline import parser, chord_reducer, hold_detector, density, pitch_clamp, lane_assigner, emitter
+from pipeline import parser, chord_reducer, hold_detector, density, pitch_clamp, lane_assigner, merge_adjacent_holds, emitter
 
 
 def _single(args) -> int:
@@ -16,13 +16,14 @@ def _single(args) -> int:
     thinned = density.thin(typed, target_nps=args.target_nps, duration_ms=args.duration_ms)
     clamped = pitch_clamp.clamp_pitches(thinned)
     assigned = lane_assigner.assign(clamped)
+    merged = merge_adjacent_holds.merge(assigned)
     meta = {
         "song_id": args.song_id, "title": args.title, "composer": args.composer,
         "bpm": args.bpm, "duration_ms": args.duration_ms,
     }
-    emitter.write_kfchart(assigned, meta, args.difficulty,
+    emitter.write_kfchart(merged, meta, args.difficulty,
                           out=args.out, merge_into=args.merge_into)
-    print(f"[OK] {args.difficulty}: {len(assigned)} notes -> "
+    print(f"[OK] {args.difficulty}: {len(merged)} notes -> "
           f"{args.out or args.merge_into}")
     return 0
 
