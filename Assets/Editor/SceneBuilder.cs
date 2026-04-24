@@ -139,6 +139,18 @@ namespace KeyFlow.Editor
             SetField(screenMgr, "settingsOverlay", settingsScreen);
             SetField(screenMgr, "backgroundSwitcher", backgroundSwitcher);
 
+            // Only StartCanvas starts active. ScreenManager.Start() eventually
+            // calls Replace(AppScreen.Start) to enforce this state at runtime,
+            // but that fires AFTER other MBs' Start() coroutines. If a coroutine
+            // on a non-Start screen (e.g. MainScreen's SongCatalog load) yields
+            // before Replace runs, the subsequent SetActive(false) halts it via
+            // OnDisable and Unity never re-fires Start. Deactivating at save
+            // time makes the initial state deterministic so Start only fires
+            // when the user first navigates to a screen.
+            mainCanvas.SetActive(false);
+            gameplayRoot.SetActive(false);
+            resultsScreen.gameObject.SetActive(false);
+
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene, ScenePath);
 
