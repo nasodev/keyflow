@@ -210,7 +210,10 @@ namespace KeyFlow.Editor
                 var sr = go.AddComponent<SpriteRenderer>();
                 sr.sprite = whiteSprite;
                 sr.color = new Color(1f, 1f, 1f, 0f);
-                sr.sortingOrder = 0;
+                // Above note tiles (sortingOrder 1) so the halo actually shows over
+                // the dark hold-note body. Device playtest on 2026-04-24 confirmed
+                // sortingOrder 0 was invisible because held tiles covered it.
+                sr.sortingOrder = 2;
                 sprites[i] = sr;
             }
 

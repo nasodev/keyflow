@@ -30,7 +30,11 @@ namespace KeyFlow.Feedback
         {
             if (audioSync != null && audioSync.IsPaused) return;
 
-            float pulse = 0.3f + 0.2f * Mathf.Sin(Time.time * 6f);
+            // Brighter pulse range so the halo reads clearly over both the blue
+            // and yellow backgrounds AND on top of the dark hold tile when the
+            // glow sprite sortingOrder=2 draws above the tile (set in SceneBuilder).
+            // Range 0.4..0.9; ~1 Hz visible.
+            float pulse = 0.65f + 0.25f * Mathf.Sin(Time.time * 6f);
             for (int i = 0; i < glowSprites.Length; i++)
             {
                 if (glowSprites[i] == null) continue;
