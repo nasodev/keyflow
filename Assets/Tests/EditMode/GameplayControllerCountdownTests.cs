@@ -83,5 +83,39 @@ namespace KeyFlow.Tests.EditMode
             UnityEngine.Object.DestroyImmediate(go);
             UnityEngine.Object.DestroyImmediate(audioGo);
         }
+
+        [Test]
+        public void InvokeStartCountdown_OnRetry_StopsPriorSessionAudio()
+        {
+            // SP11 retry-bug guard: audioSync.started stays true across gameplay
+            // sessions (no ResetForRetry on AudioSyncManager). Without Stop() before
+            // countdown, NoteSpawner sees IsPlaying=true + stale songStartDsp during
+            // the 3-second countdown window and spawns every upcoming note at once.
+            var go = new GameObject("gp");
+            var gp = go.AddComponent<GameplayController>();
+            var audioGo = new GameObject("audio");
+            audioGo.AddComponent<AudioSource>();
+            var audio = audioGo.AddComponent<AudioSyncManager>();
+            typeof(GameplayController).GetField("audioSync",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+                .SetValue(gp, audio);
+
+            var fake = new FakeCountdown();
+            gp.SetCountdownForTest(fake);
+
+            // Simulate prior gameplay session leaving audioSync running.
+            audio.StartSilentSong();
+            Assert.IsTrue(audio.IsPlaying, "precondition: prior session left started=true");
+
+            gp.InvokeStartCountdownForTest();
+
+            // Before countdown callback fires, audio must be Stop()'d so NoteSpawner
+            // stays gated. Countdown invocation itself happened (FakeCountdown).
+            Assert.IsFalse(audio.IsPlaying, "Stop() must clear started before countdown starts");
+            Assert.AreEqual(1, fake.callCount);
+
+            UnityEngine.Object.DestroyImmediate(go);
+            UnityEngine.Object.DestroyImmediate(audioGo);
+        }
     }
 }

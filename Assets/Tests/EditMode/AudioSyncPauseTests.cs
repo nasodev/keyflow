@@ -54,6 +54,42 @@ namespace KeyFlow.Tests.EditMode
         }
 
         [Test]
+        public void Stop_ResetsStartedFlagAndAllowsFreshStart()
+        {
+            // SP11 retry-bug guard: after Stop(), IsPlaying is false so NoteSpawner
+            // gate holds during countdown; then StartSilentSong re-enables with a
+            // fresh songStartDsp (not the stale one from the previous session).
+            sync.StartSilentSong();
+            Assert.IsTrue(sync.IsPlaying, "precondition: started after StartSilentSong");
+            double staleStart = sync.SongStartDspTime;
+
+            sync.Stop();
+            Assert.IsFalse(sync.IsPlaying, "Stop() must clear started flag");
+            Assert.IsFalse(sync.IsPaused);
+            Assert.AreEqual(0, sync.SongTimeMs, "SongTimeMs returns 0 when !started");
+
+            // Simulate a retry: clock advances while 'stopped', then re-start.
+            clock.DspTime = 200.0;
+            sync.StartSilentSong();
+            Assert.IsTrue(sync.IsPlaying);
+            Assert.AreNotEqual(staleStart, sync.SongStartDspTime,
+                "StartSilentSong after Stop must compute a fresh songStartDsp");
+        }
+
+        [Test]
+        public void Stop_WhilePaused_ClearsBothFlagsAndUnpausesListener()
+        {
+            sync.StartSilentSong();
+            sync.Pause();
+            Assert.IsTrue(sync.IsPaused, "precondition: paused");
+
+            sync.Stop();
+            Assert.IsFalse(sync.IsPlaying);
+            Assert.IsFalse(sync.IsPaused);
+            Assert.IsFalse(AudioListener.pause, "AudioListener.pause must be released");
+        }
+
+        [Test]
         public void PauseAndResume_AreIdempotent()
         {
             sync.StartSilentSong();

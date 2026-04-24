@@ -81,6 +81,10 @@ namespace KeyFlow
         private void BeginGameplay()
         {
             var chartDiff = chart.charts[difficulty];
+            // Reset prior-session audio state BEFORE Initialize so NoteSpawner (which
+            // gates on audioSync.IsPlaying) stays dormant through the countdown window.
+            // Without this, a retry / 2nd-song scenario floods the screen with notes.
+            audioSync.Stop();
             spawner.Initialize(chartDiff, difficulty);
             StartCountdownAndDeferAudio();
         }
@@ -97,7 +101,13 @@ namespace KeyFlow
 
 #if UNITY_EDITOR || UNITY_INCLUDE_TESTS
         internal void SetCountdownForTest(ICountdownOverlay c) => countdownOverride = c;
-        internal void InvokeStartCountdownForTest() => StartCountdownAndDeferAudio();
+        // Mirrors BeginGameplay's tail: reset prior audio state, then start countdown.
+        // Skips the chart/spawner setup that requires full scene state.
+        internal void InvokeStartCountdownForTest()
+        {
+            audioSync.Stop();
+            StartCountdownAndDeferAudio();
+        }
         internal bool PlayingForTest => playing;
 #endif
 
