@@ -17,6 +17,7 @@ namespace KeyFlow
         private float spawnY;
         private float judgmentY;
         private float laneX;
+        private float holdHalfExtent;  // 0 for TAP; half the extended scale.y for HOLD. Used to offset position so the tile's BOTTOM (not center) is at the lerp target.
         private bool initialized;
         private bool judged;
         private int missGraceMs;
@@ -53,8 +54,6 @@ namespace KeyFlow
             this.previewTimeMs = previewMs;
             this.missGraceMs = missGraceMs;
             this.onAutoMiss = onAutoMiss;
-            transform.position = new Vector3(laneX, spawnY, 0);
-
             if (type == NoteType.HOLD)
             {
                 float holdHeightUnits = (durMs / (float)previewMs) * (spawnY - judgmentY);
@@ -62,8 +61,10 @@ namespace KeyFlow
                     transform.localScale.x,
                     transform.localScale.y + holdHeightUnits,
                     transform.localScale.z);
+                holdHalfExtent = holdHeightUnits * 0.5f;
             }
 
+            transform.position = new Vector3(laneX, spawnY + holdHalfExtent, 0);
             initialized = true;
         }
 
@@ -95,26 +96,63 @@ namespace KeyFlow
 
         private void Update()
         {
-            if (!initialized || judged || !audioSync.IsPlaying || audioSync.IsPaused) return;
+            if (!initialized || !audioSync.IsPlaying || audioSync.IsPaused) return;
 
             int songTime = audioSync.SongTimeMs;
             float progress = GameTime.GetNoteProgress(songTime, hitTimeMs, previewTimeMs);
             if (progress < 0f) return;
 
+            // HOLD tiles: bottom of the tile is at the lerp target (not the center),
+            // so that at progress=1 (hit time) the BOTTOM reaches judgmentY. The tile
+            // continues scrolling through the judgment line until its top reaches
+            // judgmentY at hold-end time. Previously the tile center reached
+            // judgmentY at hit time, so the bottom was already well below the
+            // judgment line when the player was expected to tap — and tall holds
+            // appeared to "come from the middle of the screen" because their
+            // bottom halves were already below the camera frame.
             transform.position = new Vector3(
                 laneX,
-                Mathf.LerpUnclamped(spawnY, judgmentY, progress),
+                Mathf.LerpUnclamped(spawnY, judgmentY, progress) + holdHalfExtent,
                 0);
 
-            // Auto-miss: start tap never came within the miss window.
-            // Applies to both TAP and HOLD (HOLD whose start tap was accepted
-            // is already `judged=true` and returns at the top of Update).
-            if (songTime > hitTimeMs + missGraceMs)
+            // Auto-miss: start tap never came within the miss window. Skip once the
+            // note has been judged (e.g., HOLD whose start tap was accepted); it
+            // keeps scrolling visually but is no longer eligible for auto-miss.
+            if (!judged && songTime > hitTimeMs + missGraceMs)
             {
                 judged = true;
                 onAutoMiss?.Invoke(this);
-                Destroy(gameObject);
+
+                if (noteType == NoteType.HOLD)
+                {
+                    // Grey the tile and let it keep scrolling through the judgment
+                    // line until the hold's would-have-ended time. Previously a
+                    // 4-second hold tile would vanish ~100 ms after the hit window
+                    // closed, which is jarring — the user sees a huge bar, fails
+                    // once, and it's gone. Now the missed hold scrolls past just
+                    // like a hit one, so the player gets closure on the beat.
+                    if (spriteRenderer != null)
+                        spriteRenderer.color = new Color(0.4f, 0.4f, 0.4f, 0.5f);
+                    float remainingSec = (hitTimeMs + durMs - songTime) / 1000f;
+                    Destroy(gameObject, Mathf.Max(0.2f, remainingSec));
+                }
+                else
+                {
+                    Destroy(gameObject);
+                }
             }
         }
+
+#if UNITY_EDITOR || UNITY_INCLUDE_TESTS
+        internal void SetForTest(int lane, int hitTimeMs, int durMs, int pitch, NoteType type)
+        {
+            this.lane = lane;
+            this.hitTimeMs = hitTimeMs;
+            this.durMs = durMs;
+            this.pitch = pitch;
+            this.noteType = type;
+            // Do NOT flip `initialized` — Update guards on it, but the tests don't call Update.
+        }
+#endif
     }
 }

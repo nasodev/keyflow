@@ -522,7 +522,7 @@
       ]
     },
     "NORMAL": {
-      "totalNotes": 589,
+      "totalNotes": 583,
       "notes": [
         {
           "t": 33,
@@ -682,8 +682,8 @@
           "t": 6433,
           "lane": 2,
           "pitch": 69,
-          "type": "HOLD",
-          "dur": 392
+          "type": "TAP",
+          "dur": 0
         },
         {
           "t": 6633,
@@ -711,7 +711,7 @@
           "lane": 2,
           "pitch": 71,
           "type": "HOLD",
-          "dur": 592
+          "dur": 1192
         },
         {
           "t": 7838,
@@ -719,13 +719,6 @@
           "pitch": 52,
           "type": "TAP",
           "dur": 0
-        },
-        {
-          "t": 8233,
-          "lane": 2,
-          "pitch": 62,
-          "type": "HOLD",
-          "dur": 592
         },
         {
           "t": 8438,
@@ -738,8 +731,8 @@
           "t": 8833,
           "lane": 2,
           "pitch": 69,
-          "type": "HOLD",
-          "dur": 392
+          "type": "TAP",
+          "dur": 0
         },
         {
           "t": 9033,
@@ -822,8 +815,8 @@
           "t": 12511,
           "lane": 3,
           "pitch": 71,
-          "type": "HOLD",
-          "dur": 396
+          "type": "TAP",
+          "dur": 0
         },
         {
           "t": 12707,
@@ -857,8 +850,8 @@
           "t": 13711,
           "lane": 3,
           "pitch": 72,
-          "type": "HOLD",
-          "dur": 396
+          "type": "TAP",
+          "dur": 0
         },
         {
           "t": 14107,
@@ -913,8 +906,8 @@
           "t": 16107,
           "lane": 2,
           "pitch": 69,
-          "type": "HOLD",
-          "dur": 392
+          "type": "TAP",
+          "dur": 0
         },
         {
           "t": 16507,
@@ -941,8 +934,8 @@
           "t": 17307,
           "lane": 2,
           "pitch": 71,
-          "type": "HOLD",
-          "dur": 392
+          "type": "TAP",
+          "dur": 0
         },
         {
           "t": 17707,
@@ -969,8 +962,8 @@
           "t": 18507,
           "lane": 3,
           "pitch": 69,
-          "type": "HOLD",
-          "dur": 392
+          "type": "TAP",
+          "dur": 0
         },
         {
           "t": 18711,
@@ -1228,8 +1221,8 @@
           "t": 29520,
           "lane": 3,
           "pitch": 71,
-          "type": "HOLD",
-          "dur": 396
+          "type": "TAP",
+          "dur": 0
         },
         {
           "t": 29716,
@@ -1263,8 +1256,8 @@
           "t": 30720,
           "lane": 3,
           "pitch": 72,
-          "type": "HOLD",
-          "dur": 396
+          "type": "TAP",
+          "dur": 0
         },
         {
           "t": 31116,
@@ -1382,8 +1375,8 @@
           "t": 35520,
           "lane": 2,
           "pitch": 69,
-          "type": "HOLD",
-          "dur": 396
+          "type": "TAP",
+          "dur": 0
         },
         {
           "t": 35716,
@@ -1620,8 +1613,8 @@
           "t": 45357,
           "lane": 2,
           "pitch": 69,
-          "type": "HOLD",
-          "dur": 340
+          "type": "TAP",
+          "dur": 0
         },
         {
           "t": 45362,
@@ -1655,8 +1648,8 @@
           "t": 46648,
           "lane": 2,
           "pitch": 71,
-          "type": "HOLD",
-          "dur": 392
+          "type": "TAP",
+          "dur": 0
         },
         {
           "t": 47048,
@@ -1683,8 +1676,8 @@
           "t": 47848,
           "lane": 3,
           "pitch": 72,
-          "type": "HOLD",
-          "dur": 392
+          "type": "TAP",
+          "dur": 0
         },
         {
           "t": 48048,
@@ -1858,8 +1851,8 @@
           "t": 54794,
           "lane": 3,
           "pitch": 77,
-          "type": "HOLD",
-          "dur": 353
+          "type": "TAP",
+          "dur": 0
         },
         {
           "t": 54799,
@@ -1879,15 +1872,15 @@
           "t": 55278,
           "lane": 3,
           "pitch": 76,
-          "type": "HOLD",
-          "dur": 463
+          "type": "TAP",
+          "dur": 0
         },
         {
           "t": 55751,
           "lane": 0,
           "pitch": 74,
-          "type": "HOLD",
-          "dur": 329
+          "type": "TAP",
+          "dur": 0
         },
         {
           "t": 55983,
@@ -1956,8 +1949,8 @@
           "t": 57936,
           "lane": 2,
           "pitch": 70,
-          "type": "HOLD",
-          "dur": 426
+          "type": "TAP",
+          "dur": 0
         },
         {
           "t": 58154,
@@ -2068,8 +2061,8 @@
           "t": 61849,
           "lane": 3,
           "pitch": 72,
-          "type": "HOLD",
-          "dur": 317
+          "type": "TAP",
+          "dur": 0
         },
         {
           "t": 62067,
@@ -2103,8 +2096,8 @@
           "t": 62719,
           "lane": 3,
           "pitch": 74,
-          "type": "HOLD",
-          "dur": 317
+          "type": "TAP",
+          "dur": 0
         },
         {
           "t": 63045,
@@ -2208,8 +2201,8 @@
           "t": 64897,
           "lane": 1,
           "pitch": 53,
-          "type": "HOLD",
-          "dur": 430
+          "type": "TAP",
+          "dur": 0
         },
         {
           "t": 65001,
@@ -2383,8 +2376,8 @@
           "t": 68375,
           "lane": 1,
           "pitch": 56,
-          "type": "HOLD",
-          "dur": 430
+          "type": "TAP",
+          "dur": 0
         },
         {
           "t": 68588,
@@ -2467,29 +2460,29 @@
           "t": 72411,
           "lane": 3,
           "pitch": 76,
-          "type": "HOLD",
-          "dur": 312
+          "type": "TAP",
+          "dur": 0
         },
         {
           "t": 73063,
           "lane": 3,
           "pitch": 76,
-          "type": "HOLD",
-          "dur": 312
+          "type": "TAP",
+          "dur": 0
         },
         {
           "t": 73396,
           "lane": 0,
           "pitch": 75,
-          "type": "HOLD",
-          "dur": 319
+          "type": "TAP",
+          "dur": 0
         },
         {
           "t": 74045,
           "lane": 3,
           "pitch": 75,
-          "type": "HOLD",
-          "dur": 302
+          "type": "TAP",
+          "dur": 0
         },
         {
           "t": 74347,
@@ -2530,8 +2523,8 @@
           "t": 76150,
           "lane": 2,
           "pitch": 69,
-          "type": "HOLD",
-          "dur": 387
+          "type": "TAP",
+          "dur": 0
         },
         {
           "t": 76347,
@@ -2558,8 +2551,8 @@
           "t": 77338,
           "lane": 2,
           "pitch": 71,
-          "type": "HOLD",
-          "dur": 391
+          "type": "TAP",
+          "dur": 0
         },
         {
           "t": 77531,
@@ -2586,8 +2579,8 @@
           "t": 78518,
           "lane": 3,
           "pitch": 72,
-          "type": "HOLD",
-          "dur": 387
+          "type": "TAP",
+          "dur": 0
         },
         {
           "t": 78719,
@@ -2642,8 +2635,8 @@
           "t": 80886,
           "lane": 2,
           "pitch": 69,
-          "type": "HOLD",
-          "dur": 387
+          "type": "TAP",
+          "dur": 0
         },
         {
           "t": 81084,
@@ -2670,8 +2663,8 @@
           "t": 82071,
           "lane": 2,
           "pitch": 71,
-          "type": "HOLD",
-          "dur": 387
+          "type": "TAP",
+          "dur": 0
         },
         {
           "t": 82268,
@@ -2705,8 +2698,8 @@
           "t": 83259,
           "lane": 2,
           "pitch": 69,
-          "type": "HOLD",
-          "dur": 391
+          "type": "TAP",
+          "dur": 0
         },
         {
           "t": 83650,
@@ -3118,8 +3111,8 @@
           "t": 99838,
           "lane": 1,
           "pitch": 60,
-          "type": "HOLD",
-          "dur": 391
+          "type": "TAP",
+          "dur": 0
         },
         {
           "t": 100035,
@@ -3161,7 +3154,7 @@
           "lane": 3,
           "pitch": 73,
           "type": "HOLD",
-          "dur": 983
+          "dur": 1764
         },
         {
           "t": 101215,
@@ -3183,13 +3176,6 @@
           "pitch": 45,
           "type": "TAP",
           "dur": 0
-        },
-        {
-          "t": 102202,
-          "lane": 3,
-          "pitch": 74,
-          "type": "HOLD",
-          "dur": 584
         },
         {
           "t": 102206,
@@ -3287,14 +3273,7 @@
           "lane": 3,
           "pitch": 72,
           "type": "HOLD",
-          "dur": 979
-        },
-        {
-          "t": 104575,
-          "lane": 3,
-          "pitch": 76,
-          "type": "HOLD",
-          "dur": 983
+          "dur": 1768
         },
         {
           "t": 104965,
@@ -3316,13 +3295,6 @@
           "pitch": 45,
           "type": "TAP",
           "dur": 0
-        },
-        {
-          "t": 105755,
-          "lane": 3,
-          "pitch": 74,
-          "type": "HOLD",
-          "dur": 584
         },
         {
           "t": 105952,
@@ -3602,7 +3574,7 @@
           "lane": 3,
           "pitch": 77,
           "type": "HOLD",
-          "dur": 979
+          "dur": 1777
         },
         {
           "t": 114242,
@@ -3638,13 +3610,6 @@
           "pitch": 67,
           "type": "HOLD",
           "dur": 584
-        },
-        {
-          "t": 115233,
-          "lane": 3,
-          "pitch": 75,
-          "type": "HOLD",
-          "dur": 588
         },
         {
           "t": 115430,
@@ -3686,7 +3651,7 @@
           "lane": 2,
           "pitch": 70,
           "type": "HOLD",
-          "dur": 781
+          "dur": 1776
         },
         {
           "t": 116610,
@@ -3713,8 +3678,8 @@
           "t": 117206,
           "lane": 2,
           "pitch": 62,
-          "type": "HOLD",
-          "dur": 391
+          "type": "TAP",
+          "dur": 0
         },
         {
           "t": 117597,
@@ -3722,13 +3687,6 @@
           "pitch": 68,
           "type": "HOLD",
           "dur": 584
-        },
-        {
-          "t": 117601,
-          "lane": 2,
-          "pitch": 62,
-          "type": "HOLD",
-          "dur": 588
         },
         {
           "t": 117798,
@@ -3776,8 +3734,8 @@
           "t": 119965,
           "lane": 2,
           "pitch": 71,
-          "type": "HOLD",
-          "dur": 387
+          "type": "TAP",
+          "dur": 0
         },
         {
           "t": 121150,
@@ -4112,8 +4070,8 @@
           "t": 132312,
           "lane": 3,
           "pitch": 72,
-          "type": "HOLD",
-          "dur": 396
+          "type": "TAP",
+          "dur": 0
         },
         {
           "t": 132508,
@@ -4168,8 +4126,8 @@
           "t": 134708,
           "lane": 2,
           "pitch": 69,
-          "type": "HOLD",
-          "dur": 392
+          "type": "TAP",
+          "dur": 0
         },
         {
           "t": 134912,
@@ -4203,8 +4161,8 @@
           "t": 135912,
           "lane": 2,
           "pitch": 71,
-          "type": "HOLD",
-          "dur": 396
+          "type": "TAP",
+          "dur": 0
         },
         {
           "t": 136308,
@@ -4231,8 +4189,8 @@
           "t": 137108,
           "lane": 1,
           "pitch": 60,
-          "type": "HOLD",
-          "dur": 392
+          "type": "TAP",
+          "dur": 0
         },
         {
           "t": 137312,

@@ -1,5 +1,5 @@
 """Classify RawNotes into TAP/HOLD based on sustain length."""
-HOLD_THRESHOLD_MS = 300
+HOLD_THRESHOLD_MS = 500
 HOLD_CAP_MS = 4000
 
 
