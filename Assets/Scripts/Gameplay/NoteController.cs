@@ -122,7 +122,24 @@ namespace KeyFlow
             {
                 judged = true;
                 onAutoMiss?.Invoke(this);
-                Destroy(gameObject);
+
+                if (noteType == NoteType.HOLD)
+                {
+                    // Grey the tile and let it keep scrolling through the judgment
+                    // line until the hold's would-have-ended time. Previously a
+                    // 4-second hold tile would vanish ~100 ms after the hit window
+                    // closed, which is jarring — the user sees a huge bar, fails
+                    // once, and it's gone. Now the missed hold scrolls past just
+                    // like a hit one, so the player gets closure on the beat.
+                    if (spriteRenderer != null)
+                        spriteRenderer.color = new Color(0.4f, 0.4f, 0.4f, 0.5f);
+                    float remainingSec = (hitTimeMs + durMs - songTime) / 1000f;
+                    Destroy(gameObject, Mathf.Max(0.2f, remainingSec));
+                }
+                else
+                {
+                    Destroy(gameObject);
+                }
             }
         }
 
