@@ -18,6 +18,10 @@ namespace KeyFlow.UI
         [SerializeField] private Color normalColor = Color.white;
         [SerializeField] private Color goColor = new Color(1f, 0.843f, 0f, 1f);
 
+        [Header("Audio (production wiring)")]
+        [SerializeField] private AudioSource audioSource;
+        [SerializeField] private AudioClip clickSample;
+
         private IClickPlayer clickPlayer;
         private Action onComplete;
         private float startTime;
@@ -26,6 +30,12 @@ namespace KeyFlow.UI
         // BeginCountdown resets it then immediately calls EnterStep(0), so the
         // value is never observed as a steady state after BeginCountdown returns.
         private int lastStepFired = -1;
+
+        private void Awake()
+        {
+            if (clickPlayer == null && audioSource != null && clickSample != null)
+                clickPlayer = new AudioSourceClickPlayer(audioSource, clickSample);
+        }
 
         public void BeginCountdown(Action onComplete)
         {

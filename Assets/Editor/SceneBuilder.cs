@@ -113,10 +113,11 @@ namespace KeyFlow.Editor
                 out var judgmentSystem, out var spawner, out var holdTracker);
             BuildFeedbackPipeline(camera, judgmentSystem, gameplayRoot.transform);
             var hudPauseButton = BuildHUD(audioSync, tapInput, samplePool, judgmentSystem, whiteSprite, gameplayRoot.transform);
+            var countdown = BuildCountdownOverlay(camera, clickClip, hudPauseButton.gameObject, gameplayRoot.transform);
 
             var calibration = BuildCalibrationOverlay(whiteSprite, clickClip, audioSync);
             var resultsScreen = BuildResultsCanvas(whiteSprite);
-            BuildGameplayController(calibration, audioSync, spawner, judgmentSystem, holdTracker, resultsScreen, gameplayRoot.transform);
+            BuildGameplayController(calibration, audioSync, spawner, judgmentSystem, holdTracker, resultsScreen, countdown, gameplayRoot.transform);
 
             var mainCanvas = BuildMainCanvas(whiteSprite);
             var mainScreen = mainCanvas.GetComponent<MainScreen>();
@@ -389,6 +390,62 @@ namespace KeyFlow.Editor
             SetField(dispatcher, "hapticService", hapticService);
             SetField(dispatcher, "particlePool", particlePool);
             SetField(dispatcher, "textPool", textPool);    // NEW (SP10)
+        }
+
+        private static CountdownOverlay BuildCountdownOverlay(
+            Camera camera,
+            AudioClip clickSample,
+            GameObject pauseButtonRoot,
+            Transform gameplayRoot)
+        {
+            var canvasGO = new GameObject("CountdownCanvas");
+            canvasGO.transform.SetParent(gameplayRoot, false);
+            canvasGO.transform.position = new Vector3(0f, 0f, 0f);  // screen center
+            canvasGO.transform.localScale = Vector3.one * 0.01f;
+            var rt = canvasGO.AddComponent<RectTransform>();
+            rt.sizeDelta = new Vector2(1000f, 400f);
+            var canvas = canvasGO.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.WorldSpace;
+            canvas.worldCamera = camera;
+            canvas.sortingOrder = 11;  // JudgmentTextCanvas is 10; +1 to sit above it
+
+            // Popup child
+            var popupGO = new GameObject("CountdownNumber");
+            popupGO.transform.SetParent(canvasGO.transform, false);
+            var popupRt = popupGO.AddComponent<RectTransform>();
+            popupRt.anchorMin = popupRt.anchorMax = new Vector2(0.5f, 0.5f);
+            popupRt.anchoredPosition = Vector2.zero;
+            popupRt.sizeDelta = new Vector2(600, 200);
+            var text = popupGO.AddComponent<Text>();
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = 144;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.horizontalOverflow = HorizontalWrapMode.Overflow;
+            text.verticalOverflow = VerticalWrapMode.Overflow;
+            text.color = Color.white;
+            var outline = popupGO.AddComponent<Outline>();
+            outline.effectDistance = new Vector2(2f, -2f);
+            outline.effectColor = Color.black;
+            var popup = popupGO.AddComponent<CountdownNumberPopup>();
+            popupGO.SetActive(false);
+
+            // AudioSource child
+            var audioGO = new GameObject("CountdownAudio");
+            audioGO.transform.SetParent(canvasGO.transform, false);
+            var src = audioGO.AddComponent<AudioSource>();
+            src.playOnAwake = false;
+            src.clip = clickSample;
+
+            // Overlay component on canvas
+            var overlay = canvasGO.AddComponent<CountdownOverlay>();
+            SetField(overlay, "popup", popup);
+            SetField(overlay, "pauseButtonRoot", pauseButtonRoot);
+            SetField(overlay, "audioSource", src);
+            SetField(overlay, "clickSample", clickSample);
+
+            canvasGO.SetActive(false);  // SP10 race defense; CountdownOverlay activates via BeginCountdown
+
+            return overlay;
         }
 
         private static HUDPauseButton BuildHUD(
@@ -1446,6 +1503,7 @@ namespace KeyFlow.Editor
             JudgmentSystem judgmentSystem,
             HoldTracker holdTracker,
             ResultsScreen resultsScreen,
+            CountdownOverlay countdown,
             Transform parent)
         {
             var go = new GameObject("GameplayController");
@@ -1457,6 +1515,7 @@ namespace KeyFlow.Editor
             SetField(ctrl, "judgmentSystem", judgmentSystem);
             SetField(ctrl, "holdTracker", holdTracker);
             SetField(ctrl, "resultsScreen", resultsScreen);
+            SetField(ctrl, "countdown", countdown);
             return ctrl;
         }
 
