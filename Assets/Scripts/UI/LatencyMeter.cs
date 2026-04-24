@@ -30,7 +30,22 @@ namespace KeyFlow.UI
 
         private void Start()
         {
+            // targetFrameRate is release-relevant global — set before any
+            // isDebugBuild gate so it takes effect in production too.
             Application.targetFrameRate = 60;
+
+            // Debug.isDebugBuild is true in the Editor and in Development
+            // Builds (our keyflow-w6-sp10-profile.apk), false in release
+            // Builds (our keyflow-w6-sp10.apk). Hide the HUD text and
+            // short-circuit Update() in release so end-users never see the
+            // FPS / drift / buffer debug overlay.
+            if (!Debug.isDebugBuild)
+            {
+                if (hudText != null) hudText.enabled = false;
+                enabled = false;
+                return;
+            }
+
             if (tapInput != null) tapInput.OnTap += OnTap;
             timeAtStart = Time.time;
             dspAtStart = AudioSettings.dspTime;
