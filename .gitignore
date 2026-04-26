@@ -86,3 +86,12 @@ TestResults-*.xml
 /test-results/
 /ProfilerCaptures/
 /img/
+
+# Personal / copyrighted song assets.
+# Drop any new copyrighted song's files into the matching `personal/` subdir
+# below — they will be ignored automatically. No per-song ignore rule needed.
+midi/personal/
+Assets/StreamingAssets/charts/personal/
+Assets/StreamingAssets/thumbs/personal/
+Assets/StreamingAssets/catalog.personal.kfmanifest
+tools/midi_to_kfchart/personal/
