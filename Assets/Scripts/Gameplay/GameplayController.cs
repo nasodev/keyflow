@@ -63,8 +63,10 @@ namespace KeyFlow
             // ContinueAfterChartLoaded destroys them, but that's too late.
             audioSync.Stop();
 
+            bool isPersonal = SongCatalog.TryGet(songId, out var entry) && entry.isPersonal;
             StartCoroutine(ChartLoader.LoadFromStreamingAssetsCo(
                 songId,
+                isPersonal,
                 loaded => { chart = loaded; ContinueAfterChartLoaded(); },
                 err => Debug.LogError($"[KeyFlow] chart load failed: {err}")));
         }

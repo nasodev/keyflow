@@ -23,11 +23,11 @@ namespace KeyFlow.Charts
 
         public static IEnumerator LoadFromStreamingAssetsCo(
             string songId,
+            bool isPersonal,
             System.Action<ChartData> onLoaded,
             System.Action<string> onError)
         {
-            string path = System.IO.Path.Combine(
-                UnityEngine.Application.streamingAssetsPath, "charts", songId + ".kfchart");
+            string path = ResolveChartPath(songId, isPersonal);
 
 #if UNITY_ANDROID && !UNITY_EDITOR
             var req = UnityEngine.Networking.UnityWebRequest.Get(path);
@@ -52,6 +52,15 @@ namespace KeyFlow.Charts
             yield return null;  // yield once for symmetry with Android path
             onLoaded?.Invoke(chart);
 #endif
+        }
+
+        public static string ResolveChartPath(string songId, bool isPersonal)
+        {
+            string subdir = isPersonal
+                ? System.IO.Path.Combine("charts", "personal")
+                : "charts";
+            return System.IO.Path.Combine(
+                UnityEngine.Application.streamingAssetsPath, subdir, songId + ".kfchart");
         }
 
         public static ChartData ParseJson(string json)
