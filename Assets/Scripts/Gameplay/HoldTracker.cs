@@ -6,8 +6,17 @@ namespace KeyFlow
 {
     public class HoldTracker : MonoBehaviour
     {
-        private const int   HOLD_RETRIGGER_INTERVAL_MS = 250;
-        private const float HOLD_RETRIGGER_VOLUME      = 0.7f;
+        // Default 250 ms = 8th note at BPM 120. SetBpmForRetrigger overrides per song.
+        private const int   HOLD_RETRIGGER_FALLBACK_MS = 250;
+        private const float HOLD_RETRIGGER_VOLUME      = 0.3f;
+        private int retriggerIntervalMs = HOLD_RETRIGGER_FALLBACK_MS;
+
+        public void SetBpmForRetrigger(int bpm)
+        {
+            if (bpm <= 0) { retriggerIntervalMs = HOLD_RETRIGGER_FALLBACK_MS; return; }
+            // 8th note in ms = (60_000 / bpm) / 2
+            retriggerIntervalMs = 60_000 / bpm / 2;
+        }
 
         [SerializeField] private TapInputHandler tapInput;
         [SerializeField] private AudioSyncManager audioSync;
@@ -100,7 +109,7 @@ namespace KeyFlow
             retriggerBuffer.Clear();
             foreach (var kv in holdAudio)
             {
-                if (songMs - kv.Value.lastRetriggerMs < HOLD_RETRIGGER_INTERVAL_MS) continue;
+                if (songMs - kv.Value.lastRetriggerMs < retriggerIntervalMs) continue;
                 retriggerBuffer.Add(kv.Key);
                 audioPool.PlayForPitch(kv.Value.pitch, HOLD_RETRIGGER_VOLUME);
             }

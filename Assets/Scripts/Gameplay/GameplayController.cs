@@ -96,6 +96,7 @@ namespace KeyFlow
             // Without this, a retry / 2nd-song scenario floods the screen with notes.
             audioSync.Stop();
             spawner.Initialize(chartDiff, difficulty);
+            holdTracker.SetBpmForRetrigger(chart.bpm);
             StartCountdownAndDeferAudio();
         }
 

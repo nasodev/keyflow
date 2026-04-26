@@ -177,6 +177,44 @@ namespace KeyFlow.Tests.EditMode
         }
 
         [Test]
+        public void SetBpmForRetrigger_60bpm_FirstRetriggerAt500ms()
+        {
+            var (tracker, pool, audioSync, clock, host) = BuildTracker();
+            double songStart = audioSync.SongStartDspTime;
+            tracker.SetBpmForRetrigger(60);  // 8th note = 60000/60/2 = 500 ms
+
+            var note = MakeNote(lane: 0, hitMs: 1000, durMs: 2000, pitch: 60);
+            tracker.OnHoldStartTapAccepted(note, tapTimeMs: 1000);
+
+            clock.DspTime = DspTimeForSongMs(songStart, 1499);
+            tracker.TickForTest();
+            Assert.AreEqual(0, CountUsedSources(pool), "before tap+500 ms, no retrigger at BPM 60");
+
+            clock.DspTime = DspTimeForSongMs(songStart, 1500);
+            tracker.TickForTest();
+            Assert.AreEqual(1, CountUsedSources(pool), "at tap+500 ms, retrigger fires at BPM 60");
+
+            Object.DestroyImmediate(host);
+        }
+
+        [Test]
+        public void SetBpmForRetrigger_ZeroBpm_FallsBackTo250ms()
+        {
+            var (tracker, pool, audioSync, clock, host) = BuildTracker();
+            double songStart = audioSync.SongStartDspTime;
+            tracker.SetBpmForRetrigger(0);  // invalid → fallback
+
+            var note = MakeNote(lane: 0, hitMs: 1000, durMs: 2000, pitch: 60);
+            tracker.OnHoldStartTapAccepted(note, tapTimeMs: 1000);
+
+            clock.DspTime = DspTimeForSongMs(songStart, 1250);
+            tracker.TickForTest();
+            Assert.AreEqual(1, CountUsedSources(pool), "BPM 0 falls back to 250 ms interval");
+
+            Object.DestroyImmediate(host);
+        }
+
+        [Test]
         public void ResetForRetry_ClearsHoldAudio()
         {
             var (tracker, pool, audioSync, clock, host) = BuildTracker();
