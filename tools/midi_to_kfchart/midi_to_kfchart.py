@@ -33,6 +33,14 @@ def _batch(args) -> int:
     cfg = yaml.safe_load(Path(args.batch).read_text(encoding="utf-8"))
     defaults = cfg.get("defaults", {}) or {}
     out_dir = Path(defaults.get("out_dir", "."))
+
+    # Path-based personal routing: any batch file located under a `personal`
+    # directory segment routes outputs into a `personal/` subdir of out_dir.
+    # Convention encodes the public/private boundary in the filesystem so
+    # nobody has to remember a per-song flag.
+    if "personal" in Path(args.batch).resolve().parts:
+        out_dir = out_dir / "personal"
+
     rc = 0
     for song in cfg.get("songs", []):
         song_id = song["song_id"]
