@@ -12,7 +12,10 @@ namespace KeyFlow
         [SerializeField] private float laneAreaWidth = 4f;
         [SerializeField] private float spawnY = 4f;
         [SerializeField] private float judgmentY = -3f;
-        [SerializeField] private int previewMs = 2000;
+        [SerializeField] private int previewMs = 2000;          // EASY: 2.0s spawn → judgment fall
+        [SerializeField] private int previewMsNormal = 1400;    // NORMAL: 1.4s — faster scroll, tighter reaction
+
+        private int CurrentPreviewMs => difficulty == Difficulty.Normal ? previewMsNormal : previewMs;
 
         private ChartDifficulty chart;
         private Difficulty difficulty;
@@ -53,7 +56,7 @@ namespace KeyFlow
             if (spawnedCount >= chart.notes.Count) return;
 
             var next = chart.notes[spawnedCount];
-            if (audioSync.SongTimeMs >= next.t - previewMs)
+            if (audioSync.SongTimeMs >= next.t - CurrentPreviewMs)
             {
                 SpawnNote(next);
                 LastSpawnedHitMs = next.t;
@@ -75,7 +78,7 @@ namespace KeyFlow
                 n.type,
                 n.dur,
                 spawnY, judgmentY,
-                previewMs,
+                CurrentPreviewMs,
                 missMs,
                 onAutoMiss: missed => judgmentSystem.HandleAutoMiss(missed));
             judgmentSystem.RegisterPendingNote(ctrl);
