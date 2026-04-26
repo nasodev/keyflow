@@ -36,6 +36,40 @@ namespace KeyFlow
             return false;
         }
 
+        // Pure merge: base entries first (preserve order), then overlay-only
+        // entries (preserve order). Same id in both → overlay wins (last write).
+        // Caller is responsible for setting isPersonal=true on overlay entries
+        // before calling. Either argument may be null.
+        public static SongEntry[] MergeOverlay(SongEntry[] basePart, SongEntry[] overlayPart)
+        {
+            basePart ??= System.Array.Empty<SongEntry>();
+            if (overlayPart == null || overlayPart.Length == 0) return basePart;
+
+            var overlayById = new System.Collections.Generic.Dictionary<string, SongEntry>(overlayPart.Length);
+            foreach (var e in overlayPart) overlayById[e.id] = e;
+
+            var result = new System.Collections.Generic.List<SongEntry>(basePart.Length + overlayPart.Length);
+            var emittedIds = new System.Collections.Generic.HashSet<string>();
+            foreach (var e in basePart)
+            {
+                if (overlayById.TryGetValue(e.id, out var overlayEntry))
+                {
+                    UnityEngine.Debug.LogWarning($"[KeyFlow] catalog overlay: id '{e.id}' overrides base entry");
+                    result.Add(overlayEntry);
+                }
+                else
+                {
+                    result.Add(e);
+                }
+                emittedIds.Add(e.id);
+            }
+            foreach (var e in overlayPart)
+            {
+                if (!emittedIds.Contains(e.id)) { result.Add(e); emittedIds.Add(e.id); }
+            }
+            return result.ToArray();
+        }
+
         public static IEnumerator LoadAsync()
         {
             const string file = "catalog.kfmanifest";
