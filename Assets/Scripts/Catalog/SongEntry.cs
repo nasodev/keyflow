@@ -1,4 +1,5 @@
 using System;
+using Newtonsoft.Json;
 
 namespace KeyFlow
 {
@@ -11,6 +12,10 @@ namespace KeyFlow
         public string thumbnail;
         public string[] difficulties;
         public bool chartAvailable;
+
+        // Set transiently by SongCatalog.LoadAsync from which manifest the entry came from.
+        [JsonIgnore]
+        public bool isPersonal;
 
         public bool HasDifficulty(Difficulty d)
         {
