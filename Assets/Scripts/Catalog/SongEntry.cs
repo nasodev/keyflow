@@ -12,6 +12,7 @@ namespace KeyFlow
         public string thumbnail;
         public string[] difficulties;
         public bool chartAvailable;
+        public int durationMs;
 
         // Set transiently by SongCatalog.LoadAsync from which manifest the entry came from.
         [JsonIgnore]

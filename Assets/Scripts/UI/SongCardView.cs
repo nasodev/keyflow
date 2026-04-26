@@ -23,7 +23,9 @@ namespace KeyFlow.UI
         public void Bind(SongEntry entry, Sprite thumbnail)
         {
             titleText.text = entry.title;
-            composerText.text = entry.composer;
+            composerText.text = entry.durationMs > 0
+                ? $"{entry.composer}  ·  {FormatDuration(entry.durationMs)}"
+                : entry.composer;
             if (thumbnail != null) thumbnailImage.sprite = thumbnail;
 
             int bestStars = entry.chartAvailable
@@ -42,6 +44,12 @@ namespace KeyFlow.UI
             normalButton.onClick.RemoveAllListeners();
             if (easy) easyButton.onClick.AddListener(() => OnDifficultySelected?.Invoke(entry.id, Difficulty.Easy));
             if (normal) normalButton.onClick.AddListener(() => OnDifficultySelected?.Invoke(entry.id, Difficulty.Normal));
+        }
+
+        private static string FormatDuration(int ms)
+        {
+            int totalSec = ms / 1000;
+            return $"{totalSec / 60}:{totalSec % 60:D2}";
         }
     }
 }

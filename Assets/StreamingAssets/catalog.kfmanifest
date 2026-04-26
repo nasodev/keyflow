@@ -1,13 +1,13 @@
 {
   "version": 1,
   "songs": [
-    { "id": "beethoven_ode_to_joy",     "title": "환희의 송가",     "composer": "Beethoven",
-      "thumbnail": "thumbs/ode_to_joy.png",      "difficulties": ["Easy", "Normal"], "chartAvailable": true },
-    { "id": "beethoven_fur_elise",      "title": "엘리제를 위하여", "composer": "Beethoven",
-      "thumbnail": "thumbs/fur_elise.png",       "difficulties": ["Easy", "Normal"], "chartAvailable": true },
-    { "id": "debussy_clair_de_lune",    "title": "Clair de Lune",   "composer": "Debussy",
-      "thumbnail": "thumbs/clair_de_lune.png",   "difficulties": ["Easy", "Normal"], "chartAvailable": true },
-    { "id": "joplin_the_entertainer",   "title": "The Entertainer", "composer": "Joplin",
-      "thumbnail": "thumbs/the_entertainer.png", "difficulties": ["Easy", "Normal"], "chartAvailable": true }
+    { "id": "beethoven_ode_to_joy", "title": "환희의 송가", "composer": "Beethoven",
+      "thumbnail": "thumbs/ode_to_joy.png", "difficulties": ["Easy", "Normal"], "chartAvailable": true, "durationMs": 120000 },
+    { "id": "beethoven_fur_elise", "title": "엘리제를 위하여", "composer": "Beethoven",
+      "thumbnail": "thumbs/fur_elise.png", "difficulties": ["Easy", "Normal"], "chartAvailable": true, "durationMs": 150000 },
+    { "id": "debussy_clair_de_lune", "title": "Clair de Lune", "composer": "Debussy",
+      "thumbnail": "thumbs/clair_de_lune.png", "difficulties": ["Easy", "Normal"], "chartAvailable": true, "durationMs": 150000 },
+    { "id": "joplin_the_entertainer", "title": "The Entertainer", "composer": "Joplin",
+      "thumbnail": "thumbs/the_entertainer.png", "difficulties": ["Easy", "Normal"], "chartAvailable": true, "durationMs": 150000 }
   ]
 }
