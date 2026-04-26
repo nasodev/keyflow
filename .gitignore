@@ -95,3 +95,7 @@ Assets/StreamingAssets/charts/personal/
 Assets/StreamingAssets/thumbs/personal/
 Assets/StreamingAssets/catalog.personal.kfmanifest*
 tools/midi_to_kfchart/personal/
+
+# Working/source assets used to generate thumbnails (may contain composite
+# images with copyrighted song titles/artwork visible).
+image/
