@@ -72,19 +72,49 @@ namespace KeyFlow
 
         public static IEnumerator LoadAsync()
         {
-            const string file = "catalog.kfmanifest";
+            string baseJson = null;
+            string baseError = null;
+            yield return ReadStreamingAssetCo("catalog.kfmanifest",
+                t => baseJson = t,
+                e => baseError = e);
+            if (baseJson == null)
+                throw new System.IO.FileNotFoundException($"catalog load failed: {baseError}");
+
+            string overlayJson = null;
+            yield return ReadStreamingAssetCo("catalog.personal.kfmanifest",
+                t => overlayJson = t,
+                _ => { /* optional: missing file is the no-overlay case */ });
+
+            var basePart = ParseJson(baseJson);
+            SongEntry[] overlayPart = null;
+            if (!string.IsNullOrEmpty(overlayJson))
+            {
+                overlayPart = ParseJson(overlayJson);
+                foreach (var e in overlayPart) e.isPersonal = true;
+            }
+
+            loaded = MergeOverlay(basePart, overlayPart);
+        }
+
+        private static IEnumerator ReadStreamingAssetCo(
+            string file,
+            System.Action<string> onText,
+            System.Action<string> onError)
+        {
 #if UNITY_ANDROID && !UNITY_EDITOR
             string url = Path.Combine(Application.streamingAssetsPath, file);
             using (var req = UnityWebRequest.Get(url))
             {
                 yield return req.SendWebRequest();
                 if (req.result != UnityWebRequest.Result.Success)
-                    throw new System.IO.FileNotFoundException($"catalog load failed: {req.error}");
-                loaded = ParseJson(req.downloadHandler.text);
+                    onError?.Invoke(req.error);
+                else
+                    onText?.Invoke(req.downloadHandler.text);
             }
 #else
             string path = Path.Combine(Application.streamingAssetsPath, file);
-            loaded = ParseJson(File.ReadAllText(path));
+            if (!File.Exists(path)) { onError?.Invoke("file not found"); yield break; }
+            onText?.Invoke(File.ReadAllText(path));
             yield break;
 #endif
         }
