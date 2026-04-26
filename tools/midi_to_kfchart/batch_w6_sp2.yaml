@@ -17,7 +17,7 @@ songs:
     title: "Clair de Lune"
     composer: "Debussy"
     bpm: 60
-    duration_ms: 320000
+    duration_ms: 150000
     difficulties:
       EASY:   { target_nps: 1.5 }
       NORMAL: { target_nps: 2.8 }
@@ -27,7 +27,7 @@ songs:
     title: "The Entertainer"
     composer: "Joplin"
     bpm: 72
-    duration_ms: 255000
+    duration_ms: 150000
     difficulties:
       EASY:   { target_nps: 2.2 }
       NORMAL: { target_nps: 4.0 }

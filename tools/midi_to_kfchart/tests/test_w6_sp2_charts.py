@@ -12,16 +12,26 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parents[3]
 CHARTS_DIR = REPO_ROOT / "Assets" / "StreamingAssets" / "charts"
 
+# Acceptance applies only to the W6 SP2 shipped roster. Personal/extra charts
+# (e.g. monophonic vocal-line songs added later) live alongside but aren't
+# bound by the SP2 density-ordering rule.
+SHIPPED_SONG_IDS = [
+    "beethoven_ode_to_joy",
+    "beethoven_fur_elise",
+    "debussy_clair_de_lune",
+    "joplin_the_entertainer",
+]
 
-def _all_charts():
-    return sorted(CHARTS_DIR.glob("*.kfchart"))
+
+def _shipped_charts():
+    return [CHARTS_DIR / f"{sid}.kfchart" for sid in SHIPPED_SONG_IDS]
 
 
 def _load(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-@pytest.mark.parametrize("chart_path", _all_charts(), ids=lambda p: p.stem)
+@pytest.mark.parametrize("chart_path", _shipped_charts(), ids=lambda p: p.stem)
 def test_chart_passes_acceptance(chart_path: Path):
     doc = _load(chart_path)
 
@@ -74,11 +84,6 @@ def test_chart_passes_acceptance(chart_path: Path):
 
 def test_four_songs_shipped():
     """W6 SP2 playable roster: 4 songs (Für Elise + 3 new; Canon deferred)."""
-    expected = {
-        "beethoven_ode_to_joy",
-        "beethoven_fur_elise",
-        "debussy_clair_de_lune",
-        "joplin_the_entertainer",
-    }
-    actual = {p.stem for p in _all_charts()}
+    expected = set(SHIPPED_SONG_IDS)
+    actual = {p.stem for p in CHARTS_DIR.glob("*.kfchart")}
     assert expected.issubset(actual), f"missing: {expected - actual}"

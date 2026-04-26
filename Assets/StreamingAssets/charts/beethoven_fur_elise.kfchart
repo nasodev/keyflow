@@ -3,7 +3,7 @@
   "title": "Für Elise",
   "composer": "Beethoven",
   "bpm": 72,
-  "durationMs": 160000,
+  "durationMs": 150000,
   "charts": {
     "EASY": {
       "totalNotes": 73,
@@ -522,7 +522,7 @@
       ]
     },
     "NORMAL": {
-      "totalNotes": 583,
+      "totalNotes": 569,
       "notes": [
         {
           "t": 33,
@@ -4506,104 +4506,6 @@
           "pitch": 76,
           "type": "TAP",
           "dur": 0
-        },
-        {
-          "t": 150108,
-          "lane": 3,
-          "pitch": 75,
-          "type": "TAP",
-          "dur": 0
-        },
-        {
-          "t": 150508,
-          "lane": 0,
-          "pitch": 75,
-          "type": "TAP",
-          "dur": 0
-        },
-        {
-          "t": 150708,
-          "lane": 3,
-          "pitch": 76,
-          "type": "TAP",
-          "dur": 0
-        },
-        {
-          "t": 151108,
-          "lane": 3,
-          "pitch": 74,
-          "type": "TAP",
-          "dur": 0
-        },
-        {
-          "t": 151308,
-          "lane": 0,
-          "pitch": 72,
-          "type": "TAP",
-          "dur": 0
-        },
-        {
-          "t": 151711,
-          "lane": 1,
-          "pitch": 52,
-          "type": "TAP",
-          "dur": 0
-        },
-        {
-          "t": 151922,
-          "lane": 1,
-          "pitch": 57,
-          "type": "TAP",
-          "dur": 0
-        },
-        {
-          "t": 152334,
-          "lane": 2,
-          "pitch": 64,
-          "type": "TAP",
-          "dur": 0
-        },
-        {
-          "t": 152545,
-          "lane": 2,
-          "pitch": 69,
-          "type": "TAP",
-          "dur": 0
-        },
-        {
-          "t": 152978,
-          "lane": 1,
-          "pitch": 52,
-          "type": "TAP",
-          "dur": 0
-        },
-        {
-          "t": 153198,
-          "lane": 1,
-          "pitch": 56,
-          "type": "TAP",
-          "dur": 0
-        },
-        {
-          "t": 153645,
-          "lane": 3,
-          "pitch": 72,
-          "type": "TAP",
-          "dur": 0
-        },
-        {
-          "t": 153875,
-          "lane": 2,
-          "pitch": 71,
-          "type": "TAP",
-          "dur": 0
-        },
-        {
-          "t": 154113,
-          "lane": 2,
-          "pitch": 69,
-          "type": "HOLD",
-          "dur": 955
         }
       ]
     }
