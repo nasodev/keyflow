@@ -6,11 +6,16 @@ from pathlib import Path
 # Ensure sibling pipeline/ importable when run as script.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from pipeline import parser, chord_reducer, hold_detector, density, pitch_clamp, lane_assigner, merge_adjacent_holds, emitter
+from pipeline import parser, start_offset, truncator, chord_reducer, hold_detector, density, pitch_clamp, lane_assigner, merge_adjacent_holds, emitter
 
 
 def _single(args) -> int:
-    raws = parser.parse_midi(args.input)
+    tracks = args.tracks
+    if isinstance(tracks, str):
+        tracks = [t.strip() for t in tracks.split(",") if t.strip()]
+    raws = parser.parse_midi(args.input, include_tracks=tracks)
+    raws = start_offset.shift(raws, args.start_offset_ms or 0)
+    raws = truncator.truncate(raws, args.duration_ms)
     mono = chord_reducer.collapse(raws)
     typed = hold_detector.classify(mono)
     thinned = density.thin(typed, target_nps=args.target_nps, duration_ms=args.duration_ms)
@@ -51,6 +56,8 @@ def _batch(args) -> int:
                 composer=song["composer"], difficulty=diff_name,
                 target_nps=float(diff_cfg["target_nps"]),
                 bpm=int(song["bpm"]), duration_ms=int(song["duration_ms"]),
+                tracks=song.get("tracks"),
+                start_offset_ms=int(song.get("start_offset_ms") or 0),
                 out=None, merge_into=str(target),
             )
             try:
@@ -73,6 +80,8 @@ def main(argv=None) -> int:
     ap.add_argument("--duration-ms", type=int)
     ap.add_argument("--out")
     ap.add_argument("--merge-into")
+    ap.add_argument("--tracks", help="comma-separated track names to include (e.g. 'Rumi,Zoey')")
+    ap.add_argument("--start-offset-ms", type=int, default=0, help="trim leading silence by shifting all notes earlier")
     ap.add_argument("--batch")
     args = ap.parse_args(argv)
 
