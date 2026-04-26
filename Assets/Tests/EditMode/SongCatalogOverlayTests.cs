@@ -54,5 +54,44 @@ namespace KeyFlow.Tests.EditMode
             Assert.AreEqual("a", result[0].id);
             Assert.IsTrue(result[0].isPersonal);
         }
+
+        [Test]
+        public void TryParseOverlay_NullOrEmpty_ReturnsNull()
+        {
+            Assert.IsNull(SongCatalog.TryParseOverlay(null));
+            Assert.IsNull(SongCatalog.TryParseOverlay(""));
+        }
+
+        [Test]
+        public void TryParseOverlay_ValidJson_FlagsAllEntriesAsPersonal()
+        {
+            string json = @"{""version"":1,""songs"":[
+                {""id"":""x"",""title"":""X"",""composer"":""C"",""difficulties"":[""Easy""],""chartAvailable"":true}
+            ]}";
+            var result = SongCatalog.TryParseOverlay(json);
+            Assert.IsNotNull(result);
+            Assert.AreEqual(1, result.Length);
+            Assert.AreEqual("x", result[0].id);
+            Assert.IsTrue(result[0].isPersonal);
+        }
+
+        [Test]
+        public void TryParseOverlay_MalformedJson_ReturnsNullAndLogsError()
+        {
+            // Expect the LogError so it doesn't fail the test framework's "no errors" rule.
+            UnityEngine.TestTools.LogAssert.Expect(UnityEngine.LogType.Error,
+                new System.Text.RegularExpressions.Regex(@"catalog\.personal\.kfmanifest parse failed"));
+            var result = SongCatalog.TryParseOverlay(@"{ this is not valid json");
+            Assert.IsNull(result);
+        }
+
+        [Test]
+        public void TryParseOverlay_ValidJsonMissingSongsArray_ReturnsNullAndLogsError()
+        {
+            UnityEngine.TestTools.LogAssert.Expect(UnityEngine.LogType.Error,
+                new System.Text.RegularExpressions.Regex(@"catalog\.personal\.kfmanifest parse failed"));
+            var result = SongCatalog.TryParseOverlay(@"{""version"":1}");
+            Assert.IsNull(result);
+        }
     }
 }

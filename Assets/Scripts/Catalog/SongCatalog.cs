@@ -86,14 +86,28 @@ namespace KeyFlow
                 _ => { /* optional: missing file is the no-overlay case */ });
 
             var basePart = ParseJson(baseJson);
-            SongEntry[] overlayPart = null;
-            if (!string.IsNullOrEmpty(overlayJson))
-            {
-                overlayPart = ParseJson(overlayJson);
-                foreach (var e in overlayPart) e.isPersonal = true;
-            }
+            var overlayPart = TryParseOverlay(overlayJson);
 
             loaded = MergeOverlay(basePart, overlayPart);
+        }
+
+        // A malformed personal manifest must NOT brick the public catalog — the
+        // user could have a typo in a file the public build never sees. On parse
+        // failure, log and return null so MergeOverlay falls back to base-only.
+        public static SongEntry[] TryParseOverlay(string overlayJson)
+        {
+            if (string.IsNullOrEmpty(overlayJson)) return null;
+            try
+            {
+                var entries = ParseJson(overlayJson);
+                foreach (var e in entries) e.isPersonal = true;
+                return entries;
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[KeyFlow] catalog.personal.kfmanifest parse failed: {e.Message}");
+                return null;
+            }
         }
 
         private static IEnumerator ReadStreamingAssetCo(
