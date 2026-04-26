@@ -93,5 +93,5 @@ TestResults-*.xml
 midi/personal/
 Assets/StreamingAssets/charts/personal/
 Assets/StreamingAssets/thumbs/personal/
-Assets/StreamingAssets/catalog.personal.kfmanifest
+Assets/StreamingAssets/catalog.personal.kfmanifest*
 tools/midi_to_kfchart/personal/
