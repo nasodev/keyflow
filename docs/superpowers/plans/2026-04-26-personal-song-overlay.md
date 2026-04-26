@@ -31,22 +31,22 @@
 - `CLAUDE.md` — document the convention
 
 **Moved (in working tree, all currently untracked):**
-- `midi/KPop Demon Hunters - Golden.mid` → `midi/personal/...`
-- `Assets/StreamingAssets/charts/huntrx_golden.kfchart` (+ `.meta`) → `charts/personal/...`
-- `Assets/StreamingAssets/thumbs/huntrx_golden.png` (+ `.meta`) → `thumbs/personal/...`
+- `midi/Example Song.mid` → `midi/personal/...`
+- `Assets/StreamingAssets/charts/example_personal_song.kfchart` (+ `.meta`) → `charts/personal/...`
+- `Assets/StreamingAssets/thumbs/example_personal_song.png` (+ `.meta`) → `thumbs/personal/...`
 - `tools/midi_to_kfchart/batch_personal.yaml` → `tools/midi_to_kfchart/personal/batch_personal.yaml`
 
 ---
 
 ## Task 1: Restructure assets and replace `.gitignore` block
 
-Move all currently untracked Huntrx assets into `personal/` subdirs and replace the morning's 6-line `huntrx_*` block with 5 directory-scope rules. Single commit so the ignore rules and file locations transition atomically.
+Move all currently untracked personal-song assets into `personal/` subdirs and replace the morning's 6-line `<song_id>_*` block with 5 directory-scope rules. Single commit so the ignore rules and file locations transition atomically.
 
 **Files:**
-- Modify: `.gitignore` (lines 89-99 — the morning's huntrx block at the file end)
+- Modify: `.gitignore` (lines 89-99 — the morning's personal-song block at the file end)
 - Create: `Assets/StreamingAssets/charts/personal/.gitkeep`
 - Create: `Assets/StreamingAssets/thumbs/personal/.gitkeep`
-- Move: 6 huntrx-related files (see File Structure)
+- Move: 6 personal-song-related files (see File Structure)
 
 - [ ] **Step 1: Create personal subdirectories with .gitkeep placeholders**
 
@@ -59,18 +59,18 @@ touch Assets/StreamingAssets/charts/personal/.gitkeep
 touch Assets/StreamingAssets/thumbs/personal/.gitkeep
 ```
 
-- [ ] **Step 2: Move huntrx assets and personal batch yaml into personal subdirs**
+- [ ] **Step 2: Move the personal-song assets and personal batch yaml into personal subdirs**
 
 ```bash
-mv "midi/KPop Demon Hunters - Golden.mid" midi/personal/
-mv Assets/StreamingAssets/charts/huntrx_golden.kfchart Assets/StreamingAssets/charts/personal/
-mv Assets/StreamingAssets/charts/huntrx_golden.kfchart.meta Assets/StreamingAssets/charts/personal/
-mv Assets/StreamingAssets/thumbs/huntrx_golden.png Assets/StreamingAssets/thumbs/personal/
-mv Assets/StreamingAssets/thumbs/huntrx_golden.png.meta Assets/StreamingAssets/thumbs/personal/
+mv "midi/Example Song.mid" midi/personal/
+mv Assets/StreamingAssets/charts/example_personal_song.kfchart Assets/StreamingAssets/charts/personal/
+mv Assets/StreamingAssets/charts/example_personal_song.kfchart.meta Assets/StreamingAssets/charts/personal/
+mv Assets/StreamingAssets/thumbs/example_personal_song.png Assets/StreamingAssets/thumbs/personal/
+mv Assets/StreamingAssets/thumbs/example_personal_song.png.meta Assets/StreamingAssets/thumbs/personal/
 mv tools/midi_to_kfchart/batch_personal.yaml tools/midi_to_kfchart/personal/batch_personal.yaml
 ```
 
-- [ ] **Step 3: Replace the 6-line `huntrx_*` block in `.gitignore` with 5 directory rules**
+- [ ] **Step 3: Replace the 6-line `<song_id>_*` block in `.gitignore` with 5 directory rules**
 
 Use the Edit tool on `.gitignore` to replace this block:
 
@@ -79,12 +79,12 @@ Use the Edit tool on `.gitignore` to replace this block:
 midi/
 tools/midi_to_kfchart/batch_personal.yaml
 
-# Personal song assets (Huntrx Golden — copyrighted).
+# Personal song assets (the example personal song — copyrighted).
 # Must come AFTER `!/[Aa]ssets/**/*.meta` to re-exclude these specific .meta files.
-Assets/StreamingAssets/charts/huntrx_*.kfchart
-Assets/StreamingAssets/charts/huntrx_*.kfchart.meta
-Assets/StreamingAssets/thumbs/huntrx_*.png
-Assets/StreamingAssets/thumbs/huntrx_*.png.meta
+Assets/StreamingAssets/charts/<song_id>_*.kfchart
+Assets/StreamingAssets/charts/<song_id>_*.kfchart.meta
+Assets/StreamingAssets/thumbs/<song_id>_*.png
+Assets/StreamingAssets/thumbs/<song_id>_*.png.meta
 ```
 
 with:
@@ -107,11 +107,11 @@ Note: keep the surrounding sections (`# Test runner + profiler outputs` block ab
 Run:
 ```bash
 git check-ignore -v \
-  "midi/personal/KPop Demon Hunters - Golden.mid" \
-  Assets/StreamingAssets/charts/personal/huntrx_golden.kfchart \
-  Assets/StreamingAssets/charts/personal/huntrx_golden.kfchart.meta \
-  Assets/StreamingAssets/thumbs/personal/huntrx_golden.png \
-  Assets/StreamingAssets/thumbs/personal/huntrx_golden.png.meta \
+  "midi/personal/Example Song.mid" \
+  Assets/StreamingAssets/charts/personal/example_personal_song.kfchart \
+  Assets/StreamingAssets/charts/personal/example_personal_song.kfchart.meta \
+  Assets/StreamingAssets/thumbs/personal/example_personal_song.png \
+  Assets/StreamingAssets/thumbs/personal/example_personal_song.png.meta \
   tools/midi_to_kfchart/personal/batch_personal.yaml
 ```
 
@@ -119,7 +119,7 @@ Expected: every line outputs a match against one of the 5 new directory rules in
 
 Run:
 ```bash
-git status --short | grep -i huntrx || echo "OK: no huntrx in status"
+git status --short | grep -i the personal song || echo "OK: no the personal song in status"
 git status --short | grep -E "personal/$|personal/[^.]" | grep -v ".gitkeep" || echo "OK: no personal contents in status"
 ```
 
@@ -140,7 +140,7 @@ Expected `git status --short` to show (in addition to other unrelated in-flight 
 - `A  Assets/StreamingAssets/charts/personal/.gitkeep`
 - `A  Assets/StreamingAssets/thumbs/personal/.gitkeep`
 
-No huntrx file should be staged. No `personal/` content other than the two `.gitkeep`s should be staged.
+No the personal song file should be staged. No `personal/` content other than the two `.gitkeep`s should be staged.
 
 - [ ] **Step 6: Commit**
 
@@ -148,7 +148,7 @@ No huntrx file should be staged. No `personal/` content other than the two `.git
 git commit -m "$(cat <<'EOF'
 chore(personal-overlay): restructure to personal/ subdirs + directory-scope gitignore
 
-Replace per-song huntrx_* gitignore patterns with 5 directory-scope rules
+Replace per-song <song_id>_* gitignore patterns with 5 directory-scope rules
 covering midi/personal/, charts/personal/, thumbs/personal/, the optional
 catalog.personal.kfmanifest, and tools/midi_to_kfchart/personal/. Adding new
 copyrighted songs no longer requires editing .gitignore.
@@ -781,7 +781,7 @@ EOF
 
 ## Task 7: Recreate local `catalog.personal.kfmanifest` and smoke-test
 
-This file is gitignored. The developer (you) re-creates it locally so Huntrx remains playable.
+This file is gitignored. The developer (you) re-creates it locally so the personal song remains playable.
 
 **Files:**
 - Create: `Assets/StreamingAssets/catalog.personal.kfmanifest` (LOCAL ONLY — verified gitignored)
@@ -794,8 +794,8 @@ Create `Assets/StreamingAssets/catalog.personal.kfmanifest`:
 {
   "version": 1,
   "songs": [
-    { "id": "huntrx_golden", "title": "Golden", "composer": "Huntr/x",
-      "thumbnail": "thumbs/personal/huntrx_golden.png",
+    { "id": "example_personal_song", "title": "Example Song", "composer": "Example Artist",
+      "thumbnail": "thumbs/personal/example_personal_song.png",
       "difficulties": ["Easy", "Normal"], "chartAvailable": true, "durationMs": 150000 }
   ]
 }
@@ -826,8 +826,8 @@ Expected: total ≥ 200 (196 baseline + 4 overlay + 2 path = ≥ 202), 0 failure
 Run from Unity Editor: `KeyFlow > Build W4 Scene`.
 
 Then in Unity Editor Play mode (or manual device test if more convenient):
-- Verify the song select screen shows 5 songs (4 classical + Huntrx Golden).
-- Tap Huntrx Golden EASY; verify chart loads and gameplay starts.
+- Verify the song select screen shows 5 songs (4 classical + the example personal song).
+- Tap the example personal song EASY; verify chart loads and gameplay starts.
 - Tap one of the classical songs; verify it still loads (regression check).
 
 If Editor play-mode is unavailable, defer to a device APK build at the end of Task 9.
@@ -907,7 +907,7 @@ Expected: 51 PASS, 0 FAIL.
 - [ ] **Step 3: Verify git status is clean of personal artifacts**
 
 ```bash
-git status --short | grep -i huntrx && echo "LEAK!" || echo "OK"
+git status --short | grep -i the personal song && echo "LEAK!" || echo "OK"
 git status --short | grep "catalog.personal" && echo "LEAK!" || echo "OK"
 ```
 
@@ -917,31 +917,31 @@ Expected: both `OK`. The only tracked changes from this branch should be the 8 c
 
 ```bash
 git check-ignore -v \
-  "midi/personal/KPop Demon Hunters - Golden.mid" \
-  Assets/StreamingAssets/charts/personal/huntrx_golden.kfchart \
-  Assets/StreamingAssets/charts/personal/huntrx_golden.kfchart.meta \
-  Assets/StreamingAssets/thumbs/personal/huntrx_golden.png \
-  Assets/StreamingAssets/thumbs/personal/huntrx_golden.png.meta \
+  "midi/personal/Example Song.mid" \
+  Assets/StreamingAssets/charts/personal/example_personal_song.kfchart \
+  Assets/StreamingAssets/charts/personal/example_personal_song.kfchart.meta \
+  Assets/StreamingAssets/thumbs/personal/example_personal_song.png \
+  Assets/StreamingAssets/thumbs/personal/example_personal_song.png.meta \
   tools/midi_to_kfchart/personal/batch_personal.yaml \
   Assets/StreamingAssets/catalog.personal.kfmanifest
 ```
 
 Expected: every input line produces a match against one of the 5 `.gitignore` rules.
 
-- [ ] **Step 5: Build APK and confirm Huntrx is bundled (local) but its assets are not in git**
+- [ ] **Step 5: Build APK and confirm the personal song is bundled (local) but its assets are not in git**
 
 ```bash
 "<UnityEditor>" -batchmode -nographics -projectPath . \
   -executeMethod KeyFlow.Editor.SceneBuilder.Build -quit
 "<UnityEditor>" -batchmode -nographics -projectPath . \
   -executeMethod KeyFlow.Editor.ApkBuilder.Build -quit
-unzip -l Builds/keyflow-w*.apk | grep -i 'huntrx_golden' | head
+unzip -l Builds/keyflow-w*.apk | grep -i 'example_personal_song' | head
 ```
 
-Expected (on developer machine with the local `catalog.personal.kfmanifest`): APK contains `assets/charts/personal/huntrx_golden.kfchart` and `assets/thumbs/personal/huntrx_golden.png`. (Adjust the apk filename glob if SP version has bumped.)
+Expected (on developer machine with the local `catalog.personal.kfmanifest`): APK contains `assets/charts/personal/example_personal_song.kfchart` and `assets/thumbs/personal/example_personal_song.png`. (Adjust the apk filename glob if SP version has bumped.)
 
 ```bash
-git ls-files | grep -i huntrx && echo "LEAK!" || echo "OK: no huntrx in git"
+git ls-files | grep -i the personal song && echo "LEAK!" || echo "OK: no the personal song in git"
 git ls-files Assets/StreamingAssets/charts/personal/ | grep -v ".gitkeep" && echo "LEAK!" || echo "OK"
 ```
 

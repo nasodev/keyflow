@@ -2,7 +2,7 @@
 
 **Date:** 2026-04-26
 **Week:** 7 (pre-W7 housekeeping; pulled forward from planned W7 SP1)
-**Parent context:** Triggered by introduction of copyrighted song "Huntr/x — Golden" into the working tree. The ad-hoc fix (per-song .gitignore lines + manual catalog editing) is judged unsustainable as the song library grows.
+**Parent context:** Triggered by introduction of copyrighted song "Example Artist — Example Song" into the working tree. The ad-hoc fix (per-song .gitignore lines + manual catalog editing) is judged unsustainable as the song library grows.
 **Status:** Proposed
 
 ---
@@ -39,12 +39,12 @@ This scales to N songs as O(N) gitignore lines and O(N × commits) manual edits.
 
 | ID | Item | Deliverable |
 |---|---|---|
-| PSO-T1 | `.gitignore` overhaul | Replace the 6-line `huntrx_*` block (added 2026-04-26 morning) with 5 directory-scope rules. |
-| PSO-T2 | Directory restructure | Create `personal/` subdirs under `midi/`, `Assets/StreamingAssets/charts/`, `Assets/StreamingAssets/thumbs/`, `tools/midi_to_kfchart/`. Move existing huntrx assets and `batch_personal.yaml` into them. |
+| PSO-T1 | `.gitignore` overhaul | Replace the 6-line `<song_id>_*` block (added 2026-04-26 morning) with 5 directory-scope rules. |
+| PSO-T2 | Directory restructure | Create `personal/` subdirs under `midi/`, `Assets/StreamingAssets/charts/`, `Assets/StreamingAssets/thumbs/`, `tools/midi_to_kfchart/`. Move existing the personal song assets and `batch_personal.yaml` into them. |
 | PSO-T3 | `SongCatalog.LoadAsync` overlay | Load `catalog.kfmanifest` (required) then attempt `catalog.personal.kfmanifest` (optional, no error if missing). Tag personal-overlay entries with `isPersonal=true`. Merge into single `loaded` array with personal entries appended. |
 | PSO-T4 | `SongEntry.isPersonal` flag | Add `[JsonIgnore] public bool isPersonal;` (or non-serialized field). Set by loader, not parsed from JSON. |
 | PSO-T5 | `ChartLoader` path resolution | Accept `bool isPersonal` parameter on `LoadFromStreamingAssetsCo`; prepend `personal/` to the chart path when true. Caller (GameplayController) reads the flag from the resolved `SongEntry`. |
-| PSO-T6 | `MainScreen` thumbnail loading | No code change required: thumbnails are loaded from a stored path string (`entry.thumbnail`), so storing `"thumbs/personal/huntrx_golden.png"` in `catalog.personal.kfmanifest` works as-is. |
+| PSO-T6 | `MainScreen` thumbnail loading | No code change required: thumbnails are loaded from a stored path string (`entry.thumbnail`), so storing `"thumbs/personal/example_personal_song.png"` in `catalog.personal.kfmanifest` works as-is. |
 | PSO-T7 | Pipeline path-based routing | `midi_to_kfchart.py` detects when invoked with a batch file under `tools/midi_to_kfchart/personal/` (resolved via `Path(batch_file).parts`) and routes outputs to `charts/personal/` and `thumbs/personal/`. No new YAML field. |
 | PSO-T8 | EditMode tests | 4-6 new tests covering overlay merge (with/without personal file), `isPersonal` propagation, and chart path resolution. |
 | PSO-T9 | Pipeline tests | 1-2 pytest cases covering personal output routing. |
@@ -52,7 +52,7 @@ This scales to N songs as O(N) gitignore lines and O(N × commits) manual edits.
 
 ### 2.2 Out of scope
 
-- **W7 SP2 (score persistence), SP3 (results screen), SP4 (Hard difficulty).** Pulled forward from W7 SP1 only the manifest-overlay portion. The Huntrx pipeline-stabilization in-flight work (BPM retrigger, multi-track parser, start_offset/truncator, difficulty-scaled spawn) remains in W7 SP1 and is not blocked by this spec.
+- **W7 SP2 (score persistence), SP3 (results screen), SP4 (Hard difficulty).** Pulled forward from W7 SP1 only the manifest-overlay portion. The personal-song pipeline-stabilization in-flight work (BPM retrigger, multi-track parser, start_offset/truncator, difficulty-scaled spawn) remains in W7 SP1 and is not blocked by this spec.
 - **Encrypting personal chart files.** Local-only assets are not encrypted; the only protection is "don't commit them." Encryption would add key management overhead with no security gain (anyone with the APK + decryption key has the contents anyway).
 - **CI verification that personal files are absent from commits.** Could be added as a pre-commit hook in a future SP, but `.gitignore` correctness is verifiable by hand (`git check-ignore -v`) and the convention removes the manual step where mistakes happen.
 - **A "song is missing" UI.** If `catalog.personal.kfmanifest` references a song whose chart file is missing (e.g., on a fresh clone where personal assets haven't been re-added), the existing chart-load error path applies. No new UI for this edge case.
@@ -78,7 +78,7 @@ This scales to N songs as O(N) gitignore lines and O(N × commits) manual edits.
 
 | # | Decision | Chosen | Rejected alternatives |
 |---|---|---|---|
-| 1 | Public/private boundary location | **Directory subpath (`personal/`).** Visible in file system, captured in 5 .gitignore rules that never grow. | (B) Per-song flag in single YAML + build-time split — committed `catalog.kfmanifest` becomes a generated artifact prone to drift; (C) Naming convention (`huntrx_*`) — easy to forget; brittle. |
+| 1 | Public/private boundary location | **Directory subpath (`personal/`).** Visible in file system, captured in 5 .gitignore rules that never grow. | (B) Per-song flag in single YAML + build-time split — committed `catalog.kfmanifest` becomes a generated artifact prone to drift; (C) Naming convention (`<song_id>_*`) — easy to forget; brittle. |
 | 2 | Catalog merge mechanism | **Two manifest files merged at load time** (`catalog.kfmanifest` + optional `catalog.personal.kfmanifest`). | Single manifest with `personal` flag — leaks song titles in committed file; defeats purpose. |
 | 3 | `isPersonal` field placement | **Transient field on `SongEntry`, set by loader.** | (B) Wrapper class — clutter, every consumer needs to unwrap; (C) Parallel `personalIds: HashSet<string>` map on `SongCatalog` — two sources of truth. |
 | 4 | Chart path resolution | **`ChartLoader.LoadFromStreamingAssetsCo(songId, isPersonal, ...)` parameter.** | (B) `chartPath` string field in `SongEntry` — more flexible but unused flexibility; (C) Two-stage lookup (try public, fall back to personal) — masks bugs where a personal song accidentally has a public chart file. |
@@ -87,7 +87,7 @@ This scales to N songs as O(N) gitignore lines and O(N × commits) manual edits.
 | 7 | Personal manifest existence | **Optional. Missing → no overlay applied. No error.** | Required + empty-array template — every fresh clone needs a placeholder; awkward. |
 | 8 | Manifest merge semantics | **Append personal entries after public entries; no dedup; if same `id` collides, personal overrides (last write wins).** | Strict reject on collision — overconservative; ID overlap is a developer mistake worth flagging via warning, not crashing. |
 | 9 | Tests for overlay merge | **EditMode-pure** (use `ParseJson` + an explicit merge helper, no file I/O). | Integration tests that touch StreamingAssets — slow, brittle on Android emulator. |
-| 10 | `.gitignore` rule precision | **Directory rules** (`midi/personal/`, etc.). One rule per personal subdir. | File-glob rules (`huntrx_*.kfchart`) — back to per-song pattern thinking; defeats purpose. |
+| 10 | `.gitignore` rule precision | **Directory rules** (`midi/personal/`, etc.). One rule per personal subdir. | File-glob rules (`<song_id>_*.kfchart`) — back to per-song pattern thinking; defeats purpose. |
 
 ### 3.2 Data flow
 
@@ -122,7 +122,7 @@ This scales to N songs as O(N) gitignore lines and O(N × commits) manual edits.
 
 [Thumbnail load — MainScreen.cs:74, unchanged]
   Path.Combine(streamingAssetsPath, entry.thumbnail)
-    where entry.thumbnail = "thumbs/personal/huntrx_golden.png" for personal
+    where entry.thumbnail = "thumbs/personal/example_personal_song.png" for personal
                            "thumbs/ode_to_joy.png" for public
 ```
 
@@ -132,7 +132,7 @@ Single magic point: the `isPersonal ? "personal/" : ""` prefix in `ChartLoader`.
 
 - **Single YAML with `personal:` flag, build-time split into two manifests.** Tempting "single source of truth" but `catalog.kfmanifest` becomes a generated artifact. Generated files committed to git rot the moment someone edits the source YAML and forgets to regenerate. Bound to leak.
 - **Symlinks from public dirs into a personal/ tree.** Symlinks and Git on Windows are a known foot-gun; the project already supports macOS + Linux + Windows dev. Discarded for portability.
-- **git-lfs for personal assets.** LFS doesn't change committedness — a `git add huntrx_golden.kfchart` still commits the file (just as an LFS pointer). No leak protection.
+- **git-lfs for personal assets.** LFS doesn't change committedness — a `git add example_personal_song.kfchart` still commits the file (just as an LFS pointer). No leak protection.
 - **Git submodule for personal assets pointing to a private repo.** Adds clone-time complexity (developers without access to the private submodule see broken refs). Overkill for "I have a few personal MIDIs."
 - **Encrypt personal chart JSONs at rest, decrypt at load time.** Key has to live somewhere — APK or environment — and once leaked, all charts decrypt. Adds runtime cost for zero security gain.
 - **Pre-commit hook that scans staged files for forbidden patterns.** Belt-and-suspenders, could add later, but the directory convention already removes the failure mode (no developer is staging files inside a `personal/` dir by accident — and if they `git add -f`, that's an explicit override).
@@ -157,7 +157,7 @@ Single magic point: the `isPersonal ? "personal/" : ""` prefix in `ChartLoader`.
 
 | Path | Change |
 |---|---|
-| `.gitignore` | Replace the 6-line `huntrx_*` block with 5 directory-scope rules (see §4.3). |
+| `.gitignore` | Replace the 6-line `<song_id>_*` block with 5 directory-scope rules (see §4.3). |
 | `Assets/Scripts/Catalog/SongEntry.cs` | Add `[Newtonsoft.Json.JsonIgnore] public bool isPersonal;` to `SongEntry` class. ~2 LoC. |
 | `Assets/Scripts/Catalog/SongCatalog.cs` | Refactor `LoadAsync()` into "load required base + try optional overlay + merge". Add `MergeOverlay(SongEntry[] base, SongEntry[] personal)` helper that marks personal entries and appends. ~30 net LoC. |
 | `Assets/Scripts/Charts/ChartLoader.cs` | Add `bool isPersonal` parameter to `LoadFromStreamingAssetsCo`. Path computation branches on it. ~5 net LoC. |
@@ -184,18 +184,18 @@ Note: this block must remain AFTER `!/[Aa]ssets/**/*.meta` (line 14 of the curre
 
 ### 4.4 New file movements
 
-Existing files (currently untracked due to morning's `huntrx_*` ignore rules) will be physically relocated:
+Existing files (currently untracked due to morning's `<song_id>_*` ignore rules) will be physically relocated:
 
 | From | To |
 |---|---|
-| `midi/KPop Demon Hunters - Golden.mid` | `midi/personal/KPop Demon Hunters - Golden.mid` |
-| `Assets/StreamingAssets/charts/huntrx_golden.kfchart` | `Assets/StreamingAssets/charts/personal/huntrx_golden.kfchart` |
-| `Assets/StreamingAssets/charts/huntrx_golden.kfchart.meta` | `Assets/StreamingAssets/charts/personal/huntrx_golden.kfchart.meta` |
-| `Assets/StreamingAssets/thumbs/huntrx_golden.png` | `Assets/StreamingAssets/thumbs/personal/huntrx_golden.png` |
-| `Assets/StreamingAssets/thumbs/huntrx_golden.png.meta` | `Assets/StreamingAssets/thumbs/personal/huntrx_golden.png.meta` |
+| `midi/Example Song.mid` | `midi/personal/Example Song.mid` |
+| `Assets/StreamingAssets/charts/example_personal_song.kfchart` | `Assets/StreamingAssets/charts/personal/example_personal_song.kfchart` |
+| `Assets/StreamingAssets/charts/example_personal_song.kfchart.meta` | `Assets/StreamingAssets/charts/personal/example_personal_song.kfchart.meta` |
+| `Assets/StreamingAssets/thumbs/example_personal_song.png` | `Assets/StreamingAssets/thumbs/personal/example_personal_song.png` |
+| `Assets/StreamingAssets/thumbs/example_personal_song.png.meta` | `Assets/StreamingAssets/thumbs/personal/example_personal_song.png.meta` |
 | `tools/midi_to_kfchart/batch_personal.yaml` | `tools/midi_to_kfchart/personal/batch_personal.yaml` |
 
-The morning's existing `.gitignore` rules (`huntrx_*` patterns) are removed in this spec — they are subsumed by the new directory rules.
+The morning's existing `.gitignore` rules (`<song_id>_*` patterns) are removed in this spec — they are subsumed by the new directory rules.
 
 A new local file is created during testing (gitignored, optional):
 
@@ -204,8 +204,8 @@ A new local file is created during testing (gitignored, optional):
 {
   "version": 1,
   "songs": [
-    { "id": "huntrx_golden", "title": "Golden", "composer": "Huntr/x",
-      "thumbnail": "thumbs/personal/huntrx_golden.png",
+    { "id": "example_personal_song", "title": "Example Song", "composer": "Example Artist",
+      "thumbnail": "thumbs/personal/example_personal_song.png",
       "difficulties": ["Easy", "Normal"], "chartAvailable": true, "durationMs": 150000 }
   ]
 }
@@ -262,10 +262,10 @@ Implemented via a new internal static `ResolveChartPath(string songId, bool isPe
 ### 5.5 Manual smoke test
 
 - [ ] Fresh clone (or `git clean -fdx` of `Assets/StreamingAssets/` → restore from git): `catalog.personal.kfmanifest` does not exist; cold-start shows 4-song MainScreen; play through one song to completion.
-- [ ] Add `catalog.personal.kfmanifest` with one Huntrx entry; cold-start shows 5-song MainScreen; play Huntrx to completion.
+- [ ] Add `catalog.personal.kfmanifest` with one the personal song entry; cold-start shows 5-song MainScreen; play the personal song to completion.
 - [ ] Run `git status`: empty (no tracked changes from local-only personal additions).
 - [ ] `git check-ignore -v` against each of the 6 personal asset paths: all ignored, all matched against directory rules in `.gitignore` lines.
-- [ ] Build APK: only public songs included if `catalog.personal.kfmanifest` is absent at build time. (Verify via APK-extracting `unzip -l Builds/<apk> | grep -i huntrx` → no matches when running CI; matches on local dev machine after personal manifest is added.)
+- [ ] Build APK: only public songs included if `catalog.personal.kfmanifest` is absent at build time. (Verify via APK-extracting `unzip -l Builds/<apk> | grep -i example_personal_song` → no matches when running CI; matches on local dev machine after personal manifest is added.)
 
 ---
 
@@ -291,7 +291,7 @@ If this overlay system causes a post-merge regression:
 
 1. Revert the merge commit (PSO is delivered as one PR).
 2. Move the `personal/` subdir contents back to their flat-directory locations (one command per directory).
-3. Restore the morning's `huntrx_*` 6-line `.gitignore` block.
+3. Restore the morning's `<song_id>_*` 6-line `.gitignore` block.
 4. No data migration needed — `catalog.personal.kfmanifest` is local-only and gitignored regardless of revert.
 
 The four classical songs are unaffected by either direction since their files never moved.
@@ -303,7 +303,7 @@ The four classical songs are unaffected by either direction since their files ne
 - [ ] All new EditMode tests green (4-6 added).
 - [ ] All existing 196 EditMode tests green with zero source modification.
 - [ ] All existing 49 pytest tests green; new pytest tests (1-2) green.
-- [ ] `git status` shows no Huntrx-related files after restructure (all six properly ignored via directory rules).
+- [ ] `git status` shows no Personal-song-related files after restructure (all six properly ignored via directory rules).
 - [ ] `git check-ignore -v` verification passes for all six personal asset paths.
 - [ ] Manual smoke test §5.5 all checked.
 - [ ] CLAUDE.md updated with the convention.
@@ -331,7 +331,7 @@ The four classical songs are unaffected by either direction since their files ne
 - `CLAUDE.md`
 
 **Moved (6 files into `personal/` subdirs):**
-- huntrx_golden assets (chart, chart.meta, png, png.meta) and the source MIDI + batch yaml.
+- example_personal_song assets (chart, chart.meta, png, png.meta) and the source MIDI + batch yaml.
 
 **Total LoC (C# production):** ~40 lines across 4 files.
 **Total LoC (Python production):** ~10 lines.
